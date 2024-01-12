@@ -14,12 +14,19 @@ class Backend : public gen::Backend
 public:
 	Backend(FileList& headers);
 
+	bool generateHierarchy() override;
+
+	void exclude(std::string_view name);
+
 	Entity& getRoot() override;
 
 private:
-	void ensureHierarchyExists(CXString usr);
+	bool ensureHierarchyExists(CXString usr);
+	bool ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> from);
 
-	ScopeEntity global;
+	std::shared_ptr <ScopeEntity> global;
+	std::vector <std::string> nameExclusions;
+
 	CXIndex index;
 };
 

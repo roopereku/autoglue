@@ -8,6 +8,15 @@ namespace gen
 
 class FunctionEntity : public Entity
 {
+public:
+	FunctionEntity(std::string_view name) : Entity(name)
+	{
+	}
+
+	const char* getTypeString() override
+	{
+		return "Function";
+	}
 };
 
 }

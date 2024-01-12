@@ -8,6 +8,19 @@ namespace gen
 
 class ScopeEntity : public Entity
 {
+public:
+	ScopeEntity(std::string_view name) : Entity(name)
+	{
+	}
+
+	ScopeEntity()
+	{
+	}
+
+	const char* getTypeString() override
+	{
+		return "Scope";
+	}
 };
 
 }

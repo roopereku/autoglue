@@ -10,6 +10,8 @@ class Backend
 {
 public:
 	virtual Entity& getRoot() = 0;
+
+	virtual bool generateHierarchy() = 0;
 };
 
 }
