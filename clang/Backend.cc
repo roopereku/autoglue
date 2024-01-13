@@ -1,5 +1,6 @@
 #include <gen/clang/Backend.hh>
 #include <gen/FunctionEntity.hh>
+#include <gen/ParameterEntity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 
@@ -7,6 +8,8 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <cctype>
+#include <set>
 
 namespace gen::clang
 {
@@ -28,12 +31,60 @@ Entity& Backend::getRoot()
 	return *global;
 }
 
+bool Backend::loadCompilationDatabase(std::string_view directoryPath)
+{
+	CXCompilationDatabase_Error error;
+	compilationDatabase = clang_CompilationDatabase_fromDirectory(std::string(directoryPath).c_str(), &error);
+
+	if(error == CXCompilationDatabase_CanNotLoadDatabase)
+	{
+		std::cerr << "Unable to load a compilation database from " << directoryPath << '\n';
+		return false;
+	}
+
+	return true;
+}
+
 bool Backend::generateHierarchy()
 {
+	auto compileCommands = clang_CompilationDatabase_getAllCompileCommands(compilationDatabase);
+	std::vector <const char*> clangArgs;
+
+	// Iterate all compilation comands.
+	for(unsigned i = 0; i < clang_CompileCommands_getSize(compileCommands); i++)
+	{
+		bool ignoreNext = false;
+
+		auto command = clang_CompileCommands_getCommand(compileCommands, i);
+		for(unsigned a = 0; a < clang_CompileCommand_getNumArgs(command); a++)
+		{
+			auto arg = clang_CompileCommand_getArg(command, a);
+			std::string_view str(clang_getCString(arg));
+
+			if(ignoreNext)
+			{
+				ignoreNext = false;
+			}
+
+			else if(str == "-o" || str == "-c")
+			{
+				ignoreNext = true;
+			}
+
+			else
+			{
+				//std::cout << "Clang arg " << str << '\n';
+				clangArgs.emplace_back(str.data());
+			}
+				
+			//clang_disposeString(arg);
+		}
+	}
+
 	// Tell clang to compile the headers.
 	CXTranslationUnit unit = clang_parseTranslationUnit(
 		index, "inclusions.cc",
-		nullptr, 0,
+		clangArgs.data(), clangArgs.size(),
 		nullptr, 0,
 		CXTranslationUnit_None
 	);
@@ -54,6 +105,7 @@ bool Backend::generateHierarchy()
 
 			switch(cursor.kind)
 			{
+				// For classes and functions make sure that the entity hierarchy exists.
 				case CXCursorKind::CXCursor_ClassDecl:
 				case CXCursorKind::CXCursor_StructDecl:
 				case CXCursorKind::CXCursor_CXXMethod:
@@ -62,17 +114,15 @@ bool Backend::generateHierarchy()
 					{
 						return CXChildVisit_Continue;
 					}
+
+					break;
 				}
 
 				case CXCursorKind::CXCursor_ParmDecl:
 				{
-					auto result = backend->ensureHierarchyExists(cursor);
-
-					if(result)
+					if(!backend->ensureHierarchyExists(cursor))
 					{
-						auto function = std::static_pointer_cast <FunctionEntity> (result);
-						auto spelling = clang_getCursorSpelling(cursor);
-						clang_disposeString(spelling);
+						return CXChildVisit_Continue;
 					}
 
 					break;
@@ -95,116 +145,101 @@ bool Backend::generateHierarchy()
 
 std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 {
-	auto usr = clang_getCursorUSR(cursor);
-	std::string_view str(clang_getCString(usr));
-	std::shared_ptr <Entity> result;
-
-	if(!str.empty())
+	// Translation unit indicates the global scope.
+	if(cursor.kind == CXCursorKind::CXCursor_TranslationUnit)
 	{
-		// Ignore c:@ and parse the USR.
-		str = str.substr(str.find('@') + 1);
-		result = ensureEntityExists(str, global);
+		return global;
 	}
 
-	clang_disposeString(usr);
-	return result;
-}
+	auto parent = clang_getCursorSemanticParent(cursor);
+	auto parentEntity = ensureHierarchyExists(parent);
 
-std::shared_ptr <Entity> Backend::ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> from)
-{
-	size_t nameBegin = usr.find('@') + 1;
-	size_t nameEnd = usr.find('@', nameBegin);
-
-	bool recurse = true;
-
-	// Get the type and name of the current entity.
-	std::string_view entityType(usr.substr(0, nameBegin - 1));
-	std::string_view entityName(usr.substr(nameBegin, nameEnd - nameBegin));
-
-	// For functions remove the parameter information (Anything after the first "#").
-	// NOTE: ensureEntityExists shouldn't be called after this.
-	// TODO: Do this for classes as well.
-	if(entityType == "F")
+	if(!parentEntity)
 	{
-		size_t nextHash = entityName.find('#');
-
-		if(nextHash != std::string_view::npos)
-		{
-			entityName = entityName.substr(0, nextHash);
-			recurse = false;
-		}
+		return nullptr;
 	}
 
-	// Strip anything after a dot and the dot in order to not confuse Entity::resolve().
-	size_t nextDot = entityName.find('.');
-	if(nextDot != std::string_view::npos)
+	auto spelling = clang_getCursorSpelling(cursor);
+	auto entity = parentEntity->resolve(clang_getCString(spelling));
+
+	if(!entity)
 	{
-		entityName = entityName.substr(0, nextDot);
-	}
-
-	// Try to resolve an existing entity.
-	auto result = from->resolve(entityName);
-
-	// If given entity doesn't exist, try to create it.
-	if(!result)
-	{
-		if(entityType.size() > 1)
+		switch(cursor.kind)
 		{
-			//std::cerr << "Unimplemented: Multicharacter USR type " << entityType << " in " << usr << '\n';
-			return nullptr;
-		}
-
-		switch(usr[0])
-		{
-			// "S" indicates a class or a struct.
-			case 'S':
+			case CXCursorKind::CXCursor_ClassDecl:
+			case CXCursorKind::CXCursor_StructDecl:
 			{
-				from->addChild(std::make_shared <ClassEntity> (entityName));
+				parentEntity->addChild(std::make_shared <ClassEntity> (clang_getCString(spelling)));
 				break;
 			}
 
-			// "E" indicates an enum.
-			case 'E':
+			case CXCursorKind::CXCursor_Namespace:
 			{
-				from->addChild(std::make_shared <EnumEntity> (entityName));
+				parentEntity->addChild(std::make_shared <ScopeEntity> (clang_getCString(spelling)));
 				break;
 			}
 
-			// "F" indicates a function.
-			case 'F':
+			case CXCursorKind::CXCursor_CXXMethod:
+			case CXCursorKind::CXCursor_Constructor:
+			case CXCursorKind::CXCursor_Destructor:
+			case CXCursorKind::CXCursor_FunctionDecl:
 			{
-				from->addChild(std::make_shared <FunctionEntity> (entityName));
+				parentEntity->addChild(std::make_shared <FunctionEntity> (clang_getCString(spelling)));
 				break;
 			}
 
-			// "N" indicates a namespace.
-			case 'N':
+			case CXCursorKind::CXCursor_ParmDecl:
 			{
-				from->addChild(std::make_shared <ScopeEntity> (entityName));
+				parentEntity->addChild(std::make_shared <ParameterEntity> (clang_getCString(spelling)));
 				break;
 			}
 
 			default:
 			{
-				std::cerr << "Unimplemented: USR type " << usr[0] << " in " << usr << '\n';
-				return nullptr;
+				auto cursorKind = clang_getCursorKindSpelling(cursor.kind);
+				std::cerr << "Unimplemented ensuring for cursor kind " << clang_getCString(cursorKind) << '\n';
+				clang_disposeString(cursorKind);
 			}
 		}
 
-		// Try to resolve the newly created entity.
-		result = from->resolve(entityName);
-		assert(result);
+		// After adding, try to resolve the entity again.
+		entity = parentEntity->resolve(clang_getCString(spelling));
 	}
 
-	// If there are no more "@" symbols, this is the end.
-	if(nameEnd == std::string_view::npos || !recurse)
-	{
-		return result;
-	}
+	clang_disposeString(spelling);
+	return entity;
+}
 
-	// Go to the next portion of the usr and make sure that it exists.
-	usr = usr.substr(nameEnd + 1);
-	return ensureEntityExists(usr, result);
+std::shared_ptr <ClassEntity> Backend::resolveType(CXCursor cursor)
+{
+	auto cursorType = clang_getCanonicalType(clang_getCursorType(cursor));
+
+	//// Remove pointers.
+	//if(cursorType.kind == CXTypeKind::CXType_Pointer)
+	//{
+	//	cursorType = clang_getPointeeType(cursorType);
+	//}
+
+	// Remove references.
+	cursorType = clang_getNonReferenceType(cursorType);
+
+	// Remove modifiers.
+	cursorType = clang_getUnqualifiedType(cursorType);
+
+	auto spelling = clang_getTypeSpelling(cursorType);
+	//std::cout << "Get declaration for " << clang_getCString(spelling) << '\n';
+	clang_disposeString(spelling);
+
+	auto declaration = clang_getTypeDeclaration(cursorType);
+
+	auto declKind = clang_getCursorKindSpelling(declaration.kind);
+	auto declUsr = clang_getCursorUSR(declaration);
+	std::cout << "Declaration " << clang_getCString(declUsr) << " is of kind " << clang_getCString(declKind) << '\n';
+	clang_disposeString(declKind);
+	clang_disposeString(declUsr);
+
+	// Get the type as an entity.
+	return std::static_pointer_cast <ClassEntity> (ensureHierarchyExists(declaration));
 }
 
 }

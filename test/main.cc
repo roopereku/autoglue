@@ -14,8 +14,10 @@ int main(int argc, char** argv)
 	gen::FileList headers(argv[1]);
 	gen::clang::Backend clangBackend(headers);
 
-	//clangBackend.exclude("std");
-	//clangBackend.exclude("__gnu_cxx");
+	if(!clangBackend.loadCompilationDatabase("."))
+	{
+		return 1;
+	}
 
 	if(!clangBackend.generateHierarchy())
 	{

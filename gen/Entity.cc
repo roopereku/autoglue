@@ -53,12 +53,17 @@ const std::string& Entity::getName() const
 void Entity::list(unsigned depth)
 {
 	std::string indent(depth, '-');
-	std::cout << indent << " " << getTypeString() << " " << name << '\n';
+	onList(indent);
 
 	for(auto child : children)
 	{
 		child->list(depth + 1);
 	}
+}
+
+void Entity::onList(std::string_view indent)
+{
+	std::cout << indent << " " << getTypeString() << " " << name << '\n';
 }
 
 }

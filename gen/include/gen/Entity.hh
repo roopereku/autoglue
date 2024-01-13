@@ -34,7 +34,10 @@ public:
 
 	virtual const char* getTypeString() = 0;
 
-	virtual void list(unsigned depth = 1);
+	void list(unsigned depth = 1);
+
+protected:
+	virtual void onList(std::string_view indent);
 
 private:
 	std::string name;
