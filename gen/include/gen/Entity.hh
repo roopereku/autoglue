@@ -27,9 +27,14 @@ public:
 	/// \param The resolved entity or nullptr.
 	std::shared_ptr <Entity> resolve(std::string_view qualifiedName);
 
+	/// Gets the entity name.
+	///
+	/// \return The entity name if any.
+	const std::string& getName() const;
+
 	virtual const char* getTypeString() = 0;
 
-	void list(unsigned depth = 1);
+	virtual void list(unsigned depth = 1);
 
 private:
 	std::string name;

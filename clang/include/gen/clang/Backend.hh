@@ -4,6 +4,7 @@
 #include <gen/Backend.hh>
 #include <gen/FileList.hh>
 #include <gen/ScopeEntity.hh>
+#include <gen/FunctionEntity.hh>
 #include <clang-c/Index.h>
 
 namespace gen::clang
@@ -16,17 +17,15 @@ public:
 
 	bool generateHierarchy() override;
 
-	void exclude(std::string_view name);
-
 	Entity& getRoot() override;
 
 private:
-	bool ensureHierarchyExists(CXString usr);
-	bool ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> from);
+	/// Tries to ensure that the hierarchy specified by a cursor USR exists.
+	std::shared_ptr <Entity> ensureHierarchyExists(CXCursor cursor);
+
+	std::shared_ptr <Entity> ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> from);
 
 	std::shared_ptr <ScopeEntity> global;
-	std::vector <std::string> nameExclusions;
-
 	CXIndex index;
 };
 

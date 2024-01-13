@@ -45,6 +45,11 @@ std::shared_ptr <Entity> Entity::resolve(std::string_view qualifiedName)
 	return nullptr;
 }
 
+const std::string& Entity::getName() const
+{
+	return name;
+}
+
 void Entity::list(unsigned depth)
 {
 	std::string indent(depth, '-');

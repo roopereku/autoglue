@@ -50,23 +50,31 @@ bool Backend::generateHierarchy()
 
 		[](CXCursor cursor, CXCursor parent, CXClientData data)
 		{
+			auto backend = static_cast <Backend*> (data);
+
 			switch(cursor.kind)
 			{
 				case CXCursorKind::CXCursor_ClassDecl:
 				case CXCursorKind::CXCursor_StructDecl:
 				case CXCursorKind::CXCursor_CXXMethod:
 				{
-					auto backend = static_cast <Backend*> (data);
-					auto usr = clang_getCursorUSR(cursor);
-
-					// If ensuring the hierarchy fails, stop traversing.
-					if(!backend->ensureHierarchyExists(usr))
+					if(!backend->ensureHierarchyExists(cursor))
 					{
-						backend->global = nullptr;
-						return CXChildVisit_Break;
+						return CXChildVisit_Continue;
+					}
+				}
+
+				case CXCursorKind::CXCursor_ParmDecl:
+				{
+					auto result = backend->ensureHierarchyExists(cursor);
+
+					if(result)
+					{
+						auto function = std::static_pointer_cast <FunctionEntity> (result);
+						auto spelling = clang_getCursorSpelling(cursor);
+						clang_disposeString(spelling);
 					}
 
-					clang_disposeString(usr);
 					break;
 				}
 
@@ -85,28 +93,24 @@ bool Backend::generateHierarchy()
 	return static_cast <bool> (global);
 }
 
-void Backend::exclude(std::string_view name)
+std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 {
-	nameExclusions.emplace_back(name);
-}
-
-bool Backend::ensureHierarchyExists(CXString usr)
-{
+	auto usr = clang_getCursorUSR(cursor);
 	std::string_view str(clang_getCString(usr));
+	std::shared_ptr <Entity> result;
 
-	// Ignore c:@.
-	str = str.substr(str.find('@') + 1);
-
-	if(!ensureEntityExists(str, global))
+	if(!str.empty())
 	{
-		std::cerr << "Ensuring " << str << " failed\n";
-		return false;
+		// Ignore c:@ and parse the USR.
+		str = str.substr(str.find('@') + 1);
+		result = ensureEntityExists(str, global);
 	}
 
-	return true;
+	clang_disposeString(usr);
+	return result;
 }
 
-bool Backend::ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> from)
+std::shared_ptr <Entity> Backend::ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> from)
 {
 	size_t nameBegin = usr.find('@') + 1;
 	size_t nameEnd = usr.find('@', nameBegin);
@@ -138,12 +142,6 @@ bool Backend::ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> 
 		entityName = entityName.substr(0, nextDot);
 	}
 
-		// Fake an existing entity if it has a name that should be ignored.
-	if(std::find(nameExclusions.begin(), nameExclusions.end(), entityName) != nameExclusions.end())
-	{
-		return true;
-	}
-
 	// Try to resolve an existing entity.
 	auto result = from->resolve(entityName);
 
@@ -152,8 +150,8 @@ bool Backend::ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> 
 	{
 		if(entityType.size() > 1)
 		{
-			std::cerr << "Unimplemented: Multicharacter USR type " << entityType << " in " << usr << '\n';
-			return true;
+			//std::cerr << "Unimplemented: Multicharacter USR type " << entityType << " in " << usr << '\n';
+			return nullptr;
 		}
 
 		switch(usr[0])
@@ -189,24 +187,19 @@ bool Backend::ensureEntityExists(std::string_view usr, std::shared_ptr <Entity> 
 			default:
 			{
 				std::cerr << "Unimplemented: USR type " << usr[0] << " in " << usr << '\n';
-				return true;
+				return nullptr;
 			}
 		}
 
 		// Try to resolve the newly created entity.
 		result = from->resolve(entityName);
-
-		if(!result)
-		{
-			std::cerr << "Resolve after adding " << entityType << " " << entityName << " failed\n";
-			return false;
-		}
+		assert(result);
 	}
 
 	// If there are no more "@" symbols, this is the end.
 	if(nameEnd == std::string_view::npos || !recurse)
 	{
-		return true;
+		return result;
 	}
 
 	// Go to the next portion of the usr and make sure that it exists.
