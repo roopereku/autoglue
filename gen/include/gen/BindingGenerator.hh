@@ -71,6 +71,14 @@ public:
 	/// \param entity The ScopeEntity to generate a ending for. This should always have a name.
 	virtual void generateNamedScopeEnding(ScopeEntity& entity) = 0;
 
+	/// Changes the class depth.
+	///
+	/// \param amount Positive or a negative number indicating which way the class depth should go.
+	void changeClassDepth(int amount);
+
+protected:
+	unsigned getClassDepth();
+
 private:
 	Backend& backend;
 	unsigned classDepth = 0;

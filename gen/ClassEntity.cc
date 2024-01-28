@@ -13,6 +13,7 @@ void ClassEntity::generate(BindingGenerator& generator)
 {
 	// Begin the class.
 	generator.generateClassBeginning(*this);
+	generator.changeClassDepth(+1);
 
 	// Generate the nested entities.
 	for(auto child : children)
@@ -21,6 +22,7 @@ void ClassEntity::generate(BindingGenerator& generator)
 	}
 
 	// End the class.
+	generator.changeClassDepth(-1);
 	generator.generateClassEnding(*this);
 }
 

@@ -4,6 +4,7 @@
 #include <gen/BindingGenerator.hh>
 
 #include <fstream>
+#include <stack>
 
 namespace gen::java
 {
@@ -23,6 +24,9 @@ private:
 	void generateParameter(ParameterEntity& entity) override;
 	void generateNamedScopeBeginning(ScopeEntity& entity) override;
 	void generateNamedScopeEnding(ScopeEntity& entity) override;
+
+	std::ofstream file;
+	std::stack <std::string> package;
 };
 
 }
