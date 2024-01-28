@@ -3,7 +3,7 @@
 namespace gen
 {
 
-FileList::FileList(std::filesystem::path rootDirectory)
+FileList::FileList(std::filesystem::path rootDirectory, std::string_view extension)
 {
 	// Recursively iterate the given directory.
 	for(const auto& path : std::filesystem::recursive_directory_iterator(rootDirectory))
@@ -11,6 +11,12 @@ FileList::FileList(std::filesystem::path rootDirectory)
 		// Save regular files.
 		if(path.is_regular_file())
 		{
+			// If the extension is filtered, only save paths that have the extension.
+			if(!extension.empty() && path.path().extension() != extension)
+			{
+				continue;
+			}
+
 			files.emplace_back(path);
 		}
 	}
