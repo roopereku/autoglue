@@ -9,16 +9,14 @@ namespace gen
 class FunctionEntity : public Entity
 {
 public:
-	FunctionEntity(std::string_view name) : Entity(name)
-	{
-	}
+	FunctionEntity(std::string_view name);
 
-	// TODO: Add return type.
+	/// Generates this function entity.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generate(BindingGenerator& generator) override;
 
-	const char* getTypeString() override
-	{
-		return "Function";
-	}
+	const char* getTypeString() override;
 };
 
 }

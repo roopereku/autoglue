@@ -9,14 +9,14 @@ namespace gen
 class ClassEntity : public Entity
 {
 public:
-	ClassEntity(std::string_view name) : Entity(name)
-	{
-	}
+	ClassEntity(std::string_view name);
 
-	const char* getTypeString() override
-	{
-		return "Class";
-	}
+	/// Generates a class body including nested entities.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generate(BindingGenerator& generator) override;
+
+	const char* getTypeString() override;
 };
 
 }

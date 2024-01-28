@@ -245,10 +245,10 @@ std::shared_ptr <ClassEntity> Backend::resolveType(CXCursor cursor)
 		std::string typeName(clang_getCString(spelling));
 		clang_disposeString(spelling);
 
-		if(clang_Type_getNumTemplateArguments(cursorType) != -1)
-		{
-			std::cout << "Template " << typeName << '\n';
-		}
+		//if(clang_Type_getNumTemplateArguments(cursorType) != -1)
+		//{
+		//	std::cout << "Template " << typeName << '\n';
+		//}
 
 		// Replace spaces and namespace resolutions with underscores.
 		std::replace(typeName.begin(), typeName.end(), ' ', '_');

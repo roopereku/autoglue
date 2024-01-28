@@ -9,18 +9,15 @@ namespace gen
 class ScopeEntity : public Entity
 {
 public:
-	ScopeEntity(std::string_view name) : Entity(name)
-	{
-	}
+	ScopeEntity(std::string_view name);
+	ScopeEntity();
 
-	ScopeEntity()
-	{
-	}
+	/// Generates this scope if the name is set.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generate(BindingGenerator& generator) override;
 
-	const char* getTypeString() override
-	{
-		return "Scope";
-	}
+	const char* getTypeString() override;
 };
 
 }

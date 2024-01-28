@@ -12,6 +12,11 @@ class ParameterEntity : public Entity
 public:
 	ParameterEntity(std::string_view name, std::shared_ptr <ClassEntity> type);
 
+	/// Generates this enum entry.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generate(BindingGenerator& generator) override;
+
 	const char* getTypeString() override;
 
 private:

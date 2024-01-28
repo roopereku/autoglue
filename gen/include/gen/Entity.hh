@@ -9,6 +9,8 @@
 namespace gen
 {
 
+class BindingGenerator;
+
 class Entity
 {
 public:
@@ -32,6 +34,12 @@ public:
 	/// \return The entity name if any.
 	const std::string& getName() const;
 
+	/// This function is implemented by the given entity class.
+	/// It calls the appropriate functions from a binding generator.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	virtual void generate(BindingGenerator& generator) = 0;
+
 	virtual const char* getTypeString() = 0;
 
 	void list(unsigned depth = 1);
@@ -39,8 +47,7 @@ public:
 protected:
 	virtual void onList(std::string_view indent);
 
-private:
-	std::string name;
+	const std::string name;
 	std::vector <std::shared_ptr <Entity>> children;
 };
 
