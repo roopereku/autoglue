@@ -7,10 +7,10 @@ endif()
 
 add_subdirectory(gen)
 
-if(NOT DEFINED build_clang_backend)
-	set(build_clang_backend OFF)
+if(DEFINED build_clang_backend AND build_clang_backend)
+	add_subdirectory(clang)
 endif()
 
-if(build_clang_backend)
-	add_subdirectory(clang)
+if(DEFINED build_java_generator AND build_java_generator)
+	add_subdirectory(java/generator)
 endif()

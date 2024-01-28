@@ -4,7 +4,7 @@
 #include <gen/clang/Backend.hh>
 #include <gen/clang/GlueGenerator.hh>
 
-#include <gen/generator/PythonClassGenerator.hh>
+#include <gen/java/BindingGenerator.hh>
 
 #include <cassert>
 
@@ -27,6 +27,9 @@ int main(int argc, char** argv)
 
 	gen::clang::GlueGenerator glueGen(clangBackend);
 	glueGen.generateBindings();
+
+	gen::java::BindingGenerator javaGen(clangBackend);
+	javaGen.generateBindings();
 
 	//clangBackend.getRoot().list();
 	//clangBackend.getRoot().resolve("gen")->list();
