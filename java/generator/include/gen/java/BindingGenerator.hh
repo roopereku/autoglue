@@ -29,7 +29,6 @@ private:
 	bool isTrivialType(ClassEntity& entity);
 
 	std::string getJniType(ClassEntity& entity);
-	std::string getHierarchyPrefix(Entity& entity);
 
 	std::ofstream file;
 	std::ofstream jni;

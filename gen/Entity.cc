@@ -63,6 +63,17 @@ const std::string& Entity::getName() const
 	return name;
 }
 
+std::string Entity::getHierarchy()
+{
+	if(isRoot())
+	{
+		return name;
+	}
+
+	return parent->getHierarchy() + '_' + name;
+
+}
+
 void Entity::list(unsigned depth)
 {
 	std::string indent(depth, '-');

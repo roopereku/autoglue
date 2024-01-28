@@ -45,8 +45,7 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 	// TODO: Only do this if no inheritance is present.
 	file << "protected long thisHandle;\n\n";
 
-	auto prefix = getHierarchyPrefix(entity);
-	auto nativeName = 'n' + prefix + "_cast" + entity.getName();
+	auto nativeName = 'n' + entity.getHierarchy() + "_cast" + entity.getName();
 
 	// Declare a native method for the caster function.
 	file << "private native " << nativeName << "(long thisHandle);\n\n";
@@ -210,16 +209,6 @@ bool BindingGenerator::isTrivialType(ClassEntity& entity)
 void BindingGenerator::generateArgumentSeparator()
 {
 	file << ", ";
-}
-
-std::string BindingGenerator::getHierarchyPrefix(Entity& entity)
-{
-	if(entity.isRoot())
-	{
-		return entity.getName();
-	}
-
-	return getHierarchyPrefix(entity.getParent()) + '_' + entity.getName();
 }
 
 }

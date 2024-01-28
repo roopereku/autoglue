@@ -44,6 +44,11 @@ public:
 	/// \return The entity name if any.
 	const std::string& getName() const;
 
+	/// Returns a string containing the hierarchy leading up to this entity.
+	///
+	/// \return String containing the hierarchy. Underscores are used as delimiters.
+	std::string getHierarchy();
+
 	/// This function is implemented by the given entity class.
 	/// It calls the appropriate functions from a binding generator.
 	///
