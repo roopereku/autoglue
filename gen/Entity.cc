@@ -1,5 +1,6 @@
 #include <gen/Entity.hh>
 
+#include <cassert>
 #include <iostream>
 
 namespace gen
@@ -15,7 +16,19 @@ Entity::Entity()
 
 void Entity::addChild(std::shared_ptr <Entity>&& child)
 {
+	child->parent = this;
 	children.emplace_back(std::move(child));
+}
+
+bool Entity::isRoot()
+{
+	return !parent;
+}
+
+Entity& Entity::getParent()
+{
+	assert(parent);
+	return *parent;
 }
 
 std::shared_ptr <Entity> Entity::resolve(std::string_view qualifiedName)

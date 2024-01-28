@@ -21,6 +21,16 @@ public:
 	///
 	/// \return child The new child entity.
 	void addChild(std::shared_ptr <Entity>&& child);
+
+	/// Checks if this entity is the root entity.
+	///
+	/// \return True if this is the root entity.
+	bool isRoot();
+
+	/// Gets the parent entity.
+	///
+	/// \return The parent entity.
+	Entity& getParent();
 	
 	/// Resolves an entity that has the given qualified
 	/// name relative to this entity.
@@ -47,6 +57,7 @@ public:
 protected:
 	virtual void onList(std::string_view indent);
 
+	Entity* parent = nullptr;
 	const std::string name;
 	std::vector <std::shared_ptr <Entity>> children;
 };

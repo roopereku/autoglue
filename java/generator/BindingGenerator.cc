@@ -44,6 +44,24 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 	// Store a pointer to the "this" handle.
 	// TODO: Only do this if no inheritance is present.
 	file << "protected long thisHandle;\n\n";
+
+	auto prefix = getHierarchyPrefix(entity);
+	auto nativeName = 'n' + prefix + "_cast" + entity.getName();
+
+	// Declare a native method for the caster function.
+	file << "private native " << nativeName << "(long thisHandle);\n\n";
+
+	// Define a public interface for the caster funciton.
+	file << "public long cast" + entity.getName() << "() {\n";
+	file << "return " << nativeName << "(thisHandle);\n}\n\n";
+
+	auto packagePath = package.top();
+	std::replace(packagePath.begin(), packagePath.end(), '.', '_');
+
+	// Define a JNI bridge for the caster function.
+	// TODO: Make this call a function provided by the glue code.
+	jni << "extern \"C\" JNIEXPORT jlong JNICALL " << nativeName << "(JNIEnv*, jobject, jlong thisHandle)\n{\n";
+	jni << "return thisHandle;\n}\n\n";
 }
 
 void BindingGenerator::generateClassEnding(ClassEntity& entity)
@@ -87,8 +105,21 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	entity.generateParameters(*this);
 	file << ") {\n";
 
+	file << nativeName << "(";
+
+	// If this function is inside a class, pass "thisHandle" as the first argument.
+	if(getClassDepth() > 0)
+	{
+		file << "thisHandle";
+
+		// If there are more arguments, add a comma.
+		if(entity.getParameterCount())
+		{
+			file << ", ";
+		}
+	}
+
 	// Call the native method with the passed parameters.
-	file << nativeName << '(';
 	onlyParameterNames = true;
 	entity.generateParameters(*this);
 	onlyParameterNames = false;
@@ -128,7 +159,18 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 	if(onlyParameterNames)
 	{
-		target << entity.getName();
+		// If an argument name is used in non JNI context, pass it in the
+		// appropriate way.
+		if(!inJni)
+		{
+			auto& type = entity.getType();
+			target << entity.getName() << ".cast" << type.getName() << "()";
+		}
+
+		else
+		{
+			target << entity.getName();
+		}
 	}
 
 	else
@@ -157,13 +199,27 @@ void BindingGenerator::generateNamedScopeEnding(ScopeEntity& entity)
 	package.pop();
 }
 
+bool BindingGenerator::isTrivialType(ClassEntity& entity)
+{
+	const auto& name = entity.getName();
+
+	return name == "string" ||
+			name == "int";
+}
+
 void BindingGenerator::generateArgumentSeparator()
 {
 	file << ", ";
 }
 
-std::string BindingGenerator::getJniType(ClassEntity& entity)
+std::string BindingGenerator::getHierarchyPrefix(Entity& entity)
 {
+	if(entity.isRoot())
+	{
+		return entity.getName();
+	}
+
+	return getHierarchyPrefix(entity.getParent()) + '_' + entity.getName();
 }
 
 }
