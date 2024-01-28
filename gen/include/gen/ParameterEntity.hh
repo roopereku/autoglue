@@ -2,6 +2,7 @@
 #define GEN_PARAMETER_ENTITY_HH
 
 #include <gen/Entity.hh>
+#include <gen/ClassEntity.hh>
 
 namespace gen
 {
@@ -9,16 +10,14 @@ namespace gen
 class ParameterEntity : public Entity
 {
 public:
-	ParameterEntity(std::string_view name) : Entity(name)
-	{
-	}
+	ParameterEntity(std::string_view name, std::shared_ptr <ClassEntity> type);
 
-	// TODO: Add type.
+	const char* getTypeString() override;
 
-	const char* getTypeString() override
-	{
-		return "Parameter";
-	}
+private:
+	void onList(std::string_view indent) override;
+
+	std::shared_ptr <ClassEntity> type;
 };
 
 }

@@ -151,6 +151,7 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 		return global;
 	}
 
+	// Make sure that the containing entity exists.
 	auto parent = clang_getCursorSemanticParent(cursor);
 	auto parentEntity = ensureHierarchyExists(parent);
 
@@ -159,13 +160,16 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 		return nullptr;
 	}
 
+	// Check if the current entity already exists within the parent.
 	auto spelling = clang_getCursorSpelling(cursor);
 	auto entity = parentEntity->resolve(clang_getCString(spelling));
 
+	// If the current entity doesn't exist, create it.
 	if(!entity)
 	{
 		switch(cursor.kind)
 		{
+			// Structs and classes become class entities.
 			case CXCursorKind::CXCursor_ClassDecl:
 			case CXCursorKind::CXCursor_StructDecl:
 			{
@@ -173,12 +177,14 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 				break;
 			}
 
+			// Namespaces become named scope entities.
 			case CXCursorKind::CXCursor_Namespace:
 			{
 				parentEntity->addChild(std::make_shared <ScopeEntity> (clang_getCString(spelling)));
 				break;
 			}
 
+			// Anything that's a function becomes a function entity.
 			case CXCursorKind::CXCursor_CXXMethod:
 			case CXCursorKind::CXCursor_Constructor:
 			case CXCursorKind::CXCursor_Destructor:
@@ -188,16 +194,19 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 				break;
 			}
 
+			// Create parameter entities and associate them with the appropriate type.
 			case CXCursorKind::CXCursor_ParmDecl:
 			{
-				parentEntity->addChild(std::make_shared <ParameterEntity> (clang_getCString(spelling)));
+				auto paramType = resolveType(cursor);
+
+				parentEntity->addChild(std::make_shared <ParameterEntity> (clang_getCString(spelling), paramType));
 				break;
 			}
 
 			default:
 			{
 				auto cursorKind = clang_getCursorKindSpelling(cursor.kind);
-				std::cerr << "Unimplemented ensuring for cursor kind " << clang_getCString(cursorKind) << '\n';
+				//std::cerr << "Unimplemented ensuring for cursor kind " << clang_getCString(cursorKind) << '\n';
 				clang_disposeString(cursorKind);
 			}
 		}
@@ -214,27 +223,53 @@ std::shared_ptr <ClassEntity> Backend::resolveType(CXCursor cursor)
 {
 	auto cursorType = clang_getCanonicalType(clang_getCursorType(cursor));
 
-	//// Remove pointers.
-	//if(cursorType.kind == CXTypeKind::CXType_Pointer)
-	//{
-	//	cursorType = clang_getPointeeType(cursorType);
-	//}
-
 	// Remove references.
 	cursorType = clang_getNonReferenceType(cursorType);
 
-	// Remove modifiers.
-	cursorType = clang_getUnqualifiedType(cursorType);
-
-	auto spelling = clang_getTypeSpelling(cursorType);
-	//std::cout << "Get declaration for " << clang_getCString(spelling) << '\n';
-	clang_disposeString(spelling);
-
+	// Get the type declaration and do special handling if it's not found.
 	auto declaration = clang_getTypeDeclaration(cursorType);
+	if(declaration.kind == CXCursorKind::CXCursor_NoDeclFound)
+	{
+		// Remove qualifiers such as const. Explicitly do this only for types without
+		// a declaration as getting the type declaration should do the same.
+		cursorType = clang_getUnqualifiedType(cursorType);
+
+		// Remove pointers.
+		while(cursorType.kind == CXTypeKind::CXType_Pointer)
+		{
+			cursorType = clang_getPointeeType(cursorType);
+		}
+
+		// Save the type spelling into an editable string.
+		auto spelling = clang_getTypeSpelling(cursorType);
+		std::string typeName(clang_getCString(spelling));
+		clang_disposeString(spelling);
+
+		if(clang_Type_getNumTemplateArguments(cursorType) != -1)
+		{
+			std::cout << "Template " << typeName << '\n';
+		}
+
+		// Replace spaces and namespace resolutions with underscores.
+		std::replace(typeName.begin(), typeName.end(), ' ', '_');
+		std::replace(typeName.begin(), typeName.end(), ':', '_');
+
+		// Check if this type was already added.
+		auto result = global->resolve(typeName);
+		if(!result)
+		{
+			// If the type can't be found in the global scope, add it.
+			global->addChild(std::make_shared <ClassEntity> (typeName));
+			result = global->resolve(typeName);
+		}
+
+		return std::static_pointer_cast <ClassEntity> (result);
+	}
 
 	auto declKind = clang_getCursorKindSpelling(declaration.kind);
 	auto declUsr = clang_getCursorUSR(declaration);
-	std::cout << "Declaration " << clang_getCString(declUsr) << " is of kind " << clang_getCString(declKind) << '\n';
+
+	//std::cout << "Declaration " << clang_getCString(declUsr) << " is of kind " << clang_getCString(declKind) << '\n';
 	clang_disposeString(declKind);
 	clang_disposeString(declUsr);
 

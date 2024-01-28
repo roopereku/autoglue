@@ -24,5 +24,5 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	clangBackend.getRoot().resolve("gen")->list();
+	//clangBackend.getRoot().list();
 }
