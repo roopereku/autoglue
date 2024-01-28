@@ -21,12 +21,22 @@ private:
 	void generateEnumEnding(EnumEntity& entity) override;
 	void generateEnumEntry(EnumEntryEntity& entity) override;
 	void generateFunction(FunctionEntity& entity) override;
-	void generateParameter(ParameterEntity& entity) override;
+	void generateTypeReference(TypeReferenceEntity& entity) override;
 	void generateNamedScopeBeginning(ScopeEntity& entity) override;
 	void generateNamedScopeEnding(ScopeEntity& entity) override;
+	void generateArgumentSeparator() override;
+
+	std::string getJniType(ClassEntity& entity);
 
 	std::ofstream file;
+	std::ofstream jni;
 	std::stack <std::string> package;
+
+	/// Used to only write parameter names when a bridge function is called.
+	bool onlyParameterNames = false;
+
+	/// Used to indicate that type parameters should be written to the JNI.
+	bool inJni = false;
 };
 
 }

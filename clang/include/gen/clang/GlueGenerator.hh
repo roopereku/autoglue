@@ -22,9 +22,10 @@ private:
 	void generateEnumEnding(EnumEntity& entity) override;
 	void generateEnumEntry(EnumEntryEntity& entity) override;
 	void generateFunction(FunctionEntity& entity) override;
-	void generateParameter(ParameterEntity& entity) override;
+	void generateTypeReference(TypeReferenceEntity& entity) override;
 	void generateNamedScopeBeginning(ScopeEntity& entity) override;
 	void generateNamedScopeEnding(ScopeEntity& entity) override;
+	void generateArgumentSeparator() override;
 
 	std::ofstream file;
 };

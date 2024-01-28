@@ -33,7 +33,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
 }
 
-void GlueGenerator::generateParameter(ParameterEntity& entity)
+void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 }
 
@@ -42,6 +42,10 @@ void GlueGenerator::generateNamedScopeBeginning(ScopeEntity& entity)
 }
 
 void GlueGenerator::generateNamedScopeEnding(ScopeEntity& entity)
+{
+}
+
+void GlueGenerator::generateArgumentSeparator()
 {
 }
 

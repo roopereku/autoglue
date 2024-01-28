@@ -1,6 +1,6 @@
 #include <gen/clang/Backend.hh>
 #include <gen/FunctionEntity.hh>
-#include <gen/ParameterEntity.hh>
+#include <gen/TypeReferenceEntity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 
@@ -199,7 +199,7 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			{
 				auto paramType = resolveType(cursor);
 
-				parentEntity->addChild(std::make_shared <ParameterEntity> (clang_getCString(spelling), paramType));
+				parentEntity->addChild(std::make_shared <TypeReferenceEntity> (clang_getCString(spelling), paramType));
 				break;
 			}
 

@@ -10,8 +10,8 @@ class ClassEntity;
 class EnumEntity;
 class EnumEntryEntity;
 class FunctionEntity;
-class ParameterEntity;
 class ScopeEntity;
+class TypeReferenceEntity;
 
 class BindingGenerator
 {
@@ -56,10 +56,10 @@ public:
 	/// \param entity The FunctionEntity to generate.
 	virtual void generateFunction(FunctionEntity& entity) = 0;
 
-	/// Generates a parameter entity.
+	/// Generates a type reference entity.
 	///
-	/// \param entity The ParameterEntity to generate.
-	virtual void generateParameter(ParameterEntity& entity) = 0;
+	/// \param entity The TypeReferenceEntity to generate.
+	virtual void generateTypeReference(TypeReferenceEntity& entity) = 0;
 
 	/// Generates the beginning of a named scope.
 	///
@@ -70,6 +70,9 @@ public:
 	///
 	/// \param entity The ScopeEntity to generate a ending for. This should always have a name.
 	virtual void generateNamedScopeEnding(ScopeEntity& entity) = 0;
+
+	/// Generates an argument separator, such as a comma.
+	virtual void generateArgumentSeparator() = 0;
 
 	/// Changes the class depth.
 	///
