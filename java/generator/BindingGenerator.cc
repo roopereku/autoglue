@@ -133,12 +133,9 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	jni << "void ";
 	jni << "JNICALL ";
 
-	auto packagePath = package.top();
-	std::replace(packagePath.begin(), packagePath.end(), '.', '_');
-
 	// Declare the JNI function with the appropriate parameters.
 	// TODO: jobject -> jclass for static functions and constructors.
-	jni << "Java_" << packagePath << '_' << nativeName << "(JNIEnv*, jobject, jlong thisHandle";
+	jni << "Java_com" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, jobject, jlong thisHandle";
 
 	inJni = true;
 	if(entity.getParameterCount() > 0)

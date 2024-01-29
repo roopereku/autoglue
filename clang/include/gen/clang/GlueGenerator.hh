@@ -28,6 +28,7 @@ private:
 	void generateArgumentSeparator() override;
 
 	std::ofstream file;
+	bool onlyParameterNames = false;
 };
 
 }

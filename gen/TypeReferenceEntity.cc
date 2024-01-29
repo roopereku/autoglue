@@ -21,6 +21,16 @@ ClassEntity& TypeReferenceEntity::getType()
 	return *type;
 }
 
+void TypeReferenceEntity::setContext(std::shared_ptr <TypeContext>&& context)
+{
+	this->context = std::move(context);
+}
+
+std::shared_ptr <TypeContext> TypeReferenceEntity::getContext()
+{
+	return context;
+}
+
 const char* TypeReferenceEntity::getTypeString()
 {
 	return "TypeReference";

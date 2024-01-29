@@ -1,4 +1,6 @@
 #include <gen/clang/Backend.hh>
+#include <gen/clang/TypeContext.hh>
+
 #include <gen/FunctionEntity.hh>
 #include <gen/TypeReferenceEntity.hh>
 #include <gen/ClassEntity.hh>
@@ -198,8 +200,12 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			case CXCursorKind::CXCursor_ParmDecl:
 			{
 				auto paramType = resolveType(cursor);
+				auto paramEntity = std::make_shared <TypeReferenceEntity> (clang_getCString(spelling), paramType);
 
-				parentEntity->addChild(std::make_shared <TypeReferenceEntity> (clang_getCString(spelling), paramType));
+				auto cursorType = clang_getCanonicalType(clang_getCursorType(cursor));
+				paramEntity->setContext(std::make_shared <TypeContext> (cursorType));
+
+				parentEntity->addChild(std::move(paramEntity));
 				break;
 			}
 
