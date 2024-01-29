@@ -63,6 +63,18 @@ public:
 	/// \return True if generation already has been done.
 	bool isGenerated();
 
+	/// Indicates that this entity has a new usage.
+	/// Parent entities are implicitly used as well.
+	void use();
+
+	/// Indicates that all entities within this entity should be used.
+	void useAll();
+
+	/// Gets the amount of usages.
+	///
+	/// \return The count of usages.
+	unsigned getUsages();
+
 	virtual const char* getTypeString() = 0;
 
 	void list(unsigned depth = 1);
@@ -80,6 +92,7 @@ protected:
 	std::vector <std::shared_ptr <Entity>> children;
 
 private:
+	unsigned usages = 0;
 	bool generated = false;
 	Entity* parent = nullptr;
 };

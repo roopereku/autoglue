@@ -76,6 +76,13 @@ std::string Entity::getHierarchy()
 
 void Entity::generate(BindingGenerator& generator)
 {
+	// Don't generate this entity if it already is generated or
+	// if it is not used anywhere.
+	if(generated || usages == 0)
+	{
+		return;
+	}
+
 	generated = true;
 	onGenerate(generator);
 }
@@ -93,6 +100,31 @@ void Entity::resetGenerated()
 bool Entity::isGenerated()
 {
 	return generated;
+}
+
+void Entity::use()
+{
+	usages++;
+
+	if(parent)
+	{
+		parent->use();
+	}
+}
+
+void Entity::useAll()
+{
+	use();
+
+	for(auto child : children)
+	{
+		child->useAll();
+	}
+}
+
+unsigned Entity::getUsages()
+{
+	return usages;
 }
 
 void Entity::list(unsigned depth)

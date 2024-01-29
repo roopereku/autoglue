@@ -13,7 +13,7 @@ BindingGenerator::BindingGenerator(Backend& backend)
 
 void BindingGenerator::generateBindings()
 {
-	backend.getRoot().resolve("gen")->generate(*this);
+	backend.getRoot().generate(*this);
 }
 
 void BindingGenerator::changeClassDepth(int amount)
