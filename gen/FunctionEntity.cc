@@ -29,7 +29,7 @@ void FunctionEntity::generateParameters(BindingGenerator& generator)
 		generator.generateTypeReference(static_cast <TypeReferenceEntity&> (*children[i]));
 
 		// Add an argument separator for parameters that aren't the last one.
-		if(i + 1 < children.size())
+		if(i != children.size() - 1)
 		{
 			generator.generateArgumentSeparator();
 		}
@@ -42,19 +42,17 @@ size_t FunctionEntity::getParameterCount()
 	return children.size();
 }
 
-//FunctionEntity::Type FunctionEntity::getType()
-//{
-//	return type;
-//}
-//
+FunctionEntity::Type FunctionEntity::getType()
+{
+	return type;
+}
+
 bool FunctionEntity::needsThisHandle()
 {
-	return true;
+	// TODO: Exclude static functions.
+	return type == Type::MemberFunction ||
+			type == Type::Destructor;
 }
-//	// TODO: Exclude static functions.
-//	return type == Type::MemberFunction ||
-//			type == Type::Destructor;
-//}
 
 const char* FunctionEntity::getTypeString()
 {

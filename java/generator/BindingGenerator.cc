@@ -226,7 +226,15 @@ bool BindingGenerator::isTrivialType(ClassEntity& entity)
 
 void BindingGenerator::generateArgumentSeparator()
 {
-	file << ", ";
+	if(inJni)
+	{
+		jni << ", ";
+	}
+
+	else
+	{
+		file << ", ";
+	}
 }
 
 }
