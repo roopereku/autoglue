@@ -106,6 +106,11 @@ void Entity::use()
 {
 	usages++;
 
+	if(usages == 1)
+	{
+		onFirstUse();
+	}
+
 	if(parent)
 	{
 		parent->use();
@@ -141,6 +146,10 @@ void Entity::list(unsigned depth)
 void Entity::onList(std::string_view indent)
 {
 	std::cout << indent << " " << getTypeString() << " " << name << '\n';
+}
+
+void Entity::onFirstUse()
+{
 }
 
 }

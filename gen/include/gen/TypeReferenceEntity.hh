@@ -31,6 +31,10 @@ public:
 private:
 	/// Generates this type reference entity.
 	void onGenerate(BindingGenerator& generator) override;
+
+	/// Increment the usage counter of the referred type.
+	void onFirstUse() override;
+
 	void onList(std::string_view indent) override;
 
 	std::shared_ptr <ClassEntity> type;

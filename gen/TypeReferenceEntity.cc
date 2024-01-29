@@ -46,4 +46,9 @@ void TypeReferenceEntity::onList(std::string_view indent)
 	}
 }
 
+void TypeReferenceEntity::onFirstUse()
+{
+	type->use();
+}
+
 }

@@ -25,6 +25,8 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	clangBackend.getRoot().resolve("gen")->useAll();
+
 	gen::clang::GlueGenerator glueGen(clangBackend);
 	glueGen.generateBindings();
 

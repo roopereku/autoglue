@@ -88,6 +88,9 @@ protected:
 	/// \param generator The BindingGenerator to call functions from.
 	virtual void onGenerate(BindingGenerator& generator) = 0;
 
+	/// This function is called when an entity is used for the first time.
+	virtual void onFirstUse();
+
 	const std::string name;
 	std::vector <std::shared_ptr <Entity>> children;
 
