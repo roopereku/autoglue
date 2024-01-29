@@ -13,11 +13,6 @@ class TypeReferenceEntity : public Entity
 public:
 	TypeReferenceEntity(std::string_view name, std::shared_ptr <ClassEntity> type);
 
-	/// Generates this type reference entity.
-	///
-	/// \param generator The BindingGenerator to call functions from.
-	void generate(BindingGenerator& generator) override;
-
 	ClassEntity& getType();
 
 	/// Sets the context for this type reference. This can be anything that
@@ -34,6 +29,8 @@ public:
 	const char* getTypeString() override;
 
 private:
+	/// Generates this type reference entity.
+	void onGenerate(BindingGenerator& generator) override;
 	void onList(std::string_view indent) override;
 
 	std::shared_ptr <ClassEntity> type;

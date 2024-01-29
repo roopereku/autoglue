@@ -12,12 +12,11 @@ public:
 	ScopeEntity(std::string_view name);
 	ScopeEntity();
 
-	/// Generates this scope if the name is set.
-	///
-	/// \param generator The BindingGenerator to call functions from.
-	void generate(BindingGenerator& generator) override;
-
 	const char* getTypeString() override;
+
+private:
+	/// Generates the child entities with scope beginning and the ending if the name is set.
+	void onGenerate(BindingGenerator& generator) override;
 };
 
 }

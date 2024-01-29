@@ -10,7 +10,7 @@ FunctionEntity::FunctionEntity(std::string_view name)
 {
 }
 
-void FunctionEntity::generate(BindingGenerator& generator)
+void FunctionEntity::onGenerate(BindingGenerator& generator)
 {
 	generator.generateFunction(*this);
 }

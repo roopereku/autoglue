@@ -9,7 +9,7 @@ ClassEntity::ClassEntity(std::string_view name)
 {
 }
 
-void ClassEntity::generate(BindingGenerator& generator)
+void ClassEntity::onGenerate(BindingGenerator& generator)
 {
 	// Begin the class.
 	generator.generateClassBeginning(*this);

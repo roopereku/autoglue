@@ -11,7 +11,7 @@ TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr 
 {
 }
 
-void TypeReferenceEntity::generate(BindingGenerator& generator)
+void TypeReferenceEntity::onGenerate(BindingGenerator& generator)
 {
 	generator.generateTypeReference(*this);
 }

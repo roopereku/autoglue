@@ -11,12 +11,11 @@ class ClassEntity : public Entity
 public:
 	ClassEntity(std::string_view name);
 
-	/// Generates a class body including nested entities.
-	///
-	/// \param generator The BindingGenerator to call functions from.
-	void generate(BindingGenerator& generator) override;
-
 	const char* getTypeString() override;
+
+private:
+	/// Generates the child entities wrapped inside class beginning and ending.
+	void onGenerate(BindingGenerator& generator) override;
 };
 
 }

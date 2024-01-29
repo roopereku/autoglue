@@ -11,11 +11,6 @@ class FunctionEntity : public Entity
 public:
 	FunctionEntity(std::string_view name);
 
-	/// Generates this function entity.
-	///
-	/// \param generator The BindingGenerator to call functions from.
-	void generate(BindingGenerator& generator) override;
-
 	/// Generates the return type entity of this function.
 	/// This isn't called by FunctionEntity::generate as different
 	/// languages might want to handle it differently.
@@ -36,6 +31,10 @@ public:
 	size_t getParameterCount();
 
 	const char* getTypeString() override;
+
+private:
+	/// Generates this function entity.
+	void onGenerate(BindingGenerator& generator) override;
 };
 
 }

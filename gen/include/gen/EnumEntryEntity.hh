@@ -11,12 +11,12 @@ class EnumEntryEntity : public Entity
 public:
 	EnumEntryEntity(std::string_view name);
 
-	/// Generates this enum entry.
-	///
-	/// \param generator The BindingGenerator to call functions from.
-	void generate(BindingGenerator& generator) override;
-
 	const char* getTypeString() override;
+
+private:
+	/// Generates an enum entry.
+	void onGenerate(BindingGenerator& generator) override;
+
 };
 
 }

@@ -7,6 +7,8 @@ namespace gen
 BindingGenerator::BindingGenerator(Backend& backend)
 	: backend(backend)
 {
+	// When a binding generator is initialized, reset generation state.
+	backend.getRoot().resetGenerated();
 }
 
 void BindingGenerator::generateBindings()

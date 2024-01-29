@@ -9,7 +9,7 @@ EnumEntryEntity::EnumEntryEntity(std::string_view name)
 {
 }
 
-void EnumEntryEntity::generate(BindingGenerator& generator)
+void EnumEntryEntity::onGenerate(BindingGenerator& generator)
 {
 	generator.generateEnumEntry(*this);
 }

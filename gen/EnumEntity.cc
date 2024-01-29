@@ -9,12 +9,13 @@ EnumEntity::EnumEntity(std::string_view name)
 {
 }
 
-void EnumEntity::generate(BindingGenerator& generator)
+void EnumEntity::onGenerate(BindingGenerator& generator)
 {
 	generator.generateEnumBeginning(*this);
 	
 	for(auto child : children)
 	{
+		child->generate(generator);
 	}
 
 	generator.generateEnumEnding(*this);

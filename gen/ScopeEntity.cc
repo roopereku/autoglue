@@ -13,7 +13,7 @@ ScopeEntity::ScopeEntity()
 {
 }
 
-void ScopeEntity::generate(BindingGenerator& generator)
+void ScopeEntity::onGenerate(BindingGenerator& generator)
 {
 	// If the scope has a name, generate a beginning for it.
 	if(!name.empty())

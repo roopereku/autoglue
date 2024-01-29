@@ -74,6 +74,27 @@ std::string Entity::getHierarchy()
 
 }
 
+void Entity::generate(BindingGenerator& generator)
+{
+	generated = true;
+	onGenerate(generator);
+}
+
+void Entity::resetGenerated()
+{
+	generated = false;
+
+	for(auto child : children)
+	{
+		child->resetGenerated();
+	}
+}
+
+bool Entity::isGenerated()
+{
+	return generated;
+}
+
 void Entity::list(unsigned depth)
 {
 	std::string indent(depth, '-');

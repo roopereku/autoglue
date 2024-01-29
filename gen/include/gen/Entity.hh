@@ -49,11 +49,19 @@ public:
 	/// \return String containing the hierarchy. Underscores are used as delimiters.
 	std::string getHierarchy();
 
-	/// This function is implemented by the given entity class.
-	/// It calls the appropriate functions from a binding generator.
+	/// This function invokes functions from the given BindingGenerator
+	/// depending on the entity type.
 	///
 	/// \param generator The BindingGenerator to call functions from.
-	virtual void generate(BindingGenerator& generator) = 0;
+	void generate(BindingGenerator& generator);
+
+	/// Recursively resets the flag indicating whether this entity has been exported.
+	void resetGenerated();
+
+	/// Checks whether this entity has already been generated.
+	///
+	/// \return True if generation already has been done.
+	bool isGenerated();
 
 	virtual const char* getTypeString() = 0;
 
@@ -62,9 +70,18 @@ public:
 protected:
 	virtual void onList(std::string_view indent);
 
-	Entity* parent = nullptr;
+	/// This function is implemented by the given entity class.
+	/// It calls the appropriate functions from a binding generator.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	virtual void onGenerate(BindingGenerator& generator) = 0;
+
 	const std::string name;
 	std::vector <std::shared_ptr <Entity>> children;
+
+private:
+	bool generated = false;
+	Entity* parent = nullptr;
 };
 
 }
