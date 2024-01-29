@@ -3,6 +3,8 @@
 
 #include <gen/FunctionEntity.hh>
 #include <gen/TypeReferenceEntity.hh>
+#include <gen/EnumEntity.hh>
+#include <gen/EnumEntryEntity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 
@@ -215,6 +217,20 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			{
 				parentEntity->addChild(std::make_shared <FunctionEntity>
 					(clang_getCString(spelling), FunctionEntity::Type::Function));
+				break;
+			}
+
+			// Handle enum declarations.
+			case CXCursorKind::CXCursor_EnumDecl:
+			{
+				parentEntity->addChild(std::make_shared <EnumEntity> (clang_getCString(spelling)));
+				break;
+			}
+
+			// Handle enum constants.
+			case CXCursorKind::CXCursor_EnumConstantDecl:
+			{
+				parentEntity->addChild(std::make_shared <EnumEntryEntity> (clang_getCString(spelling)));
 				break;
 			}
 
