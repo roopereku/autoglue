@@ -9,7 +9,15 @@ namespace gen
 class FunctionEntity : public Entity
 {
 public:
-	FunctionEntity(std::string_view name);
+	enum class Type
+	{
+		Constructor,
+		Destructor,
+		MemberFunction,
+		Function
+	};
+
+	FunctionEntity(std::string_view name, Type type);
 
 	/// Generates the return type entity of this function.
 	/// This isn't called by FunctionEntity::generate as different
@@ -30,11 +38,24 @@ public:
 	/// \return The count of parameters.
 	size_t getParameterCount();
 
+	/// Gets the function type.
+	///
+	/// \return The function type.
+	Type getType();
+
+	/// Checks if this function needs a handle to "this".
+	/// "this" is the object returned by a constructor glue function.
+	///
+	/// \return True if "this" handle is needed.
+	bool needsThisHandle();
+
 	const char* getTypeString() override;
 
 private:
 	/// Generates this function entity.
 	void onGenerate(BindingGenerator& generator) override;
+
+	Type type;
 };
 
 }

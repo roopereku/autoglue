@@ -96,6 +96,19 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// Declare a native method.
 	file << "private native void " << nativeName << "(";
+
+	// If "this handle" is needed, add a parameter for it.
+	if(entity.needsThisHandle())
+	{
+		file << "long thisHandle";
+
+		// If there are more arguments, add a comma.
+		if(entity.getParameterCount())
+		{
+			file << ", ";
+		}
+	}
+
 	entity.generateParameters(*this);
 	file << ");\n\n";
 
@@ -106,8 +119,8 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	file << nativeName << "(";
 
-	// If this function is inside a class, pass "thisHandle" as the first argument.
-	if(getClassDepth() > 0)
+	// If "this handle" is needed, pass it.
+	if(entity.needsThisHandle())
 	{
 		file << "thisHandle";
 
@@ -135,18 +148,26 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// Declare the JNI function with the appropriate parameters.
 	// TODO: jobject -> jclass for static functions and constructors.
-	jni << "Java_com" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, jobject, jlong thisHandle";
+	jni << "Java_com" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, jobject";
+
+	// If "this handle" is needed, add a parameter for it.
+	if(entity.needsThisHandle())
+	{
+		jni << "jlong thisHandle";
+
+		// If there are more arguments, add a comma.
+		if(entity.getParameterCount())
+		{
+			jni << ", ";
+		}
+	}
 
 	inJni = true;
-	if(entity.getParameterCount() > 0)
-	{
-		jni << ", ";
-		entity.generateParameters(*this);
-	}
+	entity.generateParameters(*this);
+	inJni = false;
 
 	jni << ")\n{\n";
 	jni << "}\n\n";
-	inJni = false;
 }
 
 void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)

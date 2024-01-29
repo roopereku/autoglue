@@ -186,13 +186,35 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 				break;
 			}
 
-			// Anything that's a function becomes a function entity.
+			// Handle member functions.
 			case CXCursorKind::CXCursor_CXXMethod:
+			{
+				parentEntity->addChild(std::make_shared <FunctionEntity>
+					(clang_getCString(spelling), FunctionEntity::Type::MemberFunction));
+				break;
+			}
+
+			// Handle constructors.
 			case CXCursorKind::CXCursor_Constructor:
+			{
+				parentEntity->addChild(std::make_shared <FunctionEntity>
+					(clang_getCString(spelling), FunctionEntity::Type::Constructor));
+				break;
+			}
+
+			// Handle destructors.
 			case CXCursorKind::CXCursor_Destructor:
+			{
+				parentEntity->addChild(std::make_shared <FunctionEntity>
+					(clang_getCString(spelling), FunctionEntity::Type::Destructor));
+				break;
+			}
+
+			// Handle non-member functions.
 			case CXCursorKind::CXCursor_FunctionDecl:
 			{
-				parentEntity->addChild(std::make_shared <FunctionEntity> (clang_getCString(spelling)));
+				parentEntity->addChild(std::make_shared <FunctionEntity>
+					(clang_getCString(spelling), FunctionEntity::Type::Function));
 				break;
 			}
 

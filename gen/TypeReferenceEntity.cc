@@ -2,6 +2,7 @@
 #include <gen/BindingGenerator.hh>
 
 #include <iostream>
+#include <cassert>
 
 namespace gen
 {
@@ -48,6 +49,7 @@ void TypeReferenceEntity::onList(std::string_view indent)
 
 void TypeReferenceEntity::onFirstUse()
 {
+	assert(type);
 	type->use();
 }
 

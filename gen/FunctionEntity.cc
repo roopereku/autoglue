@@ -5,8 +5,8 @@
 namespace gen
 {
 
-FunctionEntity::FunctionEntity(std::string_view name)
-	: Entity(name)
+FunctionEntity::FunctionEntity(std::string_view name, Type type)
+	: Entity(name), type(type)
 {
 }
 
@@ -41,6 +41,20 @@ size_t FunctionEntity::getParameterCount()
 	// TODO: Account for the return type.
 	return children.size();
 }
+
+//FunctionEntity::Type FunctionEntity::getType()
+//{
+//	return type;
+//}
+//
+bool FunctionEntity::needsThisHandle()
+{
+	return true;
+}
+//	// TODO: Exclude static functions.
+//	return type == Type::MemberFunction ||
+//			type == Type::Destructor;
+//}
 
 const char* FunctionEntity::getTypeString()
 {
