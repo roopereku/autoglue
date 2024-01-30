@@ -1,4 +1,5 @@
 #include <gen/clang/GlueGenerator.hh>
+#include <gen/clang/TypeContext.hh>
 #include <gen/clang/Backend.hh>
 
 #include <gen/TypeReferenceEntity.hh>
@@ -36,7 +37,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 	file << "extern \"C\"\n";
 	file << "void " << entity.getHierarchy() << "(";
 
-	if(getClassDepth() > 0)
+	if(entity.needsThisHandle())
 	{
 		file << "void* thisPtr";
 
@@ -47,8 +48,44 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 	}
 
 	entity.generateParameters(*this);
-
 	file << ")\n{\n";
+
+	switch(entity.getType())
+	{
+		case FunctionEntity::Type::Constructor:
+		{
+			file << "return new " << entity.getParent().getHierarchy("::");
+			break;
+		}
+
+		case FunctionEntity::Type::Destructor:
+		{
+			file << "delete static_cast <" << entity.getParent().getHierarchy("::")
+				<< "*> (thisPtr)";
+
+			// Parameters aren't used for the destructor.
+			return;
+		}
+
+		case FunctionEntity::Type::MemberFunction:
+		{
+			file << "static_cast <" << entity.getParent().getHierarchy("::")
+				<< "*> (thisPtr)->" << entity.getName();
+			break;
+		}
+
+		case FunctionEntity::Type::Function:
+		{
+			break;
+		}
+	}
+
+	file << '(';
+	onlyParameterNames = true;
+	entity.generateParameters(*this);
+	onlyParameterNames = false;
+	file << ");\n";
+
 	file << "}\n\n";
 }
 
@@ -56,12 +93,29 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
+		if(entity.isClass())
+		{
+			file << "static_cast <" << entity.getReferred().getHierarchy("::")
+				<< "*> (" << entity.getName() << ')';
+			return;
+		}
+
 		file << entity.getName();
 	}
 
 	else
 	{
-		file << entity.getReferred().getName() << ' ' << entity.getName();
+		if(entity.isClass())
+		{
+			file << "void* " << entity.getName();
+			return;
+		}
+
+		if(entity.isEnum())
+		{
+			file << "int " << entity.getName();
+			return;
+		}
 	}
 }
 
