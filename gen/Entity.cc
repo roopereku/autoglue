@@ -63,14 +63,23 @@ const std::string& Entity::getName() const
 	return name;
 }
 
-std::string Entity::getHierarchy()
+std::string Entity::getHierarchy(const std::string& delimiter)
 {
+	// If this is the root entity, only return the name.
 	if(isRoot())
 	{
 		return name;
 	}
 
-	return parent->getHierarchy() + '_' + name;
+	// Don't add the delimiter if the parent name is empty.
+	auto parentName = parent->getHierarchy(delimiter);
+	if(parentName.empty())
+	{
+		return name;
+	}
+
+	// Combine the parent name and the name of this entity with a delimiter in between.
+	return std::move(parentName) + delimiter + name;
 
 }
 

@@ -46,8 +46,9 @@ public:
 
 	/// Returns a string containing the hierarchy leading up to this entity.
 	///
-	/// \return String containing the hierarchy. Underscores are used as delimiters.
-	std::string getHierarchy();
+	/// \param delimiter The delimiter to use between entity names. Defaults to underscore.
+	/// \return String containing the hierarchy.
+	std::string getHierarchy(const std::string& delimiter = "_");
 
 	/// This function invokes functions from the given BindingGenerator
 	/// depending on the entity type.
