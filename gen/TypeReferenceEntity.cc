@@ -50,6 +50,17 @@ EnumEntity& TypeReferenceEntity::getEnumType()
 	return static_cast <EnumEntity&> (*referred);
 }
 
+bool TypeReferenceEntity::isPrimitive()
+{
+	return getType() == TypeEntity::Type::Primitive;
+}
+
+PrimitiveEntity& TypeReferenceEntity::getPrimitiveType()
+{
+	assert(isPrimitive());
+	return static_cast <PrimitiveEntity&> (*referred);
+}
+
 void TypeReferenceEntity::setContext(std::shared_ptr <TypeContext>&& context)
 {
 	this->context = std::move(context);

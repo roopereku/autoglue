@@ -11,6 +11,7 @@ class TypeEntity : public Entity
 public:
 	enum class Type
 	{
+		Primitive,
 		Class,
 		Enum
 	};

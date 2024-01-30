@@ -6,6 +6,8 @@
 namespace gen
 {
 
+class TypeReferenceEntity;
+
 class FunctionEntity : public Entity
 {
 public:
@@ -18,6 +20,9 @@ public:
 	};
 
 	FunctionEntity(std::string_view name, Type type);
+
+	FunctionEntity(std::string_view name, Type type,
+			std::shared_ptr <TypeReferenceEntity>&& returnType);
 
 	/// Generates the return type entity of this function.
 	/// This isn't called by FunctionEntity::generate as different
@@ -49,6 +54,13 @@ public:
 	/// \return True if "this" handle is needed.
 	bool needsThisHandle();
 
+	/// Checks if this function returns a value. A value is returned when
+	/// the function is a constructor or has a non-void return type.
+	///
+	/// \return True if this function returns a value.
+	bool returnsValue();
+
+	std::shared_ptr <TypeReferenceEntity> returnType;
 	const char* getTypeString() override;
 
 private:

@@ -5,6 +5,7 @@
 #include <gen/TypeReferenceEntity.hh>
 #include <gen/EnumEntity.hh>
 #include <gen/EnumEntryEntity.hh>
+#include <gen/PrimitiveEntity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 
@@ -167,8 +168,13 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			// Handle member functions.
 			case CXCursorKind::CXCursor_CXXMethod:
 			{
+				auto retEntity = std::make_shared <TypeReferenceEntity> ("",
+					resolveType(clang_getCursorResultType(cursor)));
+
+				retEntity->setContext(std::make_shared <TypeContext> (cursor));
+
 				parentEntity->addChild(std::make_shared <FunctionEntity>
-					(clang_getCString(spelling), FunctionEntity::Type::MemberFunction));
+					(clang_getCString(spelling), FunctionEntity::Type::MemberFunction, std::move(retEntity)));
 				break;
 			}
 
@@ -191,8 +197,13 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			// Handle non-member functions.
 			case CXCursorKind::CXCursor_FunctionDecl:
 			{
+				auto retEntity = std::make_shared <TypeReferenceEntity> ("",
+					resolveType(clang_getCursorResultType(cursor)));
+
+				retEntity->setContext(std::make_shared <TypeContext> (cursor));
+
 				parentEntity->addChild(std::make_shared <FunctionEntity>
-					(clang_getCString(spelling), FunctionEntity::Type::Function));
+					(clang_getCString(spelling), FunctionEntity::Type::Function, std::move(retEntity)));
 				break;
 			}
 
@@ -214,12 +225,8 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			// Create parameter entities and associate them with the appropriate type.
 			case CXCursorKind::CXCursor_ParmDecl:
 			{
-				auto paramType = resolveType(cursor);
-				auto paramEntity = std::make_shared <TypeReferenceEntity> (clang_getCString(spelling), paramType);
-
-				auto cursorType = clang_getCanonicalType(clang_getCursorType(cursor));
-				paramEntity->setContext(std::make_shared <TypeContext> (cursorType));
-
+				auto paramEntity = std::make_shared <TypeReferenceEntity> (clang_getCString(spelling), resolveType(cursor));
+				paramEntity->setContext(std::make_shared <TypeContext> (cursor));
 				parentEntity->addChild(std::move(paramEntity));
 				break;
 			}
@@ -242,27 +249,32 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 
 std::shared_ptr <TypeEntity> Backend::resolveType(CXCursor cursor)
 {
-	auto cursorType = clang_getCanonicalType(clang_getCursorType(cursor));
+	return resolveType(clang_getCursorType(cursor));
+}
+
+std::shared_ptr <TypeEntity> Backend::resolveType(CXType type)
+{
+	type = clang_getCanonicalType(type);
 
 	// Remove references.
-	cursorType = clang_getNonReferenceType(cursorType);
+	type = clang_getNonReferenceType(type);
 
-	// Get the type declaration and do special handling if it's not found.
-	auto declaration = clang_getTypeDeclaration(cursorType);
+	// Get the type declaration and treat the type as a primitive if it's not found.
+	auto declaration = clang_getTypeDeclaration(type);
 	if(declaration.kind == CXCursorKind::CXCursor_NoDeclFound)
 	{
 		// Remove qualifiers such as const. Explicitly do this only for types without
 		// a declaration as getting the type declaration should do the same.
-		cursorType = clang_getUnqualifiedType(cursorType);
+		type = clang_getUnqualifiedType(type);
 
 		// Remove pointers.
-		while(cursorType.kind == CXTypeKind::CXType_Pointer)
+		while(type.kind == CXTypeKind::CXType_Pointer)
 		{
-			cursorType = clang_getPointeeType(cursorType);
+			type = clang_getPointeeType(type);
 		}
 
 		// Save the type spelling into an editable string.
-		auto spelling = clang_getTypeSpelling(cursorType);
+		auto spelling = clang_getTypeSpelling(type);
 		std::string typeName(clang_getCString(spelling));
 		clang_disposeString(spelling);
 
@@ -280,11 +292,11 @@ std::shared_ptr <TypeEntity> Backend::resolveType(CXCursor cursor)
 		if(!result)
 		{
 			// If the type can't be found in the global scope, add it.
-			global->addChild(std::make_shared <ClassEntity> (typeName));
+			global->addChild(std::make_shared <PrimitiveEntity> (typeName));
 			result = global->resolve(typeName);
 		}
 
-		return std::static_pointer_cast <ClassEntity> (result);
+		return std::static_pointer_cast <TypeEntity> (result);
 	}
 
 	auto declKind = clang_getCursorKindSpelling(declaration.kind);

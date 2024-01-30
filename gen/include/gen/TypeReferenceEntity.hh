@@ -3,6 +3,7 @@
 
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
+#include <gen/PrimitiveEntity.hh>
 #include <gen/TypeContext.hh>
 
 namespace gen
@@ -42,6 +43,16 @@ public:
 	///
 	/// \return The referred type entity as an enum type.
 	EnumEntity& getEnumType();
+
+	/// Checks if this type reference refers to a primitive type.
+	///
+	/// \return True if this type reference refers to a primitive type.
+	bool isPrimitive();
+
+	/// Gets the referred type entity as a primitive type.
+	///
+	/// \return The referred type entity as a primitive type.
+	PrimitiveEntity& getPrimitiveType();
 
 	/// Sets the context for this type reference. This can be anything that
 	/// a backend might require when generating glue code.

@@ -89,7 +89,7 @@ void BindingGenerator::generateEnumEnding(EnumEntity& entity)
 	file << "int getValue() {\nreturn mValue;\n}\n\n";
 
 	// Generate a constructor for the enum that takes an integer.
-	file << "private " << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
+	file << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
 	file << "private int mValue;\n}\n\n";
 }
 
@@ -107,7 +107,22 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	nativeName[1] = toupper(nativeName[1]);
 
 	// Declare a native method.
-	file << "private native void " << nativeName << "(";
+	file << "private native ";
+
+	// Constructors return pointers.
+	if(entity.getType() == FunctionEntity::Type::Constructor)
+	{
+		file << "long ";
+	}
+
+	else
+	{
+		inNativeDeclaration = true;
+		entity.generateReturnType(*this);
+		inNativeDeclaration = false;
+	}
+
+	file << nativeName << "(";
 
 	// If "this handle" is needed, add a parameter for it.
 	if(entity.needsThisHandle())
@@ -127,9 +142,23 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	file << ");\n\n";
 
 	// Write the method signature.
-	file << "public void " << entity.getName() << '(';
+	file << "public ";
+
+	if(entity.getType() != FunctionEntity::Type::Constructor)
+	{
+		entity.generateReturnType(*this);
+	}
+
+	// TODO: Handle return value of destructor?
+
+	file << entity.getName() << '(';
 	entity.generateParameters(*this);
 	file << ") {\n";
+
+	if(entity.returnsValue())
+	{
+		file << "return ";
+	}
 
 	file << nativeName << "(";
 
@@ -159,22 +188,41 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	auto bridgeName = entity.getHierarchy();
 
 	// Locate the external bridge function.
-	// TODO: Use the actual return type.
-	jni << "extern \"C\" " << "void" << ' ' << bridgeName << "(";
 	useBridgeFormat = true;
+	jni << "extern \"C\" ";
+
+	if(entity.getType() == FunctionEntity::Type::Constructor)
+	{
+		jni << "void*";
+	}
+
+	else
+	{
+		entity.generateReturnType(*this);
+	}
+
+	jni << ' ' << bridgeName << "(";
 	entity.generateParameters(*this);
 	useBridgeFormat = false;
 	jni << ");\n";
 
 	// Declare the function in JNI.
 	jni << "extern \"C\" JNIEXPORT ";
-	// TODO: Use the actual return type.
-	jni << "void ";
+	if(entity.getType() == FunctionEntity::Type::Constructor)
+	{
+		jni << "jlong ";
+	}
+
+	else
+	{
+		entity.generateReturnType(*this);
+	}
+
 	jni << "JNICALL ";
 
 	// Declare the JNI function with the appropriate parameters.
-	// TODO: jobject -> jclass for static functions and constructors.
-	jni << "Java_com" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, jobject";
+	jni << "Java_com_" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, ";
+	jni << (entity.needsThisHandle() ? "jobject" : "jclass");
 
 	// If "this handle" is needed, add a parameter for it.
 	if(entity.needsThisHandle())
@@ -189,7 +237,14 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	}
 
 	entity.generateParameters(*this);
-	jni << ")\n{\n" << bridgeName << '(';
+	jni << ")\n{\n";
+
+	if(entity.returnsValue())
+	{
+		jni << "return ";
+	}
+
+	jni << bridgeName << '(';
 
 	// If the "this handle" is needed, pass it.
 	if(entity.needsThisHandle())
@@ -267,6 +322,11 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 			else if(entity.isClass())
 			{
 				jni << "void*";
+			}
+
+			else
+			{
+				target << entity.getReferred().getName();
 			}
 
 			return;

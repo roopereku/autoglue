@@ -28,6 +28,7 @@ private:
 	std::shared_ptr <Entity> ensureHierarchyExists(CXCursor cursor);
 
 	std::shared_ptr <TypeEntity> resolveType(CXCursor cursor);
+	std::shared_ptr <TypeEntity> resolveType(CXType type);
 
 	std::shared_ptr <ScopeEntity> global;
 	CXCompilationDatabase compilationDatabase;

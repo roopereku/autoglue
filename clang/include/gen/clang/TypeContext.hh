@@ -11,13 +11,13 @@ namespace gen::clang
 class TypeContext : public gen::TypeContext
 {
 public:
-	TypeContext(CXType cursorType)
-		: cursorType(cursorType)
+	TypeContext(CXCursor cursor)
+		: cursor(cursor)
 	{
 	}
 
 private:
-	CXType cursorType;
+	CXCursor cursor;
 };
 
 }
