@@ -1,4 +1,5 @@
 #include <gen/EnumEntity.hh>
+#include <gen/EnumEntryEntity.hh>
 #include <gen/BindingGenerator.hh>
 
 namespace gen
@@ -19,6 +20,15 @@ void EnumEntity::onGenerate(BindingGenerator& generator)
 	}
 
 	generator.generateEnumEnding(*this);
+}
+
+void EnumEntity::onFirstUse()
+{
+	// If there are children, tell the most recent one that it's the last.
+	if(!children.empty())
+	{
+		std::static_pointer_cast <EnumEntryEntity> (children.back())->last = true;
+	}
 }
 
 const char* EnumEntity::getTypeString()

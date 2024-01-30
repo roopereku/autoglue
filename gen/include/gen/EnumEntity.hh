@@ -17,6 +17,8 @@ private:
 	/// Generates enum values wrapped within an enum beginning and ending.
 	void onGenerate(BindingGenerator& generator) override;
 
+	/// Tells the most recent child that it is the last enum entry.
+	void onFirstUse() override;
 };
 
 }

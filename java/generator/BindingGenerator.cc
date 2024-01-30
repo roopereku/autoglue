@@ -2,6 +2,8 @@
 #include <gen/TypeReferenceEntity.hh>
 #include <gen/FunctionEntity.hh>
 #include <gen/ClassEntity.hh>
+#include <gen/EnumEntity.hh>
+#include <gen/EnumEntryEntity.hh>
 #include <gen/ScopeEntity.hh>
 
 #include <algorithm>
@@ -78,14 +80,24 @@ void BindingGenerator::generateClassEnding(ClassEntity& entity)
 
 void BindingGenerator::generateEnumBeginning(EnumEntity& entity)
 {
+	file << "enum " << entity.getName() << " {\n";
 }
 
 void BindingGenerator::generateEnumEnding(EnumEntity& entity)
 {
+	// Add a getter for the integer value.
+	file << "int getValue() {\nreturn mValue;\n}\n\n";
+
+	// Generate a constructor for the enum that takes an integer.
+	file << "private " << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
+	file << "private int mValue;\n}\n\n";
 }
 
 void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 {
+	// Generate enum values.
+	file << entity.getName() << '(' << entity.getValue() << ')'
+		<< (entity.isLast() ? ";\n" : ",\n");
 }
 
 void BindingGenerator::generateFunction(FunctionEntity& entity)

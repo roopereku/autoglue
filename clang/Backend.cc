@@ -206,7 +206,8 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 			// Handle enum constants.
 			case CXCursorKind::CXCursor_EnumConstantDecl:
 			{
-				parentEntity->addChild(std::make_shared <EnumEntryEntity> (clang_getCString(spelling)));
+				parentEntity->addChild(std::make_shared <EnumEntryEntity>
+					(clang_getCString(spelling), clang_getEnumConstantDeclValue(cursor)));
 				break;
 			}
 
