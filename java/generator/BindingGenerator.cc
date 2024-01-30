@@ -121,7 +121,9 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		}
 	}
 
+	inNativeDeclaration = true;
 	entity.generateParameters(*this);
+	inNativeDeclaration = false;
 	file << ");\n\n";
 
 	// Write the method signature.
@@ -192,7 +194,17 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 		// appropriate way.
 		if(!inJni)
 		{
-			target << entity.getName() << ".cast" << entity.getReferred().getName() << "()";
+			if(entity.isEnum())
+			{
+				// Pass the integer value of an enum to JNI.
+				target << entity.getName() << ".getValue()";
+			}
+
+			else if(entity.isClass())
+			{
+				// Cast the given class object to the parameter type and give the pointer to JNI.
+				target << entity.getName() << ".cast" << entity.getReferred().getName() << "()";
+			}
 		}
 
 		else
@@ -203,6 +215,22 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 	else
 	{
+		// Enum parameters require special handling in JNI and native method declarations.
+		if(entity.isEnum())
+		{
+			if(inJni)
+			{
+				jni << "jint " << entity.getName();
+				return;
+			}
+
+			else if(inNativeDeclaration)
+			{
+				jni << "int " << entity.getName();
+				return;
+			}
+		}
+
 		target << entity.getReferred().getName() << ' ' << entity.getName();
 	}
 }

@@ -39,6 +39,9 @@ private:
 
 	/// Used to indicate that type parameters should be written to the JNI.
 	bool inJni = false;
+
+	/// Used to indicate that a native method declaration is being written.
+	bool inNativeDeclaration = false;
 };
 
 }
