@@ -5,7 +5,7 @@ namespace gen
 {
 
 ClassEntity::ClassEntity(std::string_view name)
-	: Entity(name)
+	: TypeEntity(name, Type::Class)
 {
 }
 

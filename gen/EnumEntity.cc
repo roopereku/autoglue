@@ -6,7 +6,7 @@ namespace gen
 {
 
 EnumEntity::EnumEntity(std::string_view name)
-	: Entity(name)
+	: TypeEntity(name, Type::Enum)
 {
 }
 

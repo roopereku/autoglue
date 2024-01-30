@@ -3,7 +3,7 @@
 
 #include <gen/Backend.hh>
 #include <gen/FileList.hh>
-#include <gen/ClassEntity.hh>
+#include <gen/TypeEntity.hh>
 #include <gen/ScopeEntity.hh>
 #include <gen/FunctionEntity.hh>
 
@@ -27,7 +27,7 @@ private:
 	/// Tries to ensure that the hierarchy specified by a cursor USR exists.
 	std::shared_ptr <Entity> ensureHierarchyExists(CXCursor cursor);
 
-	std::shared_ptr <ClassEntity> resolveType(CXCursor cursor);
+	std::shared_ptr <TypeEntity> resolveType(CXCursor cursor);
 
 	std::shared_ptr <ScopeEntity> global;
 	CXCompilationDatabase compilationDatabase;

@@ -7,13 +7,8 @@
 namespace gen
 {
 
-TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr <ClassEntity> classType)
-	: Entity(name), referred(classType), type(Type::Class)
-{
-}
-
-TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr <EnumEntity> classType)
-	: Entity(name), referred(classType), type(Type::Enum)
+TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type)
+	: Entity(name), referred(type)
 {
 }
 
@@ -22,9 +17,10 @@ void TypeReferenceEntity::onGenerate(BindingGenerator& generator)
 	generator.generateTypeReference(*this);
 }
 
-TypeReferenceEntity::Type TypeReferenceEntity::getType()
+TypeEntity::Type TypeReferenceEntity::getType()
 {
-	return type;
+	assert(referred);
+	return referred->getType();
 }
 
 Entity& TypeReferenceEntity::getReferred()
@@ -34,23 +30,23 @@ Entity& TypeReferenceEntity::getReferred()
 
 bool TypeReferenceEntity::isClass()
 {
-	return type == Type::Class;
+	return getType() == TypeEntity::Type::Class;
 }
 
 ClassEntity& TypeReferenceEntity::getClassType()
 {
-	assert(type == Type::Class);
+	assert(isClass());
 	return static_cast <ClassEntity&> (*referred);
 }
 
 bool TypeReferenceEntity::isEnum()
 {
-	return type == Type::Enum;
+	return getType() == TypeEntity::Type::Enum;
 }
 
 EnumEntity& TypeReferenceEntity::getEnumType()
 {
-	assert(type == Type::Enum);
+	assert(isEnum());
 	return static_cast <EnumEntity&> (*referred);
 }
 

@@ -1,12 +1,12 @@
 #ifndef GEN_CLASS_ENTITY_HH
 #define GEN_CLASS_ENTITY_HH
 
-#include <gen/Entity.hh>
+#include <gen/TypeEntity.hh>
 
 namespace gen
 {
 
-class ClassEntity : public Entity
+class ClassEntity : public TypeEntity
 {
 public:
 	ClassEntity(std::string_view name);

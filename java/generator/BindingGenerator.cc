@@ -197,13 +197,13 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 			if(entity.isEnum())
 			{
 				// Pass the integer value of an enum to JNI.
-				target << entity.getName() << ".getValue()";
+				file << entity.getName() << ".getValue()";
 			}
 
 			else if(entity.isClass())
 			{
 				// Cast the given class object to the parameter type and give the pointer to JNI.
-				target << entity.getName() << ".cast" << entity.getReferred().getName() << "()";
+				file << entity.getName() << ".cast" << entity.getReferred().getName() << "()";
 			}
 		}
 
@@ -226,7 +226,7 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 			else if(inNativeDeclaration)
 			{
-				jni << "int " << entity.getName();
+				file << "int " << entity.getName();
 				return;
 			}
 		}

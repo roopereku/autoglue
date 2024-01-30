@@ -1,7 +1,6 @@
 #ifndef GEN_TYPE_REFERENCE_ENTITY_HH
 #define GEN_TYPE_REFERENCE_ENTITY_HH
 
-#include <gen/Entity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 #include <gen/TypeContext.hh>
@@ -12,19 +11,12 @@ namespace gen
 class TypeReferenceEntity : public Entity
 {
 public:
-	TypeReferenceEntity(std::string_view name, std::shared_ptr <ClassEntity> classType);
-	TypeReferenceEntity(std::string_view name, std::shared_ptr <EnumEntity> enumType);
-
-	enum class Type
-	{
-		Class,
-		Enum
-	};
+	TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type);
 
 	/// Gets the type of referenced type entity.
 	///
 	/// \return The type of the referenced type entity.
-	Type getType();
+	TypeEntity::Type getType();
 
 	/// Gets the referred type entity as an entity.
 	///
@@ -73,8 +65,7 @@ private:
 
 	void onList(std::string_view indent) override;
 
-	Type type;
-	std::shared_ptr <Entity> referred;
+	std::shared_ptr <TypeEntity> referred;
 	std::shared_ptr <TypeContext> context;
 };
 

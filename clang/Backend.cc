@@ -240,7 +240,7 @@ std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 	return entity;
 }
 
-std::shared_ptr <ClassEntity> Backend::resolveType(CXCursor cursor)
+std::shared_ptr <TypeEntity> Backend::resolveType(CXCursor cursor)
 {
 	auto cursorType = clang_getCanonicalType(clang_getCursorType(cursor));
 
@@ -294,8 +294,8 @@ std::shared_ptr <ClassEntity> Backend::resolveType(CXCursor cursor)
 	clang_disposeString(declKind);
 	clang_disposeString(declUsr);
 
-	// Get the type as an entity.
-	return std::static_pointer_cast <ClassEntity> (ensureHierarchyExists(declaration));
+	// Return the ensured entity as a TypeEntity.
+	return std::static_pointer_cast <TypeEntity> (ensureHierarchyExists(declaration));
 }
 
 }
