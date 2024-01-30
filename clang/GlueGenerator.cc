@@ -61,7 +61,7 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 	else
 	{
-		file << entity.getType().getName() << ' ' << entity.getName();
+		file << entity.getReferred().getName() << ' ' << entity.getName();
 	}
 }
 

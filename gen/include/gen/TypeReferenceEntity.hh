@@ -3,6 +3,7 @@
 
 #include <gen/Entity.hh>
 #include <gen/ClassEntity.hh>
+#include <gen/EnumEntity.hh>
 #include <gen/TypeContext.hh>
 
 namespace gen
@@ -11,9 +12,44 @@ namespace gen
 class TypeReferenceEntity : public Entity
 {
 public:
-	TypeReferenceEntity(std::string_view name, std::shared_ptr <ClassEntity> type);
+	TypeReferenceEntity(std::string_view name, std::shared_ptr <ClassEntity> classType);
+	TypeReferenceEntity(std::string_view name, std::shared_ptr <EnumEntity> enumType);
 
-	ClassEntity& getType();
+	enum class Type
+	{
+		Class,
+		Enum
+	};
+
+	/// Gets the type of referenced type entity.
+	///
+	/// \return The type of the referenced type entity.
+	Type getType();
+
+	/// Gets the referred type entity as an entity.
+	///
+	/// \return The referred type entity as an entity.
+	Entity& getReferred();
+
+	/// Checks if this type reference refers to a class type.
+	///
+	/// \return True if this type reference refers to a class type.
+	bool isClass();
+
+	/// Gets the referred type entity as a class type.
+	///
+	/// \return The referred type entity as a class type.
+	ClassEntity& getClassType();
+
+	/// Checks if this type reference refers to an enum type.
+	///
+	/// \return True if this type reference refers to an enum type.
+	bool isEnum();
+
+	/// Gets the referred type entity as an enum type.
+	///
+	/// \return The referred type entity as an enum type.
+	EnumEntity& getEnumType();
 
 	/// Sets the context for this type reference. This can be anything that
 	/// a backend might require when generating glue code.
@@ -37,7 +73,8 @@ private:
 
 	void onList(std::string_view indent) override;
 
-	std::shared_ptr <ClassEntity> type;
+	Type type;
+	std::shared_ptr <Entity> referred;
 	std::shared_ptr <TypeContext> context;
 };
 

@@ -192,8 +192,7 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 		// appropriate way.
 		if(!inJni)
 		{
-			auto& type = entity.getType();
-			target << entity.getName() << ".cast" << type.getName() << "()";
+			target << entity.getName() << ".cast" << entity.getReferred().getName() << "()";
 		}
 
 		else
@@ -204,7 +203,7 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 	else
 	{
-		target << entity.getType().getName() << ' ' << entity.getName();
+		target << entity.getReferred().getName() << ' ' << entity.getName();
 	}
 }
 
