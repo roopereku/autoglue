@@ -107,34 +107,9 @@ bool Backend::generateHierarchy()
 		{
 			auto backend = static_cast <Backend*> (data);
 
-			switch(cursor.kind)
+			if(!backend->ensureHierarchyExists(cursor))
 			{
-				// For classes and functions make sure that the entity hierarchy exists.
-				case CXCursorKind::CXCursor_ClassDecl:
-				case CXCursorKind::CXCursor_StructDecl:
-				case CXCursorKind::CXCursor_CXXMethod:
-				{
-					if(!backend->ensureHierarchyExists(cursor))
-					{
-						return CXChildVisit_Continue;
-					}
-
-					break;
-				}
-
-				case CXCursorKind::CXCursor_ParmDecl:
-				{
-					if(!backend->ensureHierarchyExists(cursor))
-					{
-						return CXChildVisit_Continue;
-					}
-
-					break;
-				}
-
-				default:
-				{
-				}
+				return CXChildVisit_Continue;
 			}
 
 			return CXChildVisit_Recurse;
@@ -150,7 +125,8 @@ bool Backend::generateHierarchy()
 std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
 {
 	// Translation unit indicates the global scope.
-	if(cursor.kind == CXCursorKind::CXCursor_TranslationUnit)
+	if(cursor.kind == CXCursorKind::CXCursor_TranslationUnit ||
+		cursor.kind == CXCursorKind::CXCursor_InvalidFile)
 	{
 		return global;
 	}
