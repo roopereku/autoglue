@@ -154,6 +154,18 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	// Close the function.
 	file << "}\n\n";
 
+	// JNI is written next.
+	inJni = true;
+	auto bridgeName = entity.getHierarchy();
+
+	// Locate the external bridge function.
+	// TODO: Use the actual return type.
+	jni << "extern \"C\" " << "void" << ' ' << bridgeName << "(";
+	useBridgeFormat = true;
+	entity.generateParameters(*this);
+	useBridgeFormat = false;
+	jni << ");\n";
+
 	// Declare the function in JNI.
 	jni << "extern \"C\" JNIEXPORT ";
 	// TODO: Use the actual return type.
@@ -167,7 +179,22 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	// If "this handle" is needed, add a parameter for it.
 	if(entity.needsThisHandle())
 	{
-		jni << "jlong thisHandle";
+		jni << ", jlong thisHandle";
+	}
+
+	// If there are more arguments, add a comma.
+	if(entity.getParameterCount())
+	{
+		jni << ", ";
+	}
+
+	entity.generateParameters(*this);
+	jni << ")\n{\n" << bridgeName << '(';
+
+	// If the "this handle" is needed, pass it.
+	if(entity.needsThisHandle())
+	{
+		jni << "reinterpret_cast <void*> (thisHandle)";
 
 		// If there are more arguments, add a comma.
 		if(entity.getParameterCount())
@@ -176,12 +203,15 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		}
 	}
 
-	inJni = true;
+	// Convert the JNI parameters to the appropriate format.
+	useBridgeFormat = true;
+	onlyParameterNames = true;
 	entity.generateParameters(*this);
-	inJni = false;
+	onlyParameterNames = false;
+	useBridgeFormat = false;
 
-	jni << ")\n{\n";
-	jni << "}\n\n";
+	jni << ");\n}\n\n";
+	inJni = false;
 }
 
 void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
@@ -209,12 +239,39 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 		else
 		{
+			// When passing parameters to the bridge function some special handling might be needed.
+			if(useBridgeFormat)
+			{
+				// Cast the this handle of class types to an abstract pointer type.
+				if(entity.isClass())
+				{
+					target << "reinterpret_cast <void*> (" << entity.getName() << ')';
+					return;
+				}
+			}
+
 			target << entity.getName();
 		}
 	}
 
 	else
 	{
+		// Bridge parameter types needs special handling.
+		if(useBridgeFormat)
+		{
+			if(entity.isEnum())
+			{
+				jni << "int";
+			}
+
+			else if(entity.isClass())
+			{
+				jni << "void*";
+			}
+
+			return;
+		}
+
 		// Enum parameters require special handling in JNI and native method declarations.
 		if(entity.isEnum())
 		{
@@ -229,6 +286,13 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 				file << "int " << entity.getName();
 				return;
 			}
+		}
+
+		// Class types are takes as a long in the JNI.
+		else if(inJni && entity.isClass())
+		{
+			target << "jlong " << entity.getName();
+			return;
 		}
 
 		target << entity.getReferred().getName() << ' ' << entity.getName();

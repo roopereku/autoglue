@@ -37,6 +37,9 @@ private:
 	/// Used to only write parameter names when a bridge function is called.
 	bool onlyParameterNames = false;
 
+	/// Used to indicate that parameters should be converted to the bridge format.
+	bool useBridgeFormat = false;
+
 	/// Used to indicate that type parameters should be written to the JNI.
 	bool inJni = false;
 
