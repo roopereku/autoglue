@@ -9,20 +9,308 @@
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 
+#include <clang/Tooling/Tooling.h>
+#include <clang/Tooling/ArgumentsAdjusters.h>
+#include <clang/Frontend/FrontendAction.h>
+#include <clang/Frontend/CompilerInstance.h>
+#include <clang/AST/RecursiveASTVisitor.h>
+#include <clang/AST/ASTConsumer.h>
+#include <clang/AST/ASTContext.h>
+
 #include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <cassert>
-#include <cctype>
-#include <set>
+
+class NodeVisitor : public clang::RecursiveASTVisitor <NodeVisitor>
+{
+public:
+	NodeVisitor(gen::clang::Backend& backend) : backend(backend)
+	{
+	}
+
+	// TODO: Somehow make RecordDecl work.
+	bool TraverseCXXRecordDecl(clang::CXXRecordDecl* decl)
+	{
+		ensureEntityExists(decl);
+
+		for(auto nestedDecl : decl->decls())
+		{
+			TraverseDecl(nestedDecl);
+		}
+
+		return true;
+	}
+
+	bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* decl)
+	{
+		ensureEntityExists(decl);
+
+		for(auto nestedDecl : decl->decls())
+		{
+			TraverseDecl(nestedDecl);
+		}
+
+		return true;
+
+	}
+
+	bool TraverseEnumDecl(clang::EnumDecl* decl)
+	{
+		ensureEntityExists(decl);
+		return true;
+	}
+
+	bool TraverseCXXMethodDecl(clang::CXXMethodDecl* decl)
+	{
+		ensureEntityExists(decl);
+		return true;
+	}
+
+	bool TraverseFunctionDecl(clang::FunctionDecl* decl)
+	{
+		ensureEntityExists(decl);
+		return true;
+	}
+
+private:
+	std::shared_ptr <gen::TypeEntity> resolveType(clang::QualType type)
+	{
+		// TODO: Handle template instantiation references. For example when
+		// shared_ptr is used it resolves the template class instead of an instantation here.
+		if(auto tagDecl = type->getAsTagDecl())
+		{
+			return std::static_pointer_cast <gen::TypeEntity> (ensureEntityExists(tagDecl));
+		}
+
+		else if(type->isBuiltinType())
+		{
+			auto name = type.getAsString();
+			std::replace(name.begin(), name.end(), ' ', '_');
+
+			auto result = backend.getRoot().resolve(name);
+
+			if(!result)
+			{
+				backend.getRoot().addChild(std::make_shared <gen::PrimitiveEntity> (name));
+				result = backend.getRoot().resolve(name);
+			}
+
+			return std::static_pointer_cast <gen::TypeEntity> (result);
+		}
+
+		static auto invalid = std::make_shared <gen::ClassEntity> ("invalidType");
+		return invalid;
+	}
+
+	std::shared_ptr <gen::Entity> ensureEntityExists(clang::DeclContext* decl)
+	{
+		// Translation unit is the global scope.
+		if(clang::dyn_cast <clang::TranslationUnitDecl> (decl))
+		{
+			return backend.getRootPtr();
+		}
+
+		auto parent = ensureEntityExists(decl->getParent());
+		if(!parent)
+		{
+			return nullptr;
+		}
+
+		if(auto* named = clang::dyn_cast <clang::NamedDecl> (decl))
+		{
+			std::string name = named->getNameAsString();
+
+			// If the declaration is a template instantiation, append template arguments to the name.
+			if(auto* instantiation = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+			{
+				name += "__args";
+
+				auto& args = instantiation->getTemplateArgs();
+				for(unsigned i = 0; i < args.size(); i++)
+				{
+					// TODO: Somehow exclude arguments with default values.
+
+					if(args[i].getKind() == clang::TemplateArgument::Type)
+					{
+						auto argType = resolveType(args[i].getAsType());
+						if(argType)
+						{
+							name += + "_" + argType->getName();
+						}
+
+						else
+						{
+							name += "_invalid";
+						}
+					}
+
+					// TODO: Handle literals as arguments.
+				}
+			}
+
+			auto result = parent->resolve(name);
+
+			if(!result)
+			{
+				// Handle structs and classes.
+				if(clang::dyn_cast <clang::RecordDecl> (named))
+				{
+					// Handle template instantiations.
+					if(auto* instantiation = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+					{
+						parent->addChild(std::make_shared <gen::ClassEntity> (name));
+					}
+
+					else
+					{
+						// TODO: Filter out unions?
+						parent->addChild(std::make_shared <gen::ClassEntity> (named->getNameAsString()));
+					}
+				}
+
+				// Handle namespaces.
+				else if(clang::dyn_cast <clang::NamespaceDecl> (named))
+				{
+					parent->addChild(std::make_shared <gen::ScopeEntity> (named->getNameAsString()));
+				}
+
+				// Handle enums.
+				else if(clang::dyn_cast <clang::EnumDecl> (named))
+				{
+					//std::cout << "Create enum " << named->getQualifiedNameAsString() << '\n';
+					parent->addChild(std::make_shared <gen::EnumEntity> (named->getNameAsString()));
+				}
+
+				// Handle functions.
+				else if(auto* function = clang::dyn_cast <clang::FunctionDecl> (named))
+				{
+					// Handle member functions.
+					if(clang::dyn_cast <clang::CXXMethodDecl> (named))
+					{
+						// Handle constructors.
+						if(clang::dyn_cast <clang::CXXConstructorDecl> (named))
+						{
+							parent->addChild(std::make_shared <gen::FunctionEntity>
+								(named->getNameAsString(), gen::FunctionEntity::Type::Constructor));
+						}
+
+						// Handle destructors.
+						else if(clang::dyn_cast <clang::CXXDestructorDecl> (named))
+						{
+							parent->addChild(std::make_shared <gen::FunctionEntity>
+								(named->getNameAsString(), gen::FunctionEntity::Type::Destructor));
+						}
+
+						// Handle conversions.
+						else if(clang::dyn_cast <clang::CXXConversionDecl> (named))
+						{
+							// TODO: Add conversion functions.
+							return nullptr;
+						}
+
+						// Anything else should be a normal member function.
+						else
+						{
+							auto returnType = std::make_shared <gen::TypeReferenceEntity>
+								("", resolveType(function->getReturnType()));
+
+							parent->addChild(std::make_shared <gen::FunctionEntity>
+								(named->getNameAsString(), gen::FunctionEntity::Type::MemberFunction,
+								 std::move(returnType)));
+						}
+					}
+
+					// Anything else should be a non-member function.
+					else
+					{
+						auto returnType = std::make_shared <gen::TypeReferenceEntity>
+							("", resolveType(function->getReturnType()));
+
+						parent->addChild(std::make_shared <gen::FunctionEntity>
+							(named->getNameAsString(), gen::FunctionEntity::Type::Function,
+							 std::move(returnType)));
+					}
+				}
+
+				else
+				{
+					std::cout << "Unimplemented: " << named->getDeclKindName() << '\n';
+					return nullptr;
+				}
+
+				result = parent->resolve(named->getNameAsString());
+			}
+
+			return result;
+		}
+
+		return nullptr;
+	}
+
+	gen::clang::Backend& backend;
+};
+
+class HierarchyGenerator : public clang::ASTConsumer
+{
+public:
+	HierarchyGenerator(clang::SourceManager& manager, gen::clang::Backend& backend)
+		: visitor(backend)
+	{
+	}
+
+private:
+	void HandleTranslationUnit(clang::ASTContext& context) override
+	{
+		visitor.TraverseDecl(context.getTranslationUnitDecl());
+	}
+
+	NodeVisitor visitor;
+};
+
+class HierarchyGeneratorAction : public clang::ASTFrontendAction
+{
+public:
+	HierarchyGeneratorAction(gen::clang::Backend& backend)
+		: backend(backend)
+	{
+	}
+
+	std::unique_ptr <clang::ASTConsumer> CreateASTConsumer(
+		clang::CompilerInstance& instance, clang::StringRef) final
+	{
+		return std::make_unique <HierarchyGenerator>
+			(instance.getSourceManager(), backend);
+	}
+
+private:
+	gen::clang::Backend& backend;
+};
+
+class HierarchyGeneratorFactory : public clang::tooling::FrontendActionFactory
+{
+public:
+	HierarchyGeneratorFactory(gen::clang::Backend& backend)
+		: backend(backend)
+	{
+	}
+
+	std::unique_ptr <clang::FrontendAction> create() override
+	{
+		return std::make_unique <HierarchyGeneratorAction> (backend);
+	}
+
+private:
+	gen::clang::Backend& backend;
+};
 
 namespace gen::clang
 {
 
-Backend::Backend(FileList& headers) : index(clang_createIndex(0, 1))
+Backend::Backend(FileList& headers)
+	: gen::Backend(std::make_shared <ScopeEntity> ())
 {
 	std::ofstream inclusionFile("inclusions.cc");
-	global = std::make_shared <ScopeEntity> ();
 
 	// Write the header inclusions.
 	for(auto& path : headers)
@@ -31,19 +319,18 @@ Backend::Backend(FileList& headers) : index(clang_createIndex(0, 1))
 	}
 }
 
-Entity& Backend::getRoot()
+bool Backend::loadCompilationDatabase(std::string_view path)
 {
-	return *global;
-}
+	std::string err;
+	database = ::clang::tooling::JSONCompilationDatabase::loadFromFile(
+		path,
+		err,
+		::clang::tooling::JSONCommandLineSyntax::AutoDetect
+	);
 
-bool Backend::loadCompilationDatabase(std::string_view directoryPath)
-{
-	CXCompilationDatabase_Error error;
-	compilationDatabase = clang_CompilationDatabase_fromDirectory(std::string(directoryPath).c_str(), &error);
-
-	if(error == CXCompilationDatabase_CanNotLoadDatabase)
+	if(!database)
 	{
-		std::cerr << "Unable to load a compilation database from " << directoryPath << '\n';
+		std::cerr << err << "\n";
 		return false;
 	}
 
@@ -52,262 +339,20 @@ bool Backend::loadCompilationDatabase(std::string_view directoryPath)
 
 bool Backend::generateHierarchy()
 {
-	auto compileCommands = clang_CompilationDatabase_getAllCompileCommands(compilationDatabase);
-	std::vector <const char*> clangArgs;
-
-	// Iterate all compilation comands.
-	for(unsigned i = 0; i < clang_CompileCommands_getSize(compileCommands); i++)
+	if(!database)
 	{
-		bool ignoreNext = false;
-
-		auto command = clang_CompileCommands_getCommand(compileCommands, i);
-		for(unsigned a = 0; a < clang_CompileCommand_getNumArgs(command); a++)
-		{
-			auto arg = clang_CompileCommand_getArg(command, a);
-			std::string_view str(clang_getCString(arg));
-
-			if(ignoreNext)
-			{
-				ignoreNext = false;
-			}
-
-			else if(str == "-o" || str == "-c")
-			{
-				ignoreNext = true;
-			}
-
-			else
-			{
-				//std::cout << "Clang arg " << str << '\n';
-				clangArgs.emplace_back(str.data());
-			}
-				
-			//clang_disposeString(arg);
-		}
-	}
-
-	// Tell clang to compile the headers.
-	CXTranslationUnit unit = clang_parseTranslationUnit(
-		index, "inclusions.cc",
-		clangArgs.data(), clangArgs.size(),
-		nullptr, 0,
-		CXTranslationUnit_None
-	);
-
-	if(!unit)
-	{
-		std::cerr << "Failed to parse\n";
 		return false;
 	}
 
-	// Start traversing the AST.
-	clang_visitChildren(
-		clang_getTranslationUnitCursor(unit),
+	::clang::tooling::ClangTool tool(*database, database->getAllFiles());
+	tool.setPrintErrorMessage(true);
 
-		[](CXCursor cursor, CXCursor parent, CXClientData data)
-		{
-			auto backend = static_cast <Backend*> (data);
+	tool.appendArgumentsAdjuster(::clang::tooling::getClangStripOutputAdjuster());
 
-			if(!backend->ensureHierarchyExists(cursor))
-			{
-				return CXChildVisit_Continue;
-			}
+	// TODO: Do this only when explicitly specified by user.
+	tool.appendArgumentsAdjuster(::clang::tooling::getInsertArgumentAdjuster("-I/lib/clang/16/include/"));
 
-			return CXChildVisit_Recurse;
-		},
-
-		this
-	);
-
-	// Generation is succesful if the global scope still exists.
-	return static_cast <bool> (global);
-}
-
-std::shared_ptr <Entity> Backend::ensureHierarchyExists(CXCursor cursor)
-{
-	// Translation unit indicates the global scope.
-	if(cursor.kind == CXCursorKind::CXCursor_TranslationUnit ||
-		cursor.kind == CXCursorKind::CXCursor_InvalidFile)
-	{
-		return global;
-	}
-
-	// Make sure that the containing entity exists.
-	auto parent = clang_getCursorSemanticParent(cursor);
-	auto parentEntity = ensureHierarchyExists(parent);
-
-	if(!parentEntity)
-	{
-		return nullptr;
-	}
-
-	// Check if the current entity already exists within the parent.
-	auto spelling = clang_getCursorSpelling(cursor);
-	auto entity = parentEntity->resolve(clang_getCString(spelling));
-
-	// If the current entity doesn't exist, create it.
-	if(!entity)
-	{
-		switch(cursor.kind)
-		{
-			// Structs and classes become class entities.
-			case CXCursorKind::CXCursor_ClassDecl:
-			case CXCursorKind::CXCursor_StructDecl:
-			{
-				parentEntity->addChild(std::make_shared <ClassEntity> (clang_getCString(spelling)));
-				break;
-			}
-
-			// Namespaces become named scope entities.
-			case CXCursorKind::CXCursor_Namespace:
-			{
-				parentEntity->addChild(std::make_shared <ScopeEntity> (clang_getCString(spelling)));
-				break;
-			}
-
-			// Handle member functions.
-			case CXCursorKind::CXCursor_CXXMethod:
-			{
-				auto retEntity = std::make_shared <TypeReferenceEntity> ("",
-					resolveType(clang_getCursorResultType(cursor)));
-
-				retEntity->setContext(std::make_shared <TypeContext> (cursor));
-
-				parentEntity->addChild(std::make_shared <FunctionEntity>
-					(clang_getCString(spelling), FunctionEntity::Type::MemberFunction, std::move(retEntity)));
-				break;
-			}
-
-			// Handle constructors.
-			case CXCursorKind::CXCursor_Constructor:
-			{
-				parentEntity->addChild(std::make_shared <FunctionEntity>
-					(clang_getCString(spelling), FunctionEntity::Type::Constructor));
-				break;
-			}
-
-			// Handle destructors.
-			case CXCursorKind::CXCursor_Destructor:
-			{
-				parentEntity->addChild(std::make_shared <FunctionEntity>
-					(clang_getCString(spelling), FunctionEntity::Type::Destructor));
-				break;
-			}
-
-			// Handle non-member functions.
-			case CXCursorKind::CXCursor_FunctionDecl:
-			{
-				auto retEntity = std::make_shared <TypeReferenceEntity> ("",
-					resolveType(clang_getCursorResultType(cursor)));
-
-				retEntity->setContext(std::make_shared <TypeContext> (cursor));
-
-				parentEntity->addChild(std::make_shared <FunctionEntity>
-					(clang_getCString(spelling), FunctionEntity::Type::Function, std::move(retEntity)));
-				break;
-			}
-
-			// Handle enum declarations.
-			case CXCursorKind::CXCursor_EnumDecl:
-			{
-				parentEntity->addChild(std::make_shared <EnumEntity> (clang_getCString(spelling)));
-				break;
-			}
-
-			// Handle enum constants.
-			case CXCursorKind::CXCursor_EnumConstantDecl:
-			{
-				parentEntity->addChild(std::make_shared <EnumEntryEntity>
-					(clang_getCString(spelling), clang_getEnumConstantDeclValue(cursor)));
-				break;
-			}
-
-			// Create parameter entities and associate them with the appropriate type.
-			case CXCursorKind::CXCursor_ParmDecl:
-			{
-				auto paramEntity = std::make_shared <TypeReferenceEntity> (clang_getCString(spelling), resolveType(cursor));
-				paramEntity->setContext(std::make_shared <TypeContext> (cursor));
-				parentEntity->addChild(std::move(paramEntity));
-				break;
-			}
-
-			default:
-			{
-				auto cursorKind = clang_getCursorKindSpelling(cursor.kind);
-				//std::cerr << "Unimplemented ensuring for cursor kind " << clang_getCString(cursorKind) << '\n';
-				clang_disposeString(cursorKind);
-			}
-		}
-
-		// After adding, try to resolve the entity again.
-		entity = parentEntity->resolve(clang_getCString(spelling));
-	}
-
-	clang_disposeString(spelling);
-	return entity;
-}
-
-std::shared_ptr <TypeEntity> Backend::resolveType(CXCursor cursor)
-{
-	return resolveType(clang_getCursorType(cursor));
-}
-
-std::shared_ptr <TypeEntity> Backend::resolveType(CXType type)
-{
-	type = clang_getCanonicalType(type);
-
-	// Remove references.
-	type = clang_getNonReferenceType(type);
-
-	// Get the type declaration and treat the type as a primitive if it's not found.
-	auto declaration = clang_getTypeDeclaration(type);
-	if(declaration.kind == CXCursorKind::CXCursor_NoDeclFound)
-	{
-		// Remove qualifiers such as const. Explicitly do this only for types without
-		// a declaration as getting the type declaration should do the same.
-		type = clang_getUnqualifiedType(type);
-
-		// Remove pointers.
-		while(type.kind == CXTypeKind::CXType_Pointer)
-		{
-			type = clang_getPointeeType(type);
-		}
-
-		// Save the type spelling into an editable string.
-		auto spelling = clang_getTypeSpelling(type);
-		std::string typeName(clang_getCString(spelling));
-		clang_disposeString(spelling);
-
-		//if(clang_Type_getNumTemplateArguments(cursorType) != -1)
-		//{
-		//	std::cout << "Template " << typeName << '\n';
-		//}
-
-		// Replace spaces and namespace resolutions with underscores.
-		std::replace(typeName.begin(), typeName.end(), ' ', '_');
-		std::replace(typeName.begin(), typeName.end(), ':', '_');
-
-		// Check if this type was already added.
-		auto result = global->resolve(typeName);
-		if(!result)
-		{
-			// If the type can't be found in the global scope, add it.
-			global->addChild(std::make_shared <PrimitiveEntity> (typeName));
-			result = global->resolve(typeName);
-		}
-
-		return std::static_pointer_cast <TypeEntity> (result);
-	}
-
-	auto declKind = clang_getCursorKindSpelling(declaration.kind);
-	auto declUsr = clang_getCursorUSR(declaration);
-
-	//std::cout << "Declaration " << clang_getCString(declUsr) << " is of kind " << clang_getCString(declKind) << '\n';
-	clang_disposeString(declKind);
-	clang_disposeString(declUsr);
-
-	// Return the ensured entity as a TypeEntity.
-	return std::static_pointer_cast <TypeEntity> (ensureHierarchyExists(declaration));
+	return tool.run(std::make_unique <HierarchyGeneratorFactory> (*this).get()) == 0;
 }
 
 }

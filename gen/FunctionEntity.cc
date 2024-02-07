@@ -21,6 +21,14 @@ void FunctionEntity::onGenerate(BindingGenerator& generator)
 	generator.generateFunction(*this);
 }
 
+void FunctionEntity::onFirstUse()
+{
+	if(returnType)
+	{
+		returnType->use();
+	}
+}
+
 void FunctionEntity::generateReturnType(BindingGenerator& generator)
 {
 	if(returnType)

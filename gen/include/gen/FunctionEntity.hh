@@ -60,13 +60,16 @@ public:
 	/// \return True if this function returns a value.
 	bool returnsValue();
 
-	std::shared_ptr <TypeReferenceEntity> returnType;
 	const char* getTypeString() override;
 
 private:
 	/// Generates this function entity.
 	void onGenerate(BindingGenerator& generator) override;
 
+	/// Makes sure that the return type is used.
+	void onFirstUse() override;
+
+	std::shared_ptr <TypeReferenceEntity> returnType;
 	Type type;
 };
 

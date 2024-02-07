@@ -9,9 +9,26 @@ namespace gen
 class Backend
 {
 public:
-	virtual Entity& getRoot() = 0;
+	std::shared_ptr <Entity> getRootPtr()
+	{
+		return root;
+	}
+
+	Entity& getRoot()
+	{
+		return *root;
+	}
 
 	virtual bool generateHierarchy() = 0;
+
+protected:
+	Backend(std::shared_ptr <Entity>&& root)
+		: root(std::move(root))
+	{
+	}
+
+private:
+	std::shared_ptr <Entity> root;
 };
 
 }

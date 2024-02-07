@@ -25,7 +25,13 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	clangBackend.getRoot().resolve("gen")->useAll();
+	auto ns = clangBackend.getRoot().resolve("gen");
+	clangBackend.getRoot().resolve("std")->useAll();
+
+	if(ns)
+	{
+		ns->useAll();
+	}
 
 	gen::clang::GlueGenerator glueGen(clangBackend);
 	glueGen.generateBindings();
@@ -33,6 +39,5 @@ int main(int argc, char** argv)
 	gen::java::BindingGenerator javaGen(clangBackend);
 	javaGen.generateBindings();
 
-	//clangBackend.getRoot().list();
-	//clangBackend.getRoot().resolve("gen")->list();
+	//clangBackend.getRoot().resolve("std")->list();
 }
