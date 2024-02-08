@@ -89,19 +89,19 @@ public:
 private:
 	std::shared_ptr <gen::TypeEntity> resolveType(clang::QualType type)
 	{
+		auto underlying = type.getNonReferenceType();
+
 		// TODO: Handle template instantiation references. For example when
 		// shared_ptr is used it resolves the template class instead of an instantation here.
-		if(auto tagDecl = type->getAsTagDecl())
+		if(auto tagDecl = underlying->getAsTagDecl())
 		{
 			auto result = ensureEntityExists(tagDecl);
 
-			if(result)
-			{
-				return std::static_pointer_cast <gen::TypeEntity> (result);
-			}
+			assert(result);
+			return std::static_pointer_cast <gen::TypeEntity> (result);
 		}
 
-		else if(type->isBuiltinType())
+		else if(underlying->isBuiltinType())
 		{
 			auto name = type.getAsString();
 			std::replace(name.begin(), name.end(), ' ', '_');
@@ -219,7 +219,8 @@ private:
 			return result;
 		}
 
-		return nullptr;
+		// For any non-named entity, return the parent which at latest is the global scope.
+		return parent;
 	}
 
 	void ensureFunctionExists(clang::FunctionDecl* decl, gen::FunctionEntity::Type type)

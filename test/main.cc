@@ -26,7 +26,6 @@ int main(int argc, char** argv)
 	}
 
 	auto ns = clangBackend.getRoot().resolve("gen");
-	clangBackend.getRoot().resolve("std")->useAll();
 
 	if(ns)
 	{
@@ -38,6 +37,4 @@ int main(int argc, char** argv)
 
 	gen::java::BindingGenerator javaGen(clangBackend);
 	javaGen.generateBindings();
-
-	//clangBackend.getRoot().resolve("std")->list();
 }
