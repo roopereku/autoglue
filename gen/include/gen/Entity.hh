@@ -31,7 +31,7 @@ public:
 	///
 	/// \return The parent entity.
 	Entity& getParent();
-	
+
 	/// Resolves an entity that has the given qualified
 	/// name relative to this entity.
 	///
@@ -91,6 +91,12 @@ protected:
 
 	/// This function is called when an entity is used for the first time.
 	virtual void onFirstUse();
+
+	/// Used to intercept a child before it is added.
+	///
+	/// \param entity The new child entity to be added.
+	/// \return True if the child should be kept.
+	virtual bool interceptNewChild(Entity& entity);
 
 	const std::string name;
 	std::vector <std::shared_ptr <Entity>> children;

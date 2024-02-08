@@ -43,6 +43,11 @@ public:
 	/// \return The count of parameters.
 	size_t getParameterCount();
 
+	/// Gets the parameter at the given index.
+	///
+	/// \return The parameter at the given index.
+	TypeReferenceEntity& getParameter(size_t index);
+
 	/// Gets the function type.
 	///
 	/// \return The function type.

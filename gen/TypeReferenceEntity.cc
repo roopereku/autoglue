@@ -12,6 +12,11 @@ TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr 
 {
 }
 
+bool TypeReferenceEntity::isIdentical(const TypeReferenceEntity& other) const
+{
+	return referred == other.referred;
+}
+
 void TypeReferenceEntity::onGenerate(BindingGenerator& generator)
 {
 	generator.generateTypeReference(*this);

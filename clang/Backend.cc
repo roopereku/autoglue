@@ -5,6 +5,7 @@
 #include <gen/TypeReferenceEntity.hh>
 #include <gen/EnumEntity.hh>
 #include <gen/EnumEntryEntity.hh>
+#include <gen/FunctionGroupEntity.hh>
 #include <gen/PrimitiveEntity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
@@ -61,15 +62,27 @@ public:
 		return true;
 	}
 
-	bool TraverseCXXMethodDecl(clang::CXXMethodDecl* decl)
+	bool TraverseFunctionDecl(clang::FunctionDecl* decl)
 	{
-		ensureEntityExists(decl);
+		ensureFunctionExists(decl, gen::FunctionEntity::Type::Function);
 		return true;
 	}
 
-	bool TraverseFunctionDecl(clang::FunctionDecl* decl)
+	bool TraverseCXXMethodDecl(clang::CXXMethodDecl* decl)
 	{
-		ensureEntityExists(decl);
+		ensureFunctionExists(decl, gen::FunctionEntity::Type::MemberFunction);
+		return true;
+	}
+
+	bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* decl)
+	{
+		ensureFunctionExists(decl, gen::FunctionEntity::Type::Constructor);
+		return true;
+	}
+
+	bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* decl)
+	{
+		ensureFunctionExists(decl, gen::FunctionEntity::Type::Destructor);
 		return true;
 	}
 
@@ -80,7 +93,12 @@ private:
 		// shared_ptr is used it resolves the template class instead of an instantation here.
 		if(auto tagDecl = type->getAsTagDecl())
 		{
-			return std::static_pointer_cast <gen::TypeEntity> (ensureEntityExists(tagDecl));
+			auto result = ensureEntityExists(tagDecl);
+
+			if(result)
+			{
+				return std::static_pointer_cast <gen::TypeEntity> (result);
+			}
 		}
 
 		else if(type->isBuiltinType())
@@ -103,7 +121,7 @@ private:
 		return invalid;
 	}
 
-	std::shared_ptr <gen::Entity> ensureEntityExists(clang::DeclContext* decl)
+	std::shared_ptr <gen::Entity> ensureEntityExists(clang::DeclContext* decl, unsigned depth = 0)
 	{
 		// Translation unit is the global scope.
 		if(clang::dyn_cast <clang::TranslationUnitDecl> (decl))
@@ -111,7 +129,13 @@ private:
 			return backend.getRootPtr();
 		}
 
-		auto parent = ensureEntityExists(decl->getParent());
+		// Don't return a valid node if a function is being treated as a parent.
+		if(depth > 0 && clang::dyn_cast <clang::FunctionDecl> (decl))
+		{
+			return nullptr;
+		}
+
+		auto parent = ensureEntityExists(decl->getParent(), depth + 1);
 		if(!parent)
 		{
 			return nullptr;
@@ -134,14 +158,10 @@ private:
 					if(args[i].getKind() == clang::TemplateArgument::Type)
 					{
 						auto argType = resolveType(args[i].getAsType());
+
 						if(argType)
 						{
 							name += + "_" + argType->getName();
-						}
-
-						else
-						{
-							name += "_invalid";
 						}
 					}
 
@@ -178,59 +198,13 @@ private:
 				// Handle enums.
 				else if(clang::dyn_cast <clang::EnumDecl> (named))
 				{
-					//std::cout << "Create enum " << named->getQualifiedNameAsString() << '\n';
 					parent->addChild(std::make_shared <gen::EnumEntity> (named->getNameAsString()));
 				}
 
-				// Handle functions.
+				// Create a group for functions.
 				else if(auto* function = clang::dyn_cast <clang::FunctionDecl> (named))
 				{
-					// Handle member functions.
-					if(clang::dyn_cast <clang::CXXMethodDecl> (named))
-					{
-						// Handle constructors.
-						if(clang::dyn_cast <clang::CXXConstructorDecl> (named))
-						{
-							parent->addChild(std::make_shared <gen::FunctionEntity>
-								(named->getNameAsString(), gen::FunctionEntity::Type::Constructor));
-						}
-
-						// Handle destructors.
-						else if(clang::dyn_cast <clang::CXXDestructorDecl> (named))
-						{
-							parent->addChild(std::make_shared <gen::FunctionEntity>
-								(named->getNameAsString(), gen::FunctionEntity::Type::Destructor));
-						}
-
-						// Handle conversions.
-						else if(clang::dyn_cast <clang::CXXConversionDecl> (named))
-						{
-							// TODO: Add conversion functions.
-							return nullptr;
-						}
-
-						// Anything else should be a normal member function.
-						else
-						{
-							auto returnType = std::make_shared <gen::TypeReferenceEntity>
-								("", resolveType(function->getReturnType()));
-
-							parent->addChild(std::make_shared <gen::FunctionEntity>
-								(named->getNameAsString(), gen::FunctionEntity::Type::MemberFunction,
-								 std::move(returnType)));
-						}
-					}
-
-					// Anything else should be a non-member function.
-					else
-					{
-						auto returnType = std::make_shared <gen::TypeReferenceEntity>
-							("", resolveType(function->getReturnType()));
-
-						parent->addChild(std::make_shared <gen::FunctionEntity>
-							(named->getNameAsString(), gen::FunctionEntity::Type::Function,
-							 std::move(returnType)));
-					}
+					parent->addChild(std::make_shared <gen::FunctionGroupEntity> (named->getNameAsString()));
 				}
 
 				else
@@ -246,6 +220,47 @@ private:
 		}
 
 		return nullptr;
+	}
+
+	void ensureFunctionExists(clang::FunctionDecl* decl, gen::FunctionEntity::Type type)
+	{
+		auto groupEntity = ensureEntityExists(decl);
+		if(!groupEntity)
+		{
+			return;
+		}
+
+		std::shared_ptr <gen::FunctionEntity> function;
+
+		switch(type)
+		{
+			case gen::FunctionEntity::Type::Constructor:
+			case gen::FunctionEntity::Type::Destructor:
+			{
+				function = std::make_shared <gen::FunctionEntity> (decl->getNameAsString(), type);
+				break;
+			}
+
+			case gen::FunctionEntity::Type::MemberFunction:
+			case gen::FunctionEntity::Type::Function:
+			{
+				auto returnType = std::make_shared <gen::TypeReferenceEntity>
+					("", resolveType(decl->getReturnType()));
+
+				function = std::make_shared <gen::FunctionEntity>
+					(decl->getNameAsString(), type, std::move(returnType));
+
+				break;
+			}
+		}
+
+		for(auto param : decl->parameters())
+		{
+			function->addChild(std::make_shared <gen::TypeReferenceEntity>
+				(param->getNameAsString(), resolveType(param->getType())));
+		}
+
+		groupEntity->addChild(std::move(function));
 	}
 
 	gen::clang::Backend& backend;

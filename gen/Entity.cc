@@ -16,8 +16,11 @@ Entity::Entity()
 
 void Entity::addChild(std::shared_ptr <Entity>&& child)
 {
-	child->parent = this;
-	children.emplace_back(std::move(child));
+	if(interceptNewChild(*child))
+	{
+		child->parent = this;
+		children.emplace_back(std::move(child));
+	}
 }
 
 bool Entity::isRoot()
@@ -159,6 +162,11 @@ void Entity::onList(std::string_view indent)
 
 void Entity::onFirstUse()
 {
+}
+
+bool Entity::interceptNewChild(Entity&)
+{
+	return true;
 }
 
 }

@@ -14,6 +14,12 @@ class TypeReferenceEntity : public Entity
 public:
 	TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type);
 
+	/// Checks if this type reference is identical to another one.
+	///
+	/// \param other The type reference to compare against.
+	/// \return True If this and the given type reference are identical.
+	bool isIdentical(const TypeReferenceEntity& other) const;
+
 	/// Gets the type of referenced type entity.
 	///
 	/// \return The type of the referenced type entity.

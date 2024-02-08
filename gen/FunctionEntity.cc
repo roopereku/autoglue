@@ -57,6 +57,11 @@ size_t FunctionEntity::getParameterCount()
 	return children.size();
 }
 
+TypeReferenceEntity& FunctionEntity::getParameter(size_t index)
+{
+	return static_cast <TypeReferenceEntity&> (*children[index]);
+}
+
 FunctionEntity::Type FunctionEntity::getType()
 {
 	return type;
