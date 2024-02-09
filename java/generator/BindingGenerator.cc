@@ -41,28 +41,18 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 
 	// TODO: Use protected if necessary.
 	// TODO: Set inheritance.
-	file << "public class " << entity.getName() << " {\n";
+	file << "public class " << entity.getName() << ' ';
+	entity.generateBaseClasses(*this);
+	file << "\n{\n";
 
 	// Store a pointer to the "this" handle.
 	// TODO: Only do this if no inheritance is present.
 	file << "protected long thisHandle;\n\n";
 
-	auto nativeName = 'n' + entity.getHierarchy() + "_cast" + entity.getName();
-
-	// Declare a native method for the caster function.
-	file << "private native " << nativeName << "(long thisHandle);\n\n";
-
-	// Define a public interface for the caster funciton.
-	file << "public long cast" + entity.getName() << "() {\n";
-	file << "return " << nativeName << "(thisHandle);\n}\n\n";
-
-	auto packagePath = package.top();
-	std::replace(packagePath.begin(), packagePath.end(), '.', '_');
-
-	// Define a JNI bridge for the caster function.
-	// TODO: Make this call a function provided by the glue code.
-	jni << "extern \"C\" JNIEXPORT jlong JNICALL " << nativeName << "(JNIEnv*, jobject, jlong thisHandle)\n{\n";
-	jni << "return thisHandle;\n}\n\n";
+	// TODO: Only do this if no inheritance is present.
+	// Define a public getter for the object handle.
+	file << "public long getThisHandle() {\n";
+	file << "return thisHandle;\n}\n\n";
 }
 
 void BindingGenerator::generateClassEnding(ClassEntity& entity)
@@ -356,6 +346,20 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 		}
 
 		target << entity.getReferred().getName() << ' ' << entity.getName();
+	}
+}
+
+void BindingGenerator::generateBaseClass(ClassEntity& entity, size_t index)
+{
+	if(index == 0)
+	{
+		file << "extends " << entity.getName();
+	}
+
+	else
+	{
+		// TODO: Maybe every base class should have "implements" in the case of multiple inheritance.
+		file << "implements " << entity.getName();
 	}
 }
 

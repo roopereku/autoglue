@@ -6,16 +6,34 @@
 namespace gen
 {
 
+class TypeReferenceEntity;
+
 class ClassEntity : public TypeEntity
 {
 public:
 	ClassEntity(std::string_view name);
+
+	/// Adds a new base class for this class entity.
+	///
+	/// \param base The base class to add.
+	void addBaseClass(std::shared_ptr <ClassEntity> base);
+
+	/// Generates the base classes of this class.
+	/// Calls generateTypeReference internally.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateBaseClasses(BindingGenerator& generator);
 
 	const char* getTypeString() override;
 
 private:
 	/// Generates the child entities wrapped inside class beginning and ending.
 	void onGenerate(BindingGenerator& generator) override;
+
+	/// Makes sure that the base classes are used.
+	void onFirstUse() override;
+
+	std::vector <std::weak_ptr <ClassEntity>> baseClasses;
 };
 
 }

@@ -33,27 +33,14 @@ public:
 	// TODO: Somehow make RecordDecl work.
 	bool TraverseCXXRecordDecl(clang::CXXRecordDecl* decl)
 	{
-		ensureEntityExists(decl);
-
-		for(auto nestedDecl : decl->decls())
-		{
-			TraverseDecl(nestedDecl);
-		}
-
+		ensureClassExists(decl);
 		return true;
 	}
 
 	bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* decl)
 	{
-		ensureEntityExists(decl);
-
-		for(auto nestedDecl : decl->decls())
-		{
-			TraverseDecl(nestedDecl);
-		}
-
+		ensureClassExists(decl);
 		return true;
-
 	}
 
 	bool TraverseEnumDecl(clang::EnumDecl* decl)
@@ -96,8 +83,11 @@ private:
 		if(auto tagDecl = underlying->getAsTagDecl())
 		{
 			auto result = ensureEntityExists(tagDecl);
+			if(!result)
+			{
+				return nullptr;
+			}
 
-			assert(result);
 			return std::static_pointer_cast <gen::TypeEntity> (result);
 		}
 
@@ -221,6 +211,35 @@ private:
 
 		// For any non-named entity, return the parent which at latest is the global scope.
 		return parent;
+	}
+
+	void ensureClassExists(clang::CXXRecordDecl* decl)
+	{
+		auto entity = ensureEntityExists(decl);
+		if(!entity)
+		{
+			return;
+		}
+
+		auto classEntity = std::static_pointer_cast <gen::ClassEntity> (entity);
+
+		auto definition = decl->getDefinition();
+		if(definition)
+		{
+			for(auto base : definition->bases())
+			{
+				auto baseEntity = resolveType(base.getType());
+				if(baseEntity)
+				{
+					classEntity->addBaseClass(std::static_pointer_cast <gen::ClassEntity> (baseEntity));
+				}
+			}
+		}
+
+		for(auto nestedDecl : decl->decls())
+		{
+			TraverseDecl(nestedDecl);
+		}
 	}
 
 	void ensureFunctionExists(clang::FunctionDecl* decl, gen::FunctionEntity::Type type)

@@ -61,6 +61,12 @@ public:
 	/// \param entity The TypeReferenceEntity to generate.
 	virtual void generateTypeReference(TypeReferenceEntity& entity) = 0;
 
+	/// Generates a base class specification.
+	///
+	/// \param entity The ClassEntity containing the base class.
+	/// \param index The index of the base class.
+	virtual void generateBaseClass(ClassEntity& entity, size_t index) = 0;
+
 	/// Generates the beginning of a named scope.
 	///
 	/// \param entity The ScopeEntity to generate a beginning for. This should always have a name.

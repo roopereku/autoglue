@@ -119,6 +119,10 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 	}
 }
 
+void GlueGenerator::generateBaseClass(ClassEntity& entity, size_t index)
+{
+}
+
 void GlueGenerator::generateNamedScopeBeginning(ScopeEntity& entity)
 {
 }

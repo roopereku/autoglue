@@ -23,6 +23,7 @@ private:
 	void generateEnumEntry(EnumEntryEntity& entity) override;
 	void generateFunction(FunctionEntity& entity) override;
 	void generateTypeReference(TypeReferenceEntity& entity) override;
+	void generateBaseClass(ClassEntity& entity, size_t index) override;
 	void generateNamedScopeBeginning(ScopeEntity& entity) override;
 	void generateNamedScopeEnding(ScopeEntity& entity) override;
 	void generateArgumentSeparator() override;
