@@ -1,6 +1,8 @@
 #ifndef GEN_ENTITY_HH
 #define GEN_ENTITY_HH
 
+#include <gen/EntityContext.hh>
+
 #include <vector>
 #include <memory>
 #include <string>
@@ -31,6 +33,17 @@ public:
 	///
 	/// \return The parent entity.
 	Entity& getParent();
+
+	/// Initializes the context for this entity. This function does nothing
+	/// if the context is already set.
+	///
+	/// \param ctx The context to set for this entity.
+	void initializeContext(std::shared_ptr <EntityContext>&& ctx);
+
+	/// Gets the context for this entity.
+	///
+	/// \return The context for this entity.
+	std::shared_ptr <EntityContext> getContext();
 
 	/// Resolves an entity that has the given qualified
 	/// name relative to this entity.
@@ -105,6 +118,8 @@ private:
 	unsigned usages = 0;
 	bool generated = false;
 	Entity* parent = nullptr;
+
+	std::shared_ptr <EntityContext> context;
 };
 
 }

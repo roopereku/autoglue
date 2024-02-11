@@ -34,6 +34,19 @@ Entity& Entity::getParent()
 	return *parent;
 }
 
+void Entity::initializeContext(std::shared_ptr <EntityContext>&& ctx)
+{
+	if(!context)
+	{
+		context = std::move(ctx);
+	}
+}
+
+std::shared_ptr <EntityContext> Entity::getContext()
+{
+	return context;
+}
+
 std::shared_ptr <Entity> Entity::resolve(std::string_view qualifiedName)
 {
 	// Try to find the first dot. if there is none, stop at the string end.

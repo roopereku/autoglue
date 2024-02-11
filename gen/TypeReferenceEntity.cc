@@ -66,16 +66,6 @@ PrimitiveEntity& TypeReferenceEntity::getPrimitiveType()
 	return static_cast <PrimitiveEntity&> (*referred);
 }
 
-void TypeReferenceEntity::setContext(std::shared_ptr <TypeContext>&& context)
-{
-	this->context = std::move(context);
-}
-
-std::shared_ptr <TypeContext> TypeReferenceEntity::getContext()
-{
-	return context;
-}
-
 const char* TypeReferenceEntity::getTypeString()
 {
 	return "TypeReference";

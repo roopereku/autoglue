@@ -4,7 +4,6 @@
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 #include <gen/PrimitiveEntity.hh>
-#include <gen/TypeContext.hh>
 
 namespace gen
 {
@@ -60,17 +59,6 @@ public:
 	/// \return The referred type entity as a primitive type.
 	PrimitiveEntity& getPrimitiveType();
 
-	/// Sets the context for this type reference. This can be anything that
-	/// a backend might require when generating glue code.
-	///
-	/// \param context Context for this type.
-	void setContext(std::shared_ptr <TypeContext>&& context);
-
-	/// Gets the context for this type reference.
-	///
-	/// \return The context for this type reference if any.
-	std::shared_ptr <TypeContext> getContext();
-
 	const char* getTypeString() override;
 
 private:
@@ -83,7 +71,6 @@ private:
 	void onList(std::string_view indent) override;
 
 	std::shared_ptr <TypeEntity> referred;
-	std::shared_ptr <TypeContext> context;
 };
 
 }
