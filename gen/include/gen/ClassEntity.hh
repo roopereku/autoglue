@@ -24,6 +24,12 @@ public:
 	/// \param generator The BindingGenerator to call functions from.
 	void generateBaseClasses(BindingGenerator& generator);
 
+	/// Checks if this class base classes has any base classes.
+	/// Any base class ClassEntity that doesn't exist upon invocation isn't counted.
+	///
+	/// \return True If this class has base classes.
+	bool hasBaseClasses();
+
 	const char* getTypeString() override;
 
 private:

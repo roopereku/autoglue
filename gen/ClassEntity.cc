@@ -47,6 +47,18 @@ void ClassEntity::generateBaseClasses(BindingGenerator& generator)
 	}
 }
 
+bool ClassEntity::hasBaseClasses()
+{
+	size_t bases = 0;
+
+	for(auto base : baseClasses)
+	{
+		bases += !base.expired();
+	}
+
+	return bases > 0;
+}
+
 void ClassEntity::onGenerate(BindingGenerator& generator)
 {
 	// Begin the class.
