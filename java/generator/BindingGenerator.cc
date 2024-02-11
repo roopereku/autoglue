@@ -4,6 +4,7 @@
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
 #include <gen/EnumEntryEntity.hh>
+#include <gen/TypeEntity.hh>
 #include <gen/ScopeEntity.hh>
 
 #include <algorithm>
@@ -40,19 +41,28 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 	}
 
 	// TODO: Use protected if necessary.
-	// TODO: Set inheritance.
 	file << "public class " << entity.getName() << ' ';
+
 	entity.generateBaseClasses(*this);
-	file << "\n{\n";
 
-	// Store a pointer to the "this" handle.
-	// TODO: Only do this if no inheritance is present.
-	file << "protected long thisHandle;\n\n";
+	// Add the object handle if this class has no base classes.
+	if(!entity.hasBaseClasses())
+	{
+		file << "{\n";
 
-	// TODO: Only do this if no inheritance is present.
-	// Define a public getter for the object handle.
-	file << "public long getThisHandle() {\n";
-	file << "return thisHandle;\n}\n\n";
+		// Store a pointer to the "this" handle.
+		file << "protected long thisHandle;\n\n";
+
+		// Define a public getter for the object handle.
+		file << "public long getThisHandle() {\n";
+		file << "return thisHandle;\n}\n\n";
+	}
+
+	// If there are base classes, add an additional space.
+	else
+	{
+		file << " {\n";
+	}
 }
 
 void BindingGenerator::generateClassEnding(ClassEntity& entity)
@@ -70,16 +80,17 @@ void BindingGenerator::generateClassEnding(ClassEntity& entity)
 
 void BindingGenerator::generateEnumBeginning(EnumEntity& entity)
 {
-	file << "enum " << entity.getName() << " {\n";
+	// TODO: Use the proper visibility.
+	file << "public enum " << entity.getName() << " {\n";
 }
 
 void BindingGenerator::generateEnumEnding(EnumEntity& entity)
 {
 	// Add a getter for the integer value.
-	file << "int getValue() {\nreturn mValue;\n}\n\n";
+	file << "public int getValue() {\nreturn mValue;\n}\n\n";
 
 	// Generate a constructor for the enum that takes an integer.
-	file << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
+	file << "private " << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
 	file << "private int mValue;\n}\n\n";
 }
 
@@ -178,7 +189,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	auto bridgeName = entity.getHierarchy();
 
 	// Locate the external bridge function.
-	useBridgeFormat = true;
+	inExtern = true;
 	jni << "extern \"C\" ";
 
 	if(entity.getType() == FunctionEntity::Type::Constructor)
@@ -193,7 +204,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	jni << ' ' << bridgeName << "(";
 	entity.generateParameters(*this);
-	useBridgeFormat = false;
+	inExtern = false;
 	jni << ");\n";
 
 	// Declare the function in JNI.
@@ -248,12 +259,9 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		}
 	}
 
-	// Convert the JNI parameters to the appropriate format.
-	useBridgeFormat = true;
 	onlyParameterNames = true;
 	entity.generateParameters(*this);
 	onlyParameterNames = false;
-	useBridgeFormat = false;
 
 	jni << ");\n}\n\n";
 	inJni = false;
@@ -261,91 +269,19 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
-	auto& target = inJni ? jni : file;
-
-	if(onlyParameterNames)
+	if(inNativeDeclaration)
 	{
-		// If an argument name is used in non JNI context, pass it in the
-		// appropriate way.
-		if(!inJni)
-		{
-			if(entity.isEnum())
-			{
-				// Pass the integer value of an enum to JNI.
-				file << entity.getName() << ".getValue()";
-			}
+		generateTyperefNativeDecl(entity);
+	}
 
-			else if(entity.isClass())
-			{
-				// Cast the given class object to the parameter type and give the pointer to JNI.
-				file << entity.getName() << ".cast" << entity.getReferred().getName() << "()";
-			}
-		}
-
-		else
-		{
-			// When passing parameters to the bridge function some special handling might be needed.
-			if(useBridgeFormat)
-			{
-				// Cast the this handle of class types to an abstract pointer type.
-				if(entity.isClass())
-				{
-					target << "reinterpret_cast <void*> (" << entity.getName() << ')';
-					return;
-				}
-			}
-
-			target << entity.getName();
-		}
+	else if(inJni)
+	{
+		generateTyperefJNI(entity);
 	}
 
 	else
 	{
-		// Bridge parameter types needs special handling.
-		if(useBridgeFormat)
-		{
-			if(entity.isEnum())
-			{
-				jni << "int";
-			}
-
-			else if(entity.isClass())
-			{
-				jni << "void*";
-			}
-
-			else
-			{
-				target << entity.getReferred().getName();
-			}
-
-			return;
-		}
-
-		// Enum parameters require special handling in JNI and native method declarations.
-		if(entity.isEnum())
-		{
-			if(inJni)
-			{
-				jni << "jint " << entity.getName();
-				return;
-			}
-
-			else if(inNativeDeclaration)
-			{
-				file << "int " << entity.getName();
-				return;
-			}
-		}
-
-		// Class types are takes as a long in the JNI.
-		else if(inJni && entity.isClass())
-		{
-			target << "jlong " << entity.getName();
-			return;
-		}
-
-		target << entity.getReferred().getName() << ' ' << entity.getName();
+		generateTyperefJava(entity);
 	}
 }
 
@@ -383,14 +319,6 @@ void BindingGenerator::generateNamedScopeEnding(ScopeEntity& entity)
 	package.pop();
 }
 
-bool BindingGenerator::isTrivialType(ClassEntity& entity)
-{
-	const auto& name = entity.getName();
-
-	return name == "string" ||
-			name == "int";
-}
-
 void BindingGenerator::generateArgumentSeparator()
 {
 	if(inJni)
@@ -401,6 +329,104 @@ void BindingGenerator::generateArgumentSeparator()
 	else
 	{
 		file << ", ";
+	}
+}
+
+void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
+{
+	// Function calls in the JNI are always calls to bridge functions.
+	if(onlyParameterNames)
+	{
+		if(entity.getType() == TypeEntity::Type::Class)
+		{
+			jni << "reinterpret_cast <void*> (" << entity.getName() << ')';
+		}
+
+		else
+		{
+			jni << entity.getName();
+		}
+	}
+
+	else
+	{
+		switch(entity.getType())
+		{
+			case TypeEntity::Type::Class:
+			{
+				jni << (inExtern ? "void*" : "jlong ") << entity.getName();
+				break;
+			}
+
+			case TypeEntity::Type::Enum:
+			{
+				jni << "jint " << entity.getName();
+				break;
+			}
+
+			case TypeEntity::Type::Primitive:
+			{
+				// TODO: Convert to proper JNI primitives.
+				jni << entity.getReferred().getName() << ' ' << entity.getName();
+				break;
+			}
+		}
+	}
+}
+
+void BindingGenerator::generateTyperefNativeDecl(TypeReferenceEntity& entity)
+{
+	switch(entity.getType())
+	{
+		case TypeEntity::Type::Class:
+		{
+			file << "long " << entity.getName();
+			break;
+		}
+
+		case TypeEntity::Type::Enum:
+		{
+			file << "int " << entity.getName();
+			break;
+		}
+
+		case TypeEntity::Type::Primitive:
+		{
+			// TODO: Convert to proper java primitives.
+			file << entity.getReferred().getName() << ' ' << entity.getName();
+			break;
+		}
+	}
+}
+
+void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
+{
+	if(onlyParameterNames)
+	{
+		file << entity.getName();
+
+		switch(entity.getType())
+		{
+			case TypeEntity::Type::Class:
+			{
+				file << ".getThisHandle()";
+				break;
+			}
+
+			case TypeEntity::Type::Enum:
+			{
+				file << ".getValue()";
+				break;
+			}
+
+			default: {}
+		}
+	}
+
+	else
+	{
+		// TODO: Convert primitive types to proper java primitives.
+		file << entity.getReferred().getName() << ' ' << entity.getName();
 	}
 }
 
