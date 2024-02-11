@@ -29,56 +29,56 @@ public:
 	/// Generates the beginning of a class entity.
 	///
 	/// \param entity The ClassEntity to generate the beginning of.
-	virtual void generateClassBeginning(ClassEntity& entity) = 0;
+	virtual void generateClassBeginning(ClassEntity& entity);
 
 	/// Generates the ending of a class entity.
 	///
 	/// \param entity The ClassEntity to generate the ending of.
-	virtual void generateClassEnding(ClassEntity& entity) = 0;
+	virtual void generateClassEnding(ClassEntity& entity);
 
 	/// Generates the beginning of an enum entity.
 	///
 	/// \param entity The EnumEntity to generate the beginning of.
-	virtual void generateEnumBeginning(EnumEntity& entity) = 0;
+	virtual void generateEnumBeginning(EnumEntity& entity);
 
 	/// Generates the ending of an enum entity.
 	///
 	/// \param entity The EnumEntity to generate the ending of.
-	virtual void generateEnumEnding(EnumEntity& entity) = 0;
+	virtual void generateEnumEnding(EnumEntity& entity);
 
 	/// Generates an entry for an enum entity.
 	///
 	/// \param entity The EnumEntryEntity to generate.
-	virtual void generateEnumEntry(EnumEntryEntity& entity) = 0;
+	virtual void generateEnumEntry(EnumEntryEntity& entity);
 
 	/// Generates a function entity.
 	///
 	/// \param entity The FunctionEntity to generate.
-	virtual void generateFunction(FunctionEntity& entity) = 0;
+	virtual void generateFunction(FunctionEntity& entity);
 
 	/// Generates a type reference entity.
 	///
 	/// \param entity The TypeReferenceEntity to generate.
-	virtual void generateTypeReference(TypeReferenceEntity& entity) = 0;
+	virtual void generateTypeReference(TypeReferenceEntity& entity);
 
 	/// Generates a base class specification.
 	///
 	/// \param entity The ClassEntity containing the base class.
 	/// \param index The index of the base class.
-	virtual void generateBaseClass(ClassEntity& entity, size_t index) = 0;
+	virtual void generateBaseClass(ClassEntity& entity, size_t index);
 
 	/// Generates the beginning of a named scope.
 	///
 	/// \param entity The ScopeEntity to generate a beginning for. This should always have a name.
-	virtual void generateNamedScopeBeginning(ScopeEntity& entity) = 0;
+	virtual void generateNamedScopeBeginning(ScopeEntity& entity);
 
 	/// Generates the ending of a named scope.
 	///
 	/// \param entity The ScopeEntity to generate a ending for. This should always have a name.
-	virtual void generateNamedScopeEnding(ScopeEntity& entity) = 0;
+	virtual void generateNamedScopeEnding(ScopeEntity& entity);
 
 	/// Generates an argument separator, such as a comma.
-	virtual void generateArgumentSeparator() = 0;
+	virtual void generateArgumentSeparator();
 
 	/// Changes the class depth.
 	///

@@ -12,26 +12,6 @@ GlueGenerator::GlueGenerator(Backend& backend)
 {
 }
 
-void GlueGenerator::generateClassBeginning(ClassEntity& entity)
-{
-}
-
-void GlueGenerator::generateClassEnding(ClassEntity& entity)
-{
-}
-
-void GlueGenerator::generateEnumBeginning(EnumEntity& entity)
-{
-}
-
-void GlueGenerator::generateEnumEnding(EnumEntity& entity)
-{
-}
-
-void GlueGenerator::generateEnumEntry(EnumEntryEntity& entity)
-{
-}
-
 void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
 	file << "extern \"C\"\n";
@@ -117,18 +97,6 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 			return;
 		}
 	}
-}
-
-void GlueGenerator::generateBaseClass(ClassEntity& entity, size_t index)
-{
-}
-
-void GlueGenerator::generateNamedScopeBeginning(ScopeEntity& entity)
-{
-}
-
-void GlueGenerator::generateNamedScopeEnding(ScopeEntity& entity)
-{
 }
 
 void GlueGenerator::generateArgumentSeparator()
