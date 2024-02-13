@@ -1,5 +1,6 @@
 #include <gen/java/BindingGenerator.hh>
 #include <gen/TypeReferenceEntity.hh>
+#include <gen/TypeAliasEntity.hh>
 #include <gen/FunctionEntity.hh>
 #include <gen/ClassEntity.hh>
 #include <gen/EnumEntity.hh>
@@ -25,19 +26,24 @@ BindingGenerator::BindingGenerator(Backend& backend)
 	jni << "#include <jni.h>\n";
 }
 
+void BindingGenerator::openFile(Entity& entity)
+{
+	// Get the package path as a directory hierarchy.
+	auto packagePath = package.top();
+	std::replace(packagePath.begin(), packagePath.end(), '.', '/');
+
+	assert(!file.is_open());
+	file.open(packagePath + "/" + entity.getName() + ".java");
+
+	file << "package " + package.top() + ";\n";
+}
+
 void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 {
 	// Since each top level class goes to its own file, open a new file.
 	if(getClassDepth() == 0)
 	{
-		// Get the package path as a directory hierarchy.
-		auto packagePath = package.top();
-		std::replace(packagePath.begin(), packagePath.end(), '.', '/');
-
-		assert(!file.is_open());
-		file.open(packagePath + "/" + entity.getName() + ".java");
-
-		file << "package " + package.top() + ";\n";
+		openFile(entity);
 	}
 
 	// TODO: Use protected if necessary.
@@ -285,6 +291,34 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 	}
 }
 
+void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
+{
+	// If this type alias isn't nested, create a file for it.
+	if(getClassDepth() == 0)
+	{
+		openFile(entity);
+	}
+
+	auto underlying = entity.getUnderlying();
+	assert(underlying);
+
+	// Java has no type aliases, so create a new class that extends the aliased type.
+	// TODO: For primitive types and enums do special handling.
+	file << "public class " << entity.getName() << " extends " << underlying->getName() << " {\n";
+
+	// TODO: In order to make the type alias instantiable, generate constructors from the aliased type.
+	// No JNI code is required from them as they just would call super().
+
+	file << "}\n";
+
+	// If this type alias isn't nested close the created file.
+	if(getClassDepth() == 0)
+	{
+		assert(file.is_open());
+		file.close();
+	}
+}
+
 void BindingGenerator::generateBaseClass(ClassEntity& entity, size_t index)
 {
 	if(index == 0)
@@ -352,6 +386,8 @@ void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
 	{
 		switch(entity.getType())
 		{
+			// TODO: Assuming long is only valid for aliases that refer to a class.
+			case TypeEntity::Type::Alias:
 			case TypeEntity::Type::Class:
 			{
 				jni << (inExtern ? "void*" : "jlong ") << entity.getName();
@@ -378,6 +414,8 @@ void BindingGenerator::generateTyperefNativeDecl(TypeReferenceEntity& entity)
 {
 	switch(entity.getType())
 	{
+		// TODO: Assuming long is only valid for aliases that refer to a class.
+		case TypeEntity::Type::Alias:
 		case TypeEntity::Type::Class:
 		{
 			file << "long " << entity.getName();

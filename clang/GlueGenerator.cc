@@ -1,5 +1,4 @@
 #include <gen/clang/GlueGenerator.hh>
-#include <gen/clang/TypeContext.hh>
 #include <gen/clang/Backend.hh>
 
 #include <gen/TypeReferenceEntity.hh>

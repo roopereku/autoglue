@@ -12,6 +12,7 @@ class EnumEntryEntity;
 class FunctionEntity;
 class ScopeEntity;
 class TypeReferenceEntity;
+class TypeAliasEntity;
 
 class BindingGenerator
 {
@@ -60,6 +61,11 @@ public:
 	///
 	/// \param entity The TypeReferenceEntity to generate.
 	virtual void generateTypeReference(TypeReferenceEntity& entity);
+
+	/// Generates a type alias entity.
+	///
+	/// \param entity The TypeAliasEntity to generate.
+	virtual void generateTypeAlias(TypeAliasEntity& entity);
 
 	/// Generates a base class specification.
 	///

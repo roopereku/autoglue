@@ -1,8 +1,8 @@
 #include <gen/clang/Backend.hh>
-#include <gen/clang/TypeContext.hh>
 
 #include <gen/FunctionEntity.hh>
 #include <gen/TypeReferenceEntity.hh>
+#include <gen/TypeAliasEntity.hh>
 #include <gen/EnumEntity.hh>
 #include <gen/EnumEntryEntity.hh>
 #include <gen/FunctionGroupEntity.hh>
@@ -43,6 +43,12 @@ public:
 		return true;
 	}
 
+	bool TraverseTypeAliasDecl(clang::TypeAliasDecl* decl)
+	{
+		ensureTypeAliasExists(decl);
+		return true;
+	}
+
 	bool TraverseEnumDecl(clang::EnumDecl* decl)
 	{
 		ensureEntityExists(decl);
@@ -77,6 +83,19 @@ private:
 	std::shared_ptr <gen::TypeEntity> resolveType(clang::QualType type)
 	{
 		auto underlying = type.getNonReferenceType();
+
+		// If the type class of the underlying type is "elaborated", there might be a type alias underneath.
+		if(underlying->getTypeClass() == clang::Type::TypeClass::Elaborated)
+		{
+			// Get the named type that the elaboration is referring to.
+			auto referred = clang::cast <clang::ElaboratedType> (underlying.getTypePtrOrNull())->getNamedType();
+
+			// Check if the referred type is a type alias.
+			if(auto* alias = referred->getAs <clang::TypedefType> ())
+			{
+				return ensureTypeAliasExists(alias->getDecl());
+			}
+		}
 
 		// TODO: Handle template instantiation references. For example when
 		// shared_ptr is used it resolves the template class instead of an instantation here.
@@ -175,26 +194,26 @@ private:
 					else
 					{
 						// TODO: Filter out unions?
-						parent->addChild(std::make_shared <gen::ClassEntity> (named->getNameAsString()));
+						parent->addChild(std::make_shared <gen::ClassEntity> (name));
 					}
 				}
 
 				// Handle namespaces.
 				else if(clang::dyn_cast <clang::NamespaceDecl> (named))
 				{
-					parent->addChild(std::make_shared <gen::ScopeEntity> (named->getNameAsString()));
+					parent->addChild(std::make_shared <gen::ScopeEntity> (name));
 				}
 
 				// Handle enums.
 				else if(clang::dyn_cast <clang::EnumDecl> (named))
 				{
-					parent->addChild(std::make_shared <gen::EnumEntity> (named->getNameAsString()));
+					parent->addChild(std::make_shared <gen::EnumEntity> (name));
 				}
 
 				// Create a group for functions.
 				else if(auto* function = clang::dyn_cast <clang::FunctionDecl> (named))
 				{
-					parent->addChild(std::make_shared <gen::FunctionGroupEntity> (named->getNameAsString()));
+					parent->addChild(std::make_shared <gen::FunctionGroupEntity> (name));
 				}
 
 				else
@@ -203,7 +222,13 @@ private:
 					return nullptr;
 				}
 
-				result = parent->resolve(named->getNameAsString());
+				result = parent->resolve(name);
+
+				if(!result)
+				{
+					std::cout << "BUG: Failed to add " << name << '\n';
+					//assert(false);
+				}
 			}
 
 			return result;
@@ -211,6 +236,26 @@ private:
 
 		// For any non-named entity, return the parent which at latest is the global scope.
 		return parent;
+	}
+
+	std::shared_ptr <gen::TypeAliasEntity> ensureTypeAliasExists(clang::TypedefNameDecl* decl)
+	{
+		// Since TypeAliasDecl isn't a DeclContext, ensureEntityExists cannot be called directly.
+		auto parent = ensureEntityExists(decl->getDeclContext(), 1);
+		assert(parent);
+
+		auto result = parent->resolve(decl->getNameAsString());
+
+		if(!result)
+		{
+			parent->addChild(std::make_shared <gen::TypeAliasEntity>
+				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType())));
+
+			result = parent->resolve(decl->getNameAsString());
+		}
+
+		assert(result);
+		return std::static_pointer_cast <gen::TypeAliasEntity> (result);
 	}
 
 	void ensureClassExists(clang::CXXRecordDecl* decl)

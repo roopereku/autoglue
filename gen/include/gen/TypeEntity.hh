@@ -12,6 +12,7 @@ public:
 	enum class Type
 	{
 		Primitive,
+		Alias,
 		Class,
 		Enum
 	};

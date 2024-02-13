@@ -32,6 +32,7 @@ void BindingGenerator::generateEnumEnding(EnumEntity&) {}
 void BindingGenerator::generateEnumEntry(EnumEntryEntity&) {}
 void BindingGenerator::generateFunction(FunctionEntity&) {}
 void BindingGenerator::generateTypeReference(TypeReferenceEntity&) {}
+void BindingGenerator::generateTypeAlias(TypeAliasEntity&) {}
 void BindingGenerator::generateBaseClass(ClassEntity&, size_t) {}
 void BindingGenerator::generateNamedScopeBeginning(ScopeEntity&) {}
 void BindingGenerator::generateNamedScopeEnding(ScopeEntity&) {}

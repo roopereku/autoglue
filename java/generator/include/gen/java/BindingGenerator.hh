@@ -22,6 +22,7 @@ private:
 	void generateEnumEntry(EnumEntryEntity& entity) override;
 	void generateFunction(FunctionEntity& entity) override;
 	void generateTypeReference(TypeReferenceEntity& entity) override;
+	void generateTypeAlias(TypeAliasEntity& entity) override;
 	void generateBaseClass(ClassEntity& entity, size_t index) override;
 	void generateNamedScopeBeginning(ScopeEntity& entity) override;
 	void generateNamedScopeEnding(ScopeEntity& entity) override;
@@ -30,6 +31,8 @@ private:
 	void generateTyperefJNI(TypeReferenceEntity& entity);
 	void generateTyperefNativeDecl(TypeReferenceEntity& entity);
 	void generateTyperefJava(TypeReferenceEntity& entity);
+
+	void openFile(Entity& entity);
 
 	std::ofstream file;
 	std::ofstream jni;

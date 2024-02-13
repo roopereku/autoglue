@@ -19,6 +19,10 @@ public:
 	Entity(std::string_view name);
 	Entity();
 
+	using Test = int;
+
+	void foo(Test& hasus);
+
 	/// Adds a child entity
 	///
 	/// \return child The new child entity.
