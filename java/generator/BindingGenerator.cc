@@ -1,22 +1,22 @@
-#include <gen/java/BindingGenerator.hh>
-#include <gen/TypeReferenceEntity.hh>
-#include <gen/TypeAliasEntity.hh>
-#include <gen/FunctionEntity.hh>
-#include <gen/ClassEntity.hh>
-#include <gen/EnumEntity.hh>
-#include <gen/EnumEntryEntity.hh>
-#include <gen/TypeEntity.hh>
-#include <gen/ScopeEntity.hh>
+#include <autoglue/java/BindingGenerator.hh>
+#include <autoglue/TypeReferenceEntity.hh>
+#include <autoglue/TypeAliasEntity.hh>
+#include <autoglue/FunctionEntity.hh>
+#include <autoglue/ClassEntity.hh>
+#include <autoglue/EnumEntity.hh>
+#include <autoglue/EnumEntryEntity.hh>
+#include <autoglue/TypeEntity.hh>
+#include <autoglue/ScopeEntity.hh>
 
 #include <algorithm>
 #include <filesystem>
 #include <cassert>
 
-namespace gen::java
+namespace ag::java
 {
 
 BindingGenerator::BindingGenerator(Backend& backend)
-	: gen::BindingGenerator(backend), jni("jni_glue.cpp")
+	: ag::BindingGenerator(backend), jni("jni_glue.cpp")
 {
 	// Create a directory to put the java classes in.
 	std::filesystem::remove_all("com");

@@ -1,9 +1,9 @@
-#include <gen/clang/GlueGenerator.hh>
-#include <gen/clang/Backend.hh>
+#include <autoglue/clang/GlueGenerator.hh>
+#include <autoglue/clang/Backend.hh>
 
-#include <gen/TypeReferenceEntity.hh>
+#include <autoglue/TypeReferenceEntity.hh>
 
-namespace gen::clang
+namespace ag::clang
 {
 
 GlueGenerator::GlueGenerator(Backend& backend)

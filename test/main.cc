@@ -1,40 +1,38 @@
-#include <gen/FileList.hh>
-#include <gen/ClassEntity.hh>
+#include <autoglue/FileList.hh>
+#include <autoglue/ClassEntity.hh>
 
-#include <gen/clang/Backend.hh>
-#include <gen/clang/GlueGenerator.hh>
+#include <autoglue/clang/Backend.hh>
+#include <autoglue/clang/GlueGenerator.hh>
 
-#include <gen/java/BindingGenerator.hh>
+#include <autoglue/java/BindingGenerator.hh>
 
 #include <cassert>
 
 int main(int argc, char** argv)
 {
-	assert(argc > 2);
+	assert(argc > 1);
 
-	gen::FileList headers(argv[1], ".hh");
-	gen::clang::Backend clangBackend(headers);
-
-	if(!clangBackend.loadCompilationDatabase(argv[2]))
-	{
-		return 1;
-	}
+	ag::clang::Backend clangBackend(argv[1]);
 
 	if(!clangBackend.generateHierarchy())
 	{
 		return 1;
 	}
 
-	auto ns = clangBackend.getRoot().resolve("gen");
+	// If autoglue is given to clangBackend, this will resolve the namespace.
+	auto ns = clangBackend.getRoot().resolve("ag");
 
+	// If something was resolved, export it.
 	if(ns)
 	{
 		ns->useAll();
 	}
 
-	gen::clang::GlueGenerator glueGen(clangBackend);
+	// Export glue code for C++.
+	ag::clang::GlueGenerator glueGen(clangBackend);
 	glueGen.generateBindings();
 
-	gen::java::BindingGenerator javaGen(clangBackend);
+	// Export bindings for Java.
+	ag::java::BindingGenerator javaGen(clangBackend);
 	javaGen.generateBindings();
 }

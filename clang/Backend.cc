@@ -1,14 +1,14 @@
-#include <gen/clang/Backend.hh>
+#include <autoglue/clang/Backend.hh>
 
-#include <gen/FunctionEntity.hh>
-#include <gen/TypeReferenceEntity.hh>
-#include <gen/TypeAliasEntity.hh>
-#include <gen/EnumEntity.hh>
-#include <gen/EnumEntryEntity.hh>
-#include <gen/FunctionGroupEntity.hh>
-#include <gen/PrimitiveEntity.hh>
-#include <gen/ClassEntity.hh>
-#include <gen/EnumEntity.hh>
+#include <autoglue/FunctionEntity.hh>
+#include <autoglue/TypeReferenceEntity.hh>
+#include <autoglue/TypeAliasEntity.hh>
+#include <autoglue/EnumEntity.hh>
+#include <autoglue/EnumEntryEntity.hh>
+#include <autoglue/FunctionGroupEntity.hh>
+#include <autoglue/PrimitiveEntity.hh>
+#include <autoglue/ClassEntity.hh>
+#include <autoglue/EnumEntity.hh>
 
 #include <clang/Tooling/Tooling.h>
 #include <clang/Tooling/ArgumentsAdjusters.h>
@@ -26,7 +26,7 @@
 class NodeVisitor : public clang::RecursiveASTVisitor <NodeVisitor>
 {
 public:
-	NodeVisitor(gen::clang::Backend& backend) : backend(backend)
+	NodeVisitor(ag::clang::Backend& backend) : backend(backend)
 	{
 	}
 
@@ -57,30 +57,30 @@ public:
 
 	bool TraverseFunctionDecl(clang::FunctionDecl* decl)
 	{
-		ensureFunctionExists(decl, gen::FunctionEntity::Type::Function);
+		ensureFunctionExists(decl, ag::FunctionEntity::Type::Function);
 		return true;
 	}
 
 	bool TraverseCXXMethodDecl(clang::CXXMethodDecl* decl)
 	{
-		ensureFunctionExists(decl, gen::FunctionEntity::Type::MemberFunction);
+		ensureFunctionExists(decl, ag::FunctionEntity::Type::MemberFunction);
 		return true;
 	}
 
 	bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* decl)
 	{
-		ensureFunctionExists(decl, gen::FunctionEntity::Type::Constructor);
+		ensureFunctionExists(decl, ag::FunctionEntity::Type::Constructor);
 		return true;
 	}
 
 	bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* decl)
 	{
-		ensureFunctionExists(decl, gen::FunctionEntity::Type::Destructor);
+		ensureFunctionExists(decl, ag::FunctionEntity::Type::Destructor);
 		return true;
 	}
 
 private:
-	std::shared_ptr <gen::TypeEntity> resolveType(clang::QualType type)
+	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
 		auto underlying = type.getNonReferenceType();
 
@@ -107,7 +107,7 @@ private:
 				return nullptr;
 			}
 
-			return std::static_pointer_cast <gen::TypeEntity> (result);
+			return std::static_pointer_cast <ag::TypeEntity> (result);
 		}
 
 		else if(underlying->isBuiltinType())
@@ -119,18 +119,18 @@ private:
 
 			if(!result)
 			{
-				backend.getRoot().addChild(std::make_shared <gen::PrimitiveEntity> (name));
+				backend.getRoot().addChild(std::make_shared <ag::PrimitiveEntity> (name));
 				result = backend.getRoot().resolve(name);
 			}
 
-			return std::static_pointer_cast <gen::TypeEntity> (result);
+			return std::static_pointer_cast <ag::TypeEntity> (result);
 		}
 
-		static auto invalid = std::make_shared <gen::ClassEntity> ("invalidType");
+		static auto invalid = std::make_shared <ag::ClassEntity> ("invalidType");
 		return invalid;
 	}
 
-	std::shared_ptr <gen::Entity> ensureEntityExists(clang::DeclContext* decl, unsigned depth = 0)
+	std::shared_ptr <ag::Entity> ensureEntityExists(clang::DeclContext* decl, unsigned depth = 0)
 	{
 		// Translation unit is the global scope.
 		if(clang::dyn_cast <clang::TranslationUnitDecl> (decl))
@@ -188,32 +188,32 @@ private:
 					// Handle template instantiations.
 					if(auto* instantiation = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
 					{
-						parent->addChild(std::make_shared <gen::ClassEntity> (name));
+						parent->addChild(std::make_shared <ag::ClassEntity> (name));
 					}
 
 					else
 					{
 						// TODO: Filter out unions?
-						parent->addChild(std::make_shared <gen::ClassEntity> (name));
+						parent->addChild(std::make_shared <ag::ClassEntity> (name));
 					}
 				}
 
 				// Handle namespaces.
 				else if(clang::dyn_cast <clang::NamespaceDecl> (named))
 				{
-					parent->addChild(std::make_shared <gen::ScopeEntity> (name));
+					parent->addChild(std::make_shared <ag::ScopeEntity> (name));
 				}
 
 				// Handle enums.
 				else if(clang::dyn_cast <clang::EnumDecl> (named))
 				{
-					parent->addChild(std::make_shared <gen::EnumEntity> (name));
+					parent->addChild(std::make_shared <ag::EnumEntity> (name));
 				}
 
 				// Create a group for functions.
 				else if(auto* function = clang::dyn_cast <clang::FunctionDecl> (named))
 				{
-					parent->addChild(std::make_shared <gen::FunctionGroupEntity> (name));
+					parent->addChild(std::make_shared <ag::FunctionGroupEntity> (name));
 				}
 
 				else
@@ -238,7 +238,7 @@ private:
 		return parent;
 	}
 
-	std::shared_ptr <gen::TypeAliasEntity> ensureTypeAliasExists(clang::TypedefNameDecl* decl)
+	std::shared_ptr <ag::TypeAliasEntity> ensureTypeAliasExists(clang::TypedefNameDecl* decl)
 	{
 		// Since TypeAliasDecl isn't a DeclContext, ensureEntityExists cannot be called directly.
 		auto parent = ensureEntityExists(decl->getDeclContext(), 1);
@@ -248,14 +248,14 @@ private:
 
 		if(!result)
 		{
-			parent->addChild(std::make_shared <gen::TypeAliasEntity>
+			parent->addChild(std::make_shared <ag::TypeAliasEntity>
 				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType())));
 
 			result = parent->resolve(decl->getNameAsString());
 		}
 
 		assert(result);
-		return std::static_pointer_cast <gen::TypeAliasEntity> (result);
+		return std::static_pointer_cast <ag::TypeAliasEntity> (result);
 	}
 
 	void ensureClassExists(clang::CXXRecordDecl* decl)
@@ -266,7 +266,7 @@ private:
 			return;
 		}
 
-		auto classEntity = std::static_pointer_cast <gen::ClassEntity> (entity);
+		auto classEntity = std::static_pointer_cast <ag::ClassEntity> (entity);
 
 		auto definition = decl->getDefinition();
 		if(definition)
@@ -276,7 +276,7 @@ private:
 				auto baseEntity = resolveType(base.getType());
 				if(baseEntity)
 				{
-					classEntity->addBaseClass(std::static_pointer_cast <gen::ClassEntity> (baseEntity));
+					classEntity->addBaseClass(std::static_pointer_cast <ag::ClassEntity> (baseEntity));
 				}
 			}
 		}
@@ -287,7 +287,7 @@ private:
 		}
 	}
 
-	void ensureFunctionExists(clang::FunctionDecl* decl, gen::FunctionEntity::Type type)
+	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
 	{
 		auto groupEntity = ensureEntityExists(decl);
 		if(!groupEntity)
@@ -295,24 +295,24 @@ private:
 			return;
 		}
 
-		std::shared_ptr <gen::FunctionEntity> function;
+		std::shared_ptr <ag::FunctionEntity> function;
 
 		switch(type)
 		{
-			case gen::FunctionEntity::Type::Constructor:
-			case gen::FunctionEntity::Type::Destructor:
+			case ag::FunctionEntity::Type::Constructor:
+			case ag::FunctionEntity::Type::Destructor:
 			{
-				function = std::make_shared <gen::FunctionEntity> (decl->getNameAsString(), type);
+				function = std::make_shared <ag::FunctionEntity> (decl->getNameAsString(), type);
 				break;
 			}
 
-			case gen::FunctionEntity::Type::MemberFunction:
-			case gen::FunctionEntity::Type::Function:
+			case ag::FunctionEntity::Type::MemberFunction:
+			case ag::FunctionEntity::Type::Function:
 			{
-				auto returnType = std::make_shared <gen::TypeReferenceEntity>
+				auto returnType = std::make_shared <ag::TypeReferenceEntity>
 					("", resolveType(decl->getReturnType()));
 
-				function = std::make_shared <gen::FunctionEntity>
+				function = std::make_shared <ag::FunctionEntity>
 					(decl->getNameAsString(), type, std::move(returnType));
 
 				break;
@@ -321,20 +321,20 @@ private:
 
 		for(auto param : decl->parameters())
 		{
-			function->addChild(std::make_shared <gen::TypeReferenceEntity>
+			function->addChild(std::make_shared <ag::TypeReferenceEntity>
 				(param->getNameAsString(), resolveType(param->getType())));
 		}
 
 		groupEntity->addChild(std::move(function));
 	}
 
-	gen::clang::Backend& backend;
+	ag::clang::Backend& backend;
 };
 
 class HierarchyGenerator : public clang::ASTConsumer
 {
 public:
-	HierarchyGenerator(clang::SourceManager& manager, gen::clang::Backend& backend)
+	HierarchyGenerator(clang::SourceManager& manager, ag::clang::Backend& backend)
 		: visitor(backend)
 	{
 	}
@@ -351,7 +351,7 @@ private:
 class HierarchyGeneratorAction : public clang::ASTFrontendAction
 {
 public:
-	HierarchyGeneratorAction(gen::clang::Backend& backend)
+	HierarchyGeneratorAction(ag::clang::Backend& backend)
 		: backend(backend)
 	{
 	}
@@ -364,13 +364,13 @@ public:
 	}
 
 private:
-	gen::clang::Backend& backend;
+	ag::clang::Backend& backend;
 };
 
 class HierarchyGeneratorFactory : public clang::tooling::FrontendActionFactory
 {
 public:
-	HierarchyGeneratorFactory(gen::clang::Backend& backend)
+	HierarchyGeneratorFactory(ag::clang::Backend& backend)
 		: backend(backend)
 	{
 	}
@@ -381,29 +381,18 @@ public:
 	}
 
 private:
-	gen::clang::Backend& backend;
+	ag::clang::Backend& backend;
 };
 
-namespace gen::clang
+namespace ag::clang
 {
 
-Backend::Backend(FileList& headers)
-	: gen::Backend(std::make_shared <ScopeEntity> ())
-{
-	std::ofstream inclusionFile("inclusions.cc");
-
-	// Write the header inclusions.
-	for(auto& path : headers)
-	{
-		inclusionFile << "#include " << path << '\n';
-	}
-}
-
-bool Backend::loadCompilationDatabase(std::string_view path)
+Backend::Backend(std::string_view compilationDatabasePath)
+	: ag::Backend(std::make_shared <ScopeEntity> ())
 {
 	std::string err;
 	database = ::clang::tooling::JSONCompilationDatabase::loadFromFile(
-		path,
+		compilationDatabasePath,
 		err,
 		::clang::tooling::JSONCommandLineSyntax::AutoDetect
 	);
@@ -411,10 +400,7 @@ bool Backend::loadCompilationDatabase(std::string_view path)
 	if(!database)
 	{
 		std::cerr << err << "\n";
-		return false;
 	}
-
-	return true;
 }
 
 bool Backend::generateHierarchy()

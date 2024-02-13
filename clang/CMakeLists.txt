@@ -9,5 +9,5 @@ find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 
 add_library(backend_clang ${Sources})
-target_link_libraries(backend_clang gen LLVM clang-cpp)
+target_link_libraries(backend_clang autoglue LLVM clang-cpp)
 target_include_directories(backend_clang PUBLIC include)
