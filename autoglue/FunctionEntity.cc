@@ -1,4 +1,5 @@
 #include <autoglue/FunctionEntity.hh>
+#include <autoglue/FunctionGroupEntity.hh>
 #include <autoglue/BindingGenerator.hh>
 #include <autoglue/TypeReferenceEntity.hh>
 
@@ -14,6 +15,22 @@ FunctionEntity::FunctionEntity(std::string_view name, Type type,
 								std::shared_ptr <TypeReferenceEntity>&& returnType)
 	: Entity(name), type(type), returnType(std::move(returnType))
 {
+}
+
+Entity& FunctionEntity::getParent()
+{
+	// The parent that a user might care about is the parent of the containing group.
+	return getGroup().getParent();
+}
+
+FunctionGroupEntity& FunctionEntity::getGroup()
+{
+	return static_cast <FunctionGroupEntity&> (Entity::getParent());
+}
+
+std::string FunctionEntity::getHierarchy(const std::string& delimiter)
+{
+	return getGroup().getHierarchy(delimiter);
 }
 
 void FunctionEntity::onGenerate(BindingGenerator& generator)

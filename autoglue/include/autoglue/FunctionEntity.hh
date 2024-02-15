@@ -7,6 +7,7 @@ namespace ag
 {
 
 class TypeReferenceEntity;
+class FunctionGroupEntity;
 
 class FunctionEntity : public Entity
 {
@@ -23,6 +24,21 @@ public:
 
 	FunctionEntity(std::string_view name, Type type,
 			std::shared_ptr <TypeReferenceEntity>&& returnType);
+
+	/// Gets the parent that's not a function group.
+	///
+	/// \return The non function group parent entity.
+	Entity& getParent() override;
+
+	/// Gets the function group that this function entity is in.
+	///
+	/// \return The function group that this function entity is in.
+	FunctionGroupEntity& getGroup();
+
+	/// Gets the hierarchy leading up to this function.
+	/// This override exists so that the function name isn't duplicated which
+	/// happens because of the function group parent.
+	std::string getHierarchy(const std::string& delimiter = "_") override;
 
 	/// Generates the return type entity of this function.
 	/// This isn't called by FunctionEntity::generate as different

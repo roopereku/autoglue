@@ -32,7 +32,7 @@ public:
 	/// Gets the parent entity.
 	///
 	/// \return The parent entity.
-	Entity& getParent();
+	virtual Entity& getParent();
 
 	/// Initializes the context for this entity. This function does nothing
 	/// if the context is already set.
@@ -61,7 +61,7 @@ public:
 	///
 	/// \param delimiter The delimiter to use between entity names. Defaults to underscore.
 	/// \return String containing the hierarchy.
-	std::string getHierarchy(const std::string& delimiter = "_");
+	virtual std::string getHierarchy(const std::string& delimiter = "_");
 
 	/// This function invokes functions from the given BindingGenerator
 	/// depending on the entity type.
