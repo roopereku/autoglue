@@ -55,6 +55,17 @@ EnumEntity& TypeReferenceEntity::getEnumType()
 	return static_cast <EnumEntity&> (*referred);
 }
 
+bool TypeReferenceEntity::isAlias()
+{
+	return getType() == TypeEntity::Type::Alias;
+}
+
+TypeAliasEntity& TypeReferenceEntity::getAliasType()
+{
+	assert(isAlias());
+	return static_cast <TypeAliasEntity&> (*referred);
+}
+
 bool TypeReferenceEntity::isPrimitive()
 {
 	return getType() == TypeEntity::Type::Primitive;

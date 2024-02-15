@@ -2,6 +2,7 @@
 #define AUTOGLUE_TYPE_REFERENCE_ENTITY_HH
 
 #include <autoglue/ClassEntity.hh>
+#include <autoglue/TypeAliasEntity.hh>
 #include <autoglue/EnumEntity.hh>
 #include <autoglue/PrimitiveEntity.hh>
 
@@ -48,6 +49,16 @@ public:
 	///
 	/// \return The referred type entity as an enum type.
 	EnumEntity& getEnumType();
+
+	/// Checks if this type reference refers to an alias type.
+	///
+	/// \return True if this type reference refers to an alias type.
+	bool isAlias();
+
+	/// Gets the referred type entity as an alias type.
+	///
+	/// \return The referred type entity as an alias type.
+	TypeAliasEntity& getAliasType();
 
 	/// Checks if this type reference refers to a primitive type.
 	///
