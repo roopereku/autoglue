@@ -1,4 +1,5 @@
 #include <autoglue/clang/Backend.hh>
+#include <autoglue/clang/EntityContext.hh>
 
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
@@ -26,7 +27,8 @@
 class NodeVisitor : public clang::RecursiveASTVisitor <NodeVisitor>
 {
 public:
-	NodeVisitor(ag::clang::Backend& backend) : backend(backend)
+	NodeVisitor(ag::clang::Backend& backend, clang::SourceManager& sourceManager)
+		: backend(backend), sourceManager(sourceManager)
 	{
 	}
 
@@ -226,7 +228,7 @@ private:
 
 				if(!result)
 				{
-					std::cout << "BUG: Failed to add " << name << '\n';
+					//std::cout << "BUG: Failed to add " << name << '\n';
 					//assert(false);
 				}
 			}
@@ -242,16 +244,24 @@ private:
 	{
 		// Since TypeAliasDecl isn't a DeclContext, ensureEntityExists cannot be called directly.
 		auto parent = ensureEntityExists(decl->getDeclContext(), 1);
-		assert(parent);
+		if(!parent)
+		{
+			return nullptr;
+		}
 
 		auto result = parent->resolve(decl->getNameAsString());
 
 		if(!result)
 		{
-			parent->addChild(std::make_shared <ag::TypeAliasEntity>
-				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType())));
+			auto alias = std::make_shared <ag::TypeAliasEntity>
+				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType()));
 
-			result = parent->resolve(decl->getNameAsString());
+			// Get the include path for this type alias and associate it with the entity.
+			alias->initializeContext(std::make_shared <ag::clang::EntityContext>
+				(backend.getInclusion(sourceManager.getBufferName(decl->getLocation()).str())));
+
+			result = alias;
+			parent->addChild(std::move(alias));
 		}
 
 		assert(result);
@@ -271,6 +281,10 @@ private:
 		auto definition = decl->getDefinition();
 		if(definition)
 		{
+			// Get the include path for this class definition and associate it with the entity.
+			classEntity->initializeContext(std::make_shared <ag::clang::EntityContext>
+				(backend.getInclusion(sourceManager.getBufferName(definition->getLocation()).str())));
+
 			for(auto base : definition->bases())
 			{
 				auto baseEntity = resolveType(base.getType());
@@ -289,12 +303,6 @@ private:
 
 	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
 	{
-		auto groupEntity = ensureEntityExists(decl);
-		if(!groupEntity)
-		{
-			return;
-		}
-
 		std::shared_ptr <ag::FunctionEntity> function;
 
 		switch(type)
@@ -302,11 +310,25 @@ private:
 			case ag::FunctionEntity::Type::Constructor:
 			case ag::FunctionEntity::Type::Destructor:
 			{
+				// TODO: Allow protected.
+				if(decl->getAccess() != clang::AccessSpecifier::AS_public)
+				{
+					return;
+				}
+
 				function = std::make_shared <ag::FunctionEntity> (decl->getNameAsString(), type);
 				break;
 			}
 
 			case ag::FunctionEntity::Type::MemberFunction:
+			{
+				// TODO: Allow protected.
+				if(decl->getAccess() != clang::AccessSpecifier::AS_public)
+				{
+					return;
+				}
+			}
+
 			case ag::FunctionEntity::Type::Function:
 			{
 				auto returnType = std::make_shared <ag::TypeReferenceEntity>
@@ -319,23 +341,32 @@ private:
 			}
 		}
 
+		auto groupEntity = ensureEntityExists(decl);
+		if(!groupEntity)
+		{
+			return;
+		}
+
 		for(auto param : decl->parameters())
 		{
-			function->addChild(std::make_shared <ag::TypeReferenceEntity>
-				(param->getNameAsString(), resolveType(param->getType())));
+			auto paramType = std::make_shared <ag::TypeReferenceEntity>
+				(param->getNameAsString(), resolveType(param->getType()));
+
+			function->addChild(std::move(paramType));
 		}
 
 		groupEntity->addChild(std::move(function));
 	}
 
+	clang::SourceManager& sourceManager;
 	ag::clang::Backend& backend;
 };
 
 class HierarchyGenerator : public clang::ASTConsumer
 {
 public:
-	HierarchyGenerator(clang::SourceManager& manager, ag::clang::Backend& backend)
-		: visitor(backend)
+	HierarchyGenerator(clang::SourceManager& sourceManager, ag::clang::Backend& backend)
+		: visitor(backend, sourceManager)
 	{
 	}
 
@@ -400,7 +431,84 @@ Backend::Backend(std::string_view compilationDatabasePath)
 	if(!database)
 	{
 		std::cerr << err << "\n";
+		return;
 	}
+
+	bool nextIsPath = false;
+	for(auto& file : database->getAllCompileCommands())
+	{
+		for(auto& command : file.CommandLine)
+		{
+			bool prefixed = (command[0] == '-' && command[1] == 'I');
+
+			if(nextIsPath || prefixed)
+			{
+				nextIsPath = false;
+
+				// If there is a prefix, remove it.
+				if(prefixed)
+				{
+					command = std::string(command.begin() + 2, command.end());
+				}
+
+				// Only save include paths that didn't exist already.
+				auto it = std::find(includePaths.begin(), includePaths.end(), command);
+				if(it == includePaths.end())
+				{
+					includePaths.emplace_back(std::move(command));
+				}
+
+				continue;
+			}
+
+			if(command == "-isystem")
+			{
+				nextIsPath = true;
+			}
+		}
+	}
+
+	// TODO: Do this only when explicitly specified by user.
+	// This is done elsewhere by an argument adjuster which doesn't touch the database.
+	includePaths.emplace_back("/lib/clang/16/include");
+
+	// Sort the include paths by length. This is done to make sure that
+	std::sort(
+		includePaths.begin(), includePaths.end(),
+		[](const std::string& s1, const std::string& s2)
+		{
+			return s2.size() < s1.size();
+		}
+	);
+
+	//for(auto& path : includePaths)
+	//{
+	//	std::cout << "Path " << path << '\n';
+	//}
+}
+
+std::string Backend::getInclusion(const std::string& path)
+{
+	for(auto& includePath : includePaths)
+	{
+		// Is the given include path present in the given path.
+		if(path.find(includePath) != std::string::npos)
+		{
+			// Skip directory separators after the include path.
+			// TODO: Support windows directory separators.
+			size_t increment = 0;
+			while(path[includePath.length() + increment] == '/')
+			{
+				increment++;
+			}
+
+			// If the include path is present, return the path without the prefix.
+			return std::string(path.begin() + includePath.length() + increment, path.end());
+		}
+	}
+
+	// Not a valid inclusion as it's not in a known include path.
+	return std::string("INVALID INCLUDE PATH");
 }
 
 bool Backend::generateHierarchy()

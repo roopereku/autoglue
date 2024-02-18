@@ -18,8 +18,12 @@ public:
 
 	bool generateHierarchy() override;
 
+	std::string getInclusion(const std::string& path);
+
 private:
 	std::unique_ptr <::clang::tooling::JSONCompilationDatabase> database;
+
+	std::vector <std::string> includePaths;
 };
 
 }

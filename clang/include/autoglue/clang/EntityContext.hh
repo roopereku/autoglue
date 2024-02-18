@@ -16,6 +16,11 @@ public:
 	{
 	}
 
+	const std::string& getInclude()
+	{
+		return includePath;
+	}
+
 private:
 	std::string includePath;
 };
