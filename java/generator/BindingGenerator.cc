@@ -54,20 +54,28 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 	// Add the object handle if this class has no base classes.
 	if(!entity.hasBaseClasses())
 	{
-		file << "{\n";
+		file << " {\n";
 
-		// Store a pointer to the "this" handle.
-		file << "protected long objectHandle;\n\n";
+		// Store a pointer to the "this" object.
+		file << "protected long mObjectHandle;\n\n";
+
+		// Define a protected constructor for assigning the pointer to the "this" object.
+		file << "protected " + entity.getName() + "(long objectHandle) {\n";
+		file << "mObjectHandle = objectHandle;\n}\n";
 
 		// Define a public getter for the object handle.
 		file << "public long getObjectHandle() {\n";
-		file << "return objectHandle;\n}\n\n";
+		file << "return mObjectHandle;\n}\n\n";
 	}
 
 	// If there are base classes, add an additional space.
 	else
 	{
-		file << " {\n";
+		file << "{\n";
+
+		// Call the pointer initialization constructor of the first base class.
+		file << "protected " + entity.getName() + "(long objectHandle) {\n";
+		file << "super(objectHandle);\n}\n";
 	}
 }
 
@@ -115,18 +123,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// Declare a native method.
 	file << "private native ";
-
-	// Constructors return pointers.
-	if(entity.getType() == FunctionEntity::Type::Constructor)
-	{
-		file << "long ";
-	}
-
-	else
-	{
-		entity.generateReturnType(*this, true);
-	}
-
+	entity.generateReturnType(*this, true);
 	file << nativeName << "(";
 
 	entity.generateParameters(*this, true, true);
@@ -134,19 +131,19 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// Write the method signature.
 	file << "public ";
-
-	if(entity.getType() != FunctionEntity::Type::Constructor)
-	{
-		entity.generateReturnType(*this, true);
-	}
-
-	// TODO: Handle return value of destructor?
-
+	entity.generateReturnType(*this, false);
 	file << entity.getName() << '(';
 	entity.generateParameters(*this, false, false);
 	file << ") {\n";
 
-	if(entity.returnsValue())
+	// For constructors, give the resulting pointer to the constructor that saves it.
+	if(entity.getType() == FunctionEntity::Type::Constructor)
+	{
+		file << "this(";
+	}
+
+	// For non-constructor functions that return a value, add return.
+	else if(entity.returnsValue())
 	{
 		file << "return ";
 	}
@@ -157,10 +154,16 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	onlyParameterNames = true;
 	entity.generateParameters(*this, false, true);
 	onlyParameterNames = false;
-	file << ");\n";
+	file << ")";
+
+	// Close the deferred constructor call.
+	if(entity.getType() == FunctionEntity::Type::Constructor)
+	{
+		file << ")";
+	}
 
 	// Close the function.
-	file << "}\n\n";
+	file << ";\n}\n\n";
 
 	// JNI is written next.
 	inJni = true;
@@ -169,17 +172,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	// Locate the external bridge function.
 	inExtern = true;
 	jni << "extern \"C\" ";
-
-	if(entity.getType() == FunctionEntity::Type::Constructor)
-	{
-		jni << "void*";
-	}
-
-	else
-	{
-		entity.generateReturnType(*this, true);
-	}
-
+	entity.generateReturnType(*this, true);
 	jni << ' ' << bridgeName << "(";
 	entity.generateParameters(*this, true, true);
 	inExtern = false;
@@ -187,16 +180,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// Declare the function in JNI.
 	jni << "extern \"C\" JNIEXPORT ";
-	if(entity.getType() == FunctionEntity::Type::Constructor)
-	{
-		jni << "jlong ";
-	}
-
-	else
-	{
-		entity.generateReturnType(*this, true);
-	}
-
+	entity.generateReturnType(*this, true);
 	jni << "JNICALL ";
 
 	// Declare the JNI function with the appropriate parameters.

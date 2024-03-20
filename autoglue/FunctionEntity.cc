@@ -48,7 +48,14 @@ void FunctionEntity::onFirstUse()
 
 void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
 {
-	// TODO: Return ObjectHandle for constructors.
+	// If this function is a constructor, generate an object handle.
+	if(type == Type::Constructor && asPOD)
+	{
+		TypeReferenceEntity podRef("", PrimitiveEntity::getObjectHandle());
+		generator.generateTypeReference(podRef);
+
+		return;
+	}
 
 	if(returnType)
 	{
