@@ -74,7 +74,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 			file << "delete static_cast <" << entity.getParent().getHierarchy("::")
 				<< "*> (thisPtr)";
 
-			// Parameters aren't used for the destructor.
+			// Parameters aren't used for destructors.
 			return;
 		}
 
@@ -93,7 +93,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 
 	file << '(';
 	onlyParameterNames = true;
-	entity.generateParameters(*this, true, true);
+	entity.generateParameters(*this, false, false);
 	onlyParameterNames = false;
 	file << ");\n";
 
@@ -127,9 +127,14 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 				break;
 			}
 			
-			default: {}
+			default:
+			{
+				lvalue = entity.getName();
+				break;
+			}
 		}
 
+		// TODO: Some conversion might need to be done for the lvalue in the future.
 		file << lvalue;
 	}
 
@@ -137,20 +142,6 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 	{
 		switch(entity.getType())
 		{
-			case TypeEntity::Type::Alias:
-			case TypeEntity::Type::Class:
-			{
-				file << "void* " << entity.getName();
-				break;
-			}
-
-			case TypeEntity::Type::Enum:
-			{
-				// TODO: Use the actual underlying type of an enum?
-				file << "int " << entity.getName();
-				break;
-			}
-
 			case TypeEntity::Type::Primitive:
 			{
 				const char* typeName = "";
