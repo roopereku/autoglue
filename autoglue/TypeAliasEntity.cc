@@ -9,8 +9,18 @@ TypeAliasEntity::TypeAliasEntity(std::string_view name, std::shared_ptr <TypeEnt
 {
 }
 
-std::shared_ptr <TypeEntity> TypeAliasEntity::getUnderlying()
+std::shared_ptr <TypeEntity> TypeAliasEntity::getUnderlying(bool recursive)
 {
+	if(recursive)
+	{
+		// If the underlying type is a type alias, recursively get the underlying type of that.
+		auto next = getUnderlying(false);
+		if(next && next->getType() == TypeEntity::Type::Alias)
+		{
+			return std::static_pointer_cast <TypeAliasEntity> (next)->getUnderlying(true);
+		}
+	}
+
 	return underlying.expired() ? nullptr : underlying.lock();
 }
 

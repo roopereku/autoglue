@@ -45,19 +45,23 @@ public:
 	/// languages might want to handle it differently.
 	///
 	/// \param generator The BindingGenerator to call functions from.
-	void generateReturnType(BindingGenerator& generator);
+	/// \param asPOD If true, the POD version of the return type is generated.
+	void generateReturnType(BindingGenerator& generator, bool asPOD);
 
 	/// Generates the parameters type entities of this function.
 	/// This isn't called by FunctionEntity::generate as different
 	/// languages might want to handle parameters differently.
 	///
 	/// \param generator The BindingGenerator to call functions from.
-	void generateParameters(BindingGenerator& generator);
+	/// \param asPOD If true, the POD versions of the parameters are generated.
+	/// \param includeSelf If true, the first parameter is "self" if it should be present.
+	void generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf);
 
 	/// Gets the parameter count.
 	///
+	/// \param includeSelf If true, the "self" parameter is counted.
 	/// \return The count of parameters.
-	size_t getParameterCount();
+	size_t getParameterCount(bool includeSelf = false);
 
 	/// Gets the parameter at the given index.
 	///
@@ -89,6 +93,8 @@ private:
 
 	/// Makes sure that the return type is used.
 	void onFirstUse() override;
+
+	static void generatePOD(BindingGenerator& generator, TypeReferenceEntity ref);
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
 	Type type;

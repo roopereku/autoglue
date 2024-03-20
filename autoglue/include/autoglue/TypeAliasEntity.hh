@@ -13,8 +13,9 @@ public:
 
 	/// Gets the underlying type entity.
 	///
+	/// \param recursive If true, recursively gets underlying type of nested aliases.
 	/// \return The underlying type entity or a null.
-	std::shared_ptr <TypeEntity> getUnderlying();
+	std::shared_ptr <TypeEntity> getUnderlying(bool recursive = false);
 
 	const char* getTypeString() override;
 

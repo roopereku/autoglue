@@ -24,6 +24,52 @@
 #include <fstream>
 #include <cassert>
 
+static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
+{
+	if(type->isVoidType())
+	{
+		return ag::PrimitiveEntity::getVoid();
+	}
+
+	else if(type->isBooleanType())
+	{
+		return ag::PrimitiveEntity::getBoolean();
+	}
+
+	else if(type->isAnyCharacterType())
+	{
+		if(type->isPointerType())
+		{
+			return ag::PrimitiveEntity::getString();
+		}
+
+		return ag::PrimitiveEntity::getCharacter();
+	}
+
+	else if(type->isIntegerType())
+	{
+		return ag::PrimitiveEntity::getInteger();
+	}
+
+	else if(type->isRealType())
+	{
+		return ag::PrimitiveEntity::getDouble();
+	}
+
+	else if(type->isFloatingType())
+	{
+		return ag::PrimitiveEntity::getFloat();
+	}
+
+	if(type->isObjectType())
+	{
+		return ag::PrimitiveEntity::getObjectHandle();
+	}
+
+	assert(false);
+	return nullptr;
+}
+
 class NodeVisitor : public clang::RecursiveASTVisitor <NodeVisitor>
 {
 public:
@@ -115,17 +161,7 @@ private:
 		else if(underlying->isBuiltinType())
 		{
 			auto name = type.getAsString();
-			std::replace(name.begin(), name.end(), ' ', '_');
-
-			auto result = backend.getRoot().resolve(name);
-
-			if(!result)
-			{
-				backend.getRoot().addChild(std::make_shared <ag::PrimitiveEntity> (name));
-				result = backend.getRoot().resolve(name);
-			}
-
-			return std::static_pointer_cast <ag::TypeEntity> (result);
+			return getPrimitive(underlying);
 		}
 
 		static auto invalid = std::make_shared <ag::ClassEntity> ("invalidType");
@@ -524,7 +560,7 @@ bool Backend::generateHierarchy()
 	tool.appendArgumentsAdjuster(::clang::tooling::getClangStripOutputAdjuster());
 
 	// TODO: Do this only when explicitly specified by user.
-	tool.appendArgumentsAdjuster(::clang::tooling::getInsertArgumentAdjuster("-I/lib/clang/16/include/"));
+	tool.appendArgumentsAdjuster(::clang::tooling::getInsertArgumentAdjuster("-I/lib/clang/17/include/"));
 
 	return tool.run(std::make_unique <HierarchyGeneratorFactory> (*this).get()) == 0;
 }

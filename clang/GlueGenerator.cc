@@ -21,8 +21,8 @@ public:
 
 	void generateFunction(FunctionEntity& entity) override
 	{
-		entity.generateReturnType(*this);
-		entity.generateParameters(*this);
+		entity.generateReturnType(*this, true);
+		entity.generateParameters(*this, true, true);
 	}
 
 	void generateTypeReference(TypeReferenceEntity& entity) override
@@ -55,19 +55,10 @@ GlueGenerator::GlueGenerator(Backend& backend)
 void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
 	file << "extern \"C\"\n";
-	file << "void " << entity.getHierarchy() << "(";
+	entity.generateReturnType(*this, true);
+	file << entity.getHierarchy() << "(";
 
-	if(entity.needsThisHandle())
-	{
-		file << "void* thisPtr";
-
-		if(entity.getParameterCount() > 0)
-		{
-			file << ", ";
-		}
-	}
-
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, true, true);
 	file << ")\n{\n";
 
 	switch(entity.getType())
@@ -102,7 +93,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 
 	file << '(';
 	onlyParameterNames = true;
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, true, true);
 	onlyParameterNames = false;
 	file << ");\n";
 
@@ -135,12 +126,8 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 						 "> (" + entity.getName() + ')';
 				break;
 			}
-
-			case TypeEntity::Type::Primitive:
-			{
-				lvalue = entity.getName();
-				break;
-			}
+			
+			default: {}
 		}
 
 		file << lvalue;
@@ -166,10 +153,23 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 			case TypeEntity::Type::Primitive:
 			{
-				file << entity.getPrimitiveType().getName() << ' ' << entity.getName();
+				const char* typeName = "";
+
+				switch(entity.getPrimitiveType().getType())
+				{
+					case PrimitiveEntity::Type::String: typeName = "const char *"; break;
+					case PrimitiveEntity::Type::ObjectHandle: typeName = "void*"; break;
+					case PrimitiveEntity::Type::Character: typeName = "char"; break;
+					case PrimitiveEntity::Type::Double: typeName = "double"; break;
+					case PrimitiveEntity::Type::Boolean: typeName = "bool"; break;
+					case PrimitiveEntity::Type::Float: typeName = "float"; break;
+					case PrimitiveEntity::Type::Integer: typeName = "int"; break;
+					case PrimitiveEntity::Type::Void: typeName = "void"; break;
+				}
+
+				file << typeName << ' ' << entity.getName();
 				break;
 			}
-
 		}
 	}
 }

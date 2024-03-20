@@ -9,22 +9,42 @@ namespace ag
 class PrimitiveEntity : public TypeEntity
 {
 public:
-	PrimitiveEntity(std::string_view name)
-		: TypeEntity(name, Type::Primitive)
+	enum class Type
 	{
-	}
+		ObjectHandle,
+		Integer,
+		Float,
+		Double,
+		Boolean,
+		Character,
+		String,
+		Void
+	};
 
-	const char* getTypeString() override
-	{
-		return "Primitive";
-	}
+	static std::shared_ptr <PrimitiveEntity> getObjectHandle();
+	static std::shared_ptr <PrimitiveEntity> getInteger();
+	static std::shared_ptr <PrimitiveEntity> getFloat();
+	static std::shared_ptr <PrimitiveEntity> getDouble();
+	static std::shared_ptr <PrimitiveEntity> getBoolean();
+	static std::shared_ptr <PrimitiveEntity> getCharacter();
+	static std::shared_ptr <PrimitiveEntity> getString();
+	static std::shared_ptr <PrimitiveEntity> getVoid();
+
+	Type getType();
+
+	const char* getTypeString() override;
 
 private:
+	PrimitiveEntity(std::string_view name, Type type);
+
 	void onGenerate(BindingGenerator& generator) override
 	{
 		// TODO: Call something like generatePrimitive if necessary.
 	}
+
+	Type type;
 };
 
 }
+
 #endif

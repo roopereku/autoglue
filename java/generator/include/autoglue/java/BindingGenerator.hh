@@ -29,7 +29,6 @@ private:
 	void generateArgumentSeparator() override;
 
 	void generateTyperefJNI(TypeReferenceEntity& entity);
-	void generateTyperefNativeDecl(TypeReferenceEntity& entity);
 	void generateTyperefJava(TypeReferenceEntity& entity);
 
 	void openFile(Entity& entity);
@@ -46,9 +45,6 @@ private:
 
 	/// Used to indicate that type parameters should be written in the bridge format
 	bool inExtern = false;
-
-	/// Used to indicate that a native method declaration is being written.
-	bool inNativeDeclaration = false;
 };
 
 }

@@ -81,6 +81,10 @@ private:
 
 	void onList(std::string_view indent) override;
 
+	bool isReference = false;
+	bool isUnsigned = false;
+	size_t size = 0;
+
 	std::shared_ptr <TypeEntity> referred;
 };
 

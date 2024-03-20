@@ -57,11 +57,11 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 		file << "{\n";
 
 		// Store a pointer to the "this" handle.
-		file << "protected long thisHandle;\n\n";
+		file << "protected long objectHandle;\n\n";
 
 		// Define a public getter for the object handle.
-		file << "public long getThisHandle() {\n";
-		file << "return thisHandle;\n}\n\n";
+		file << "public long getObjectHandle() {\n";
+		file << "return objectHandle;\n}\n\n";
 	}
 
 	// If there are base classes, add an additional space.
@@ -124,28 +124,12 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	else
 	{
-		inNativeDeclaration = true;
-		entity.generateReturnType(*this);
-		inNativeDeclaration = false;
+		entity.generateReturnType(*this, true);
 	}
 
 	file << nativeName << "(";
 
-	// If "this handle" is needed, add a parameter for it.
-	if(entity.needsThisHandle())
-	{
-		file << "long thisHandle";
-
-		// If there are more arguments, add a comma.
-		if(entity.getParameterCount())
-		{
-			file << ", ";
-		}
-	}
-
-	inNativeDeclaration = true;
-	entity.generateParameters(*this);
-	inNativeDeclaration = false;
+	entity.generateParameters(*this, true, true);
 	file << ");\n\n";
 
 	// Write the method signature.
@@ -153,13 +137,13 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	if(entity.getType() != FunctionEntity::Type::Constructor)
 	{
-		entity.generateReturnType(*this);
+		entity.generateReturnType(*this, true);
 	}
 
 	// TODO: Handle return value of destructor?
 
 	file << entity.getName() << '(';
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, false, false);
 	file << ") {\n";
 
 	if(entity.returnsValue())
@@ -169,21 +153,9 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	file << nativeName << "(";
 
-	// If "this handle" is needed, pass it.
-	if(entity.needsThisHandle())
-	{
-		file << "thisHandle";
-
-		// If there are more arguments, add a comma.
-		if(entity.getParameterCount())
-		{
-			file << ", ";
-		}
-	}
-
 	// Call the native method with the passed parameters.
 	onlyParameterNames = true;
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, false, true);
 	onlyParameterNames = false;
 	file << ");\n";
 
@@ -205,11 +177,11 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	else
 	{
-		entity.generateReturnType(*this);
+		entity.generateReturnType(*this, true);
 	}
 
 	jni << ' ' << bridgeName << "(";
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, true, true);
 	inExtern = false;
 	jni << ");\n";
 
@@ -222,7 +194,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	else
 	{
-		entity.generateReturnType(*this);
+		entity.generateReturnType(*this, true);
 	}
 
 	jni << "JNICALL ";
@@ -231,19 +203,13 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	jni << "Java_com_" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, ";
 	jni << (entity.needsThisHandle() ? "jobject" : "jclass");
 
-	// If "this handle" is needed, add a parameter for it.
-	if(entity.needsThisHandle())
-	{
-		jni << ", jlong thisHandle";
-	}
-
 	// If there are more arguments, add a comma.
-	if(entity.getParameterCount())
+	if(entity.getParameterCount(true) > 0)
 	{
 		jni << ", ";
 	}
 
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, true, true);
 	jni << ")\n{\n";
 
 	if(entity.returnsValue())
@@ -253,20 +219,8 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	jni << bridgeName << '(';
 
-	// If the "this handle" is needed, pass it.
-	if(entity.needsThisHandle())
-	{
-		jni << "reinterpret_cast <void*> (thisHandle)";
-
-		// If there are more arguments, add a comma.
-		if(entity.getParameterCount())
-		{
-			jni << ", ";
-		}
-	}
-
 	onlyParameterNames = true;
-	entity.generateParameters(*this);
+	entity.generateParameters(*this, true, true);
 	onlyParameterNames = false;
 
 	jni << ");\n}\n\n";
@@ -275,12 +229,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
-	if(inNativeDeclaration)
-	{
-		generateTyperefNativeDecl(entity);
-	}
-
-	else if(inJni)
+	if(inJni)
 	{
 		generateTyperefJNI(entity);
 	}
@@ -402,37 +351,23 @@ void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
 
 			case TypeEntity::Type::Primitive:
 			{
-				// TODO: Convert to proper JNI primitives.
-				jni << entity.getReferred().getName() << ' ' << entity.getName();
+				const char* typeName = "";
+
+				switch(entity.getPrimitiveType().getType())
+				{
+					case PrimitiveEntity::Type::ObjectHandle: typeName = inExtern ? "void*" : "jlong"; break;
+					case PrimitiveEntity::Type::Integer: typeName = inExtern ? "int" : "jint"; break;
+					case PrimitiveEntity::Type::Character: typeName = inExtern ? "char" : "jchar"; break;
+					case PrimitiveEntity::Type::Boolean: typeName = inExtern ? "bool" : "jboolean"; break;
+					case PrimitiveEntity::Type::Float: typeName = inExtern ? "float" : "jfloat"; break;
+					case PrimitiveEntity::Type::Double: typeName = inExtern ? "double" : "jdouble"; break;
+					case PrimitiveEntity::Type::Void: typeName = inExtern ? "void" : "void"; break;
+					case PrimitiveEntity::Type::String: typeName = inExtern ? "const char*" : "jstring"; break;
+				}
+
+				jni << typeName << ' ' << entity.getName();
 				break;
 			}
-		}
-	}
-}
-
-void BindingGenerator::generateTyperefNativeDecl(TypeReferenceEntity& entity)
-{
-	switch(entity.getType())
-	{
-		// TODO: Assuming long is only valid for aliases that refer to a class.
-		case TypeEntity::Type::Alias:
-		case TypeEntity::Type::Class:
-		{
-			file << "long " << entity.getName();
-			break;
-		}
-
-		case TypeEntity::Type::Enum:
-		{
-			file << "int " << entity.getName();
-			break;
-		}
-
-		case TypeEntity::Type::Primitive:
-		{
-			// TODO: Convert to proper java primitives.
-			file << entity.getReferred().getName() << ' ' << entity.getName();
-			break;
 		}
 	}
 }
@@ -447,7 +382,7 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 		{
 			case TypeEntity::Type::Class:
 			{
-				file << ".getThisHandle()";
+				file << ".getObjectHandle()";
 				break;
 			}
 
@@ -463,8 +398,29 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 
 	else
 	{
-		// TODO: Convert primitive types to proper java primitives.
-		file << entity.getReferred().getName() << ' ' << entity.getName();
+		if(entity.getType() == TypeEntity::Type::Primitive)
+		{
+			const char* typeName = "";
+
+			switch(entity.getPrimitiveType().getType())
+			{
+				case PrimitiveEntity::Type::ObjectHandle: typeName = "long"; break;
+				case PrimitiveEntity::Type::Integer: typeName = "int"; break;
+				case PrimitiveEntity::Type::Character: typeName = "char"; break;
+				case PrimitiveEntity::Type::Boolean: typeName = "boolean"; break;
+				case PrimitiveEntity::Type::Float: typeName = "float"; break;
+				case PrimitiveEntity::Type::Double: typeName = "double"; break;
+				case PrimitiveEntity::Type::Void: typeName = "void"; break;
+				case PrimitiveEntity::Type::String: typeName = "string"; break;
+			}
+
+			file << typeName << ' ' << entity.getName();
+		}
+
+		else
+		{
+			file << entity.getReferred().getName() << ' ' << entity.getName();
+		}
 	}
 }
 
