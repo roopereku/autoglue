@@ -27,15 +27,10 @@ public:
 	/// \return True if succesful.
 	void generateBindings();
 
-	/// Generates the beginning of a class entity.
+	/// Generates a class entity.
 	///
-	/// \param entity The ClassEntity to generate the beginning of.
-	virtual void generateClassBeginning(ClassEntity& entity);
-
-	/// Generates the ending of a class entity.
-	///
-	/// \param entity The ClassEntity to generate the ending of.
-	virtual void generateClassEnding(ClassEntity& entity);
+	/// \param entity The ClassEntity to generate.
+	virtual void generateClass(ClassEntity& entity);
 
 	/// Generates the beginning of an enum entity.
 	///

@@ -15,8 +15,7 @@ public:
 	BindingGenerator(Backend& backend);
 
 private:
-	void generateClassBeginning(ClassEntity& entity) override;
-	void generateClassEnding(ClassEntity& entity) override;
+	void generateClass(ClassEntity& entity) override;
 	void generateEnumBeginning(EnumEntity& entity) override;
 	void generateEnumEnding(EnumEntity& entity) override;
 	void generateEnumEntry(EnumEntryEntity& entity) override;

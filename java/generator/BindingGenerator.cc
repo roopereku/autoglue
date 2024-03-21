@@ -38,10 +38,10 @@ void BindingGenerator::openFile(Entity& entity)
 	file << "package " + package.top() + ";\n";
 }
 
-void BindingGenerator::generateClassBeginning(ClassEntity& entity)
+void BindingGenerator::generateClass(ClassEntity& entity)
 {
 	// Since each top level class goes to its own file, open a new file.
-	if(getClassDepth() == 0)
+	if(getClassDepth() == 1)
 	{
 		openFile(entity);
 	}
@@ -77,15 +77,15 @@ void BindingGenerator::generateClassBeginning(ClassEntity& entity)
 		file << "protected " + entity.getName() + "(long objectHandle) {\n";
 		file << "super(objectHandle);\n}\n";
 	}
-}
 
-void BindingGenerator::generateClassEnding(ClassEntity& entity)
-{
+	// Generate the nested entities of this class.
+	entity.generateNested(*this);
+
 	file << "}\n";
 
 	// Since each top level class goes to its own file,
 	// close the current file if a top level class is being ended.
-	if(getClassDepth() == 0)
+	if(getClassDepth() == 1)
 	{
 		assert(file.is_open());
 		file.close();
@@ -226,8 +226,11 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 {
+	// Since type aliases are just simple classes, increment the class depth.
+	changeClassDepth(+1);
+
 	// If this type alias isn't nested, create a file for it.
-	if(getClassDepth() == 0)
+	if(getClassDepth() == 1)
 	{
 		openFile(entity);
 	}
@@ -245,11 +248,14 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	file << "}\n";
 
 	// If this type alias isn't nested close the created file.
-	if(getClassDepth() == 0)
+	if(getClassDepth() == 1)
 	{
 		assert(file.is_open());
 		file.close();
 	}
+
+	// Since type aliases are just simple classes, decrement the class depth.
+	changeClassDepth(-1);
 }
 
 void BindingGenerator::generateBaseClass(ClassEntity& entity, size_t index)

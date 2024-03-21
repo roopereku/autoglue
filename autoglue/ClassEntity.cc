@@ -59,21 +59,20 @@ bool ClassEntity::hasBaseClasses()
 	return bases > 0;
 }
 
-void ClassEntity::onGenerate(BindingGenerator& generator)
+void ClassEntity::generateNested(BindingGenerator& generator)
 {
-	// Begin the class.
-	generator.generateClassBeginning(*this);
-	generator.changeClassDepth(+1);
-
 	// Generate the nested entities.
 	for(auto child : children)
 	{
 		child->generate(generator);
 	}
+}
 
-	// End the class.
+void ClassEntity::onGenerate(BindingGenerator& generator)
+{
+	generator.changeClassDepth(+1);
+	generator.generateClass(*this);
 	generator.changeClassDepth(-1);
-	generator.generateClassEnding(*this);
 }
 
 void ClassEntity::onFirstUse()

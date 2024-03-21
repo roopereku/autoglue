@@ -30,6 +30,11 @@ public:
 	/// \return True If this class has base classes.
 	bool hasBaseClasses();
 
+	/// Generates the nested entities within this class.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateNested(BindingGenerator& generator);
+
 	const char* getTypeString() override;
 
 private:

@@ -25,8 +25,7 @@ unsigned BindingGenerator::getClassDepth()
 	return classDepth;
 }
 
-void BindingGenerator::generateClassBeginning(ClassEntity&) {}
-void BindingGenerator::generateClassEnding(ClassEntity&) {}
+void BindingGenerator::generateClass(ClassEntity&) {}
 void BindingGenerator::generateEnumBeginning(EnumEntity&) {}
 void BindingGenerator::generateEnumEnding(EnumEntity&) {}
 void BindingGenerator::generateEnumEntry(EnumEntryEntity&) {}
