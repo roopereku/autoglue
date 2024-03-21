@@ -100,6 +100,17 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 	file << "}\n\n";
 }
 
+void GlueGenerator::generateNamedScope(ScopeEntity& entity)
+{
+	entity.generateNested(*this);
+}
+
+void GlueGenerator::generateClass(ClassEntity& entity)
+{
+	file << "// ---------- Class " << entity.getHierarchy("::") << " ----------\n\n";
+	entity.generateNested(*this);
+}
+
 void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)

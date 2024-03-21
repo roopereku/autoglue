@@ -16,8 +16,10 @@ public:
 	GlueGenerator(Backend& backend);
 
 private:
-	void generateFunction(FunctionEntity& entity) override;
 	void generateTypeReference(TypeReferenceEntity& entity) override;
+	void generateFunction(FunctionEntity& entity) override;
+	void generateNamedScope(ScopeEntity& entity) override;
+	void generateClass(ClassEntity& entity) override;
 	void generateArgumentSeparator() override;
 
 	std::ofstream file;
