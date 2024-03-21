@@ -32,8 +32,7 @@ void BindingGenerator::generateFunction(FunctionEntity&) {}
 void BindingGenerator::generateTypeReference(TypeReferenceEntity&) {}
 void BindingGenerator::generateTypeAlias(TypeAliasEntity&) {}
 void BindingGenerator::generateBaseClass(ClassEntity&, size_t) {}
-void BindingGenerator::generateNamedScopeBeginning(ScopeEntity&) {}
-void BindingGenerator::generateNamedScopeEnding(ScopeEntity&) {}
+void BindingGenerator::generateNamedScope(ScopeEntity&) {}
 void BindingGenerator::generateArgumentSeparator() {}
 
 }

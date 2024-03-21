@@ -12,6 +12,11 @@ public:
 	ScopeEntity(std::string_view name);
 	ScopeEntity();
 
+	/// Generates the nested entities within this scope.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateNested(BindingGenerator& generator);
+
 	const char* getTypeString() override;
 
 private:

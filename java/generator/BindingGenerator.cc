@@ -272,7 +272,7 @@ void BindingGenerator::generateBaseClass(ClassEntity& entity, size_t index)
 	}
 }
 
-void BindingGenerator::generateNamedScopeBeginning(ScopeEntity& entity)
+void BindingGenerator::generateNamedScope(ScopeEntity& entity)
 {
 	package.emplace(package.top() + '.' + entity.getName());
 
@@ -285,10 +285,10 @@ void BindingGenerator::generateNamedScopeBeginning(ScopeEntity& entity)
 	{
 		std::filesystem::create_directory(packagePath);
 	}
-}
 
-void BindingGenerator::generateNamedScopeEnding(ScopeEntity& entity)
-{
+	// Generate the nested entities of this named scope.
+	entity.generateNested(*this);
+
 	package.pop();
 }
 

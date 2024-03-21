@@ -13,24 +13,28 @@ ScopeEntity::ScopeEntity()
 {
 }
 
-void ScopeEntity::onGenerate(BindingGenerator& generator)
+void ScopeEntity::generateNested(BindingGenerator& generator)
 {
-	// If the scope has a name, generate a beginning for it.
-	if(!name.empty())
-	{
-		generator.generateNamedScopeBeginning(*this);
-	}
-
-	// Generate all nested entities.
+	// Generate the nested entities.
 	for(auto child : children)
 	{
 		child->generate(generator);
 	}
+}
 
-	// If the scope has a name, generate an ending for it.
+void ScopeEntity::onGenerate(BindingGenerator& generator)
+{
+	// If this scope has a name, generate it with custom logic.
 	if(!name.empty())
 	{
-		generator.generateNamedScopeEnding(*this);
+		generator.generateNamedScope(*this);
+	}
+
+	// For unnamed scopes, implicitly generate the nested entities.
+	// For example, the global scope is handled like this.
+	else
+	{
+		generateNested(generator);
 	}
 }
 

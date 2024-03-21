@@ -63,15 +63,10 @@ public:
 	/// \param index The index of the base class.
 	virtual void generateBaseClass(ClassEntity& entity, size_t index);
 
-	/// Generates the beginning of a named scope.
+	/// Generates a named scope.
 	///
-	/// \param entity The ScopeEntity to generate a beginning for. This should always have a name.
-	virtual void generateNamedScopeBeginning(ScopeEntity& entity);
-
-	/// Generates the ending of a named scope.
-	///
-	/// \param entity The ScopeEntity to generate a ending for. This should always have a name.
-	virtual void generateNamedScopeEnding(ScopeEntity& entity);
+	/// \param entity The ScopeEntity to generate. Only named scopes are generated.
+	virtual void generateNamedScope(ScopeEntity& entity);
 
 	/// Generates an argument separator, such as a comma.
 	virtual void generateArgumentSeparator();
