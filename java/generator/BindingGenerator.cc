@@ -92,14 +92,14 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	}
 }
 
-void BindingGenerator::generateEnumBeginning(EnumEntity& entity)
+void BindingGenerator::generateEnum(EnumEntity& entity)
 {
 	// TODO: Use the proper visibility.
 	file << "public enum " << entity.getName() << " {\n";
-}
 
-void BindingGenerator::generateEnumEnding(EnumEntity& entity)
-{
+	// Generate the enum values.
+	entity.generateValues(*this);
+
 	// Add a getter for the integer value.
 	file << "public int getValue() {\nreturn mValue;\n}\n\n";
 

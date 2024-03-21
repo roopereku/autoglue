@@ -10,16 +10,18 @@ EnumEntity::EnumEntity(std::string_view name)
 {
 }
 
-void EnumEntity::onGenerate(BindingGenerator& generator)
+void EnumEntity::generateValues(BindingGenerator& generator)
 {
-	generator.generateEnumBeginning(*this);
-	
+	// Generate the enum values.
 	for(auto child : children)
 	{
 		child->generate(generator);
 	}
+}
 
-	generator.generateEnumEnding(*this);
+void EnumEntity::onGenerate(BindingGenerator& generator)
+{
+	generator.generateEnum(*this);
 }
 
 void EnumEntity::onFirstUse()

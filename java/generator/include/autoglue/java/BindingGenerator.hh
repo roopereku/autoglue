@@ -16,8 +16,7 @@ public:
 
 private:
 	void generateClass(ClassEntity& entity) override;
-	void generateEnumBeginning(EnumEntity& entity) override;
-	void generateEnumEnding(EnumEntity& entity) override;
+	void generateEnum(EnumEntity& entity) override;
 	void generateEnumEntry(EnumEntryEntity& entity) override;
 	void generateFunction(FunctionEntity& entity) override;
 	void generateTypeReference(TypeReferenceEntity& entity) override;

@@ -99,7 +99,32 @@ public:
 
 	bool TraverseEnumDecl(clang::EnumDecl* decl)
 	{
-		ensureEntityExists(decl);
+		bool created;
+		auto entity = ensureEntityExists(decl, created);
+		assert(entity);
+
+		// If the enum existed already, don't add the constants
+		// as they should already exist.
+		if(!created)
+		{
+			return true;
+		}
+
+		// Iterate the constants and add them as children.
+		for(auto value : decl->enumerators())
+		{
+			// Save the enum constant value to a string.
+			llvm::SmallVector<char, 20> valueStr;
+			value->getInitVal().toString(valueStr);
+
+			// Add an enum entry that has the integer format.
+			entity->addChild(std::make_shared <ag::EnumEntryEntity> (
+				value->getNameAsString(),
+				std::string(valueStr.begin(), valueStr.end()),
+				ag::EnumEntryEntity::Format::Integer)
+			);
+		}
+
 		return true;
 	}
 
@@ -169,6 +194,12 @@ private:
 	}
 
 	std::shared_ptr <ag::Entity> ensureEntityExists(clang::DeclContext* decl, unsigned depth = 0)
+	{
+		bool created;
+		return ensureEntityExists(decl, created, depth);
+	}
+
+	std::shared_ptr <ag::Entity> ensureEntityExists(clang::DeclContext* decl, bool& created, unsigned depth = 0)
 	{
 		// Translation unit is the global scope.
 		if(clang::dyn_cast <clang::TranslationUnitDecl> (decl))
@@ -267,6 +298,8 @@ private:
 					//std::cout << "BUG: Failed to add " << name << '\n';
 					//assert(false);
 				}
+
+				created = true;
 			}
 
 			return result;

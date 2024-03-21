@@ -32,15 +32,10 @@ public:
 	/// \param entity The ClassEntity to generate.
 	virtual void generateClass(ClassEntity& entity);
 
-	/// Generates the beginning of an enum entity.
+	/// Generates an enum entity.
 	///
-	/// \param entity The EnumEntity to generate the beginning of.
-	virtual void generateEnumBeginning(EnumEntity& entity);
-
-	/// Generates the ending of an enum entity.
-	///
-	/// \param entity The EnumEntity to generate the ending of.
-	virtual void generateEnumEnding(EnumEntity& entity);
+	/// \param entity The EnumEntity to generate.
+	virtual void generateEnum(EnumEntity& entity);
 
 	/// Generates an entry for an enum entity.
 	///

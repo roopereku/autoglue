@@ -11,6 +11,11 @@ class EnumEntity : public TypeEntity
 public:
 	EnumEntity(std::string_view name);
 
+	/// Generates the values of this enum.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateValues(BindingGenerator& generator);
+
 	const char* getTypeString() override;
 
 private:

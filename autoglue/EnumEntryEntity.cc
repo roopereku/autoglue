@@ -4,8 +4,8 @@
 namespace ag
 {
 
-EnumEntryEntity::EnumEntryEntity(std::string_view name, size_t value)
-	: Entity(name), value(value)
+EnumEntryEntity::EnumEntryEntity(std::string_view name, std::string&& value, Format format)
+	: Entity(name), value(std::move(value)), format(format)
 {
 }
 
@@ -14,9 +14,14 @@ void EnumEntryEntity::onGenerate(BindingGenerator& generator)
 	generator.generateEnumEntry(*this);
 }
 
-size_t EnumEntryEntity::getValue()
+std::string_view EnumEntryEntity::getValue()
 {
 	return value;
+}
+
+EnumEntryEntity::Format EnumEntryEntity::getFormat()
+{
+	return format;
 }
 
 bool EnumEntryEntity::isLast()

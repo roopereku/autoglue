@@ -9,12 +9,22 @@ namespace ag
 class EnumEntryEntity : public Entity
 {
 public:
-	EnumEntryEntity(std::string_view name, size_t value);
+	enum class Format
+	{
+		Integer
+	};
+
+	EnumEntryEntity(std::string_view name, std::string&& value, Format format);
 
 	/// Gets the value of the enum entry.
 	///
 	/// \return The value of the enum entry.
-	size_t getValue();
+	std::string_view getValue();
+
+	/// Gets the format of the enum entry.
+	///
+	/// \return The format of the enum entry.
+	Format getFormat();
 
 	/// Checks if this enum entry is the last one of an enum.
 	///
@@ -30,8 +40,9 @@ private:
 	/// Generates an enum entry.
 	void onGenerate(BindingGenerator& generator) override;
 
-	/// The value of the enum entry.
-	size_t value;
+	/// The value and format of the enum entry.
+	std::string value;
+	Format format;
 
 	bool last = false;
 };
