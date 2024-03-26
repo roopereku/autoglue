@@ -19,6 +19,22 @@ public:
 	{
 	}
 
+	void generateNamedScope(ScopeEntity& entity) override
+	{
+		entity.generateNested(*this);
+	}
+
+	void generateClass(ClassEntity& entity) override
+	{
+		if(entity.getContext())
+		{
+			auto ctx = std::static_pointer_cast <EntityContext> (entity.getContext());
+			addInclude(ctx->getInclude());
+		}
+
+		entity.generateNested(*this);
+	}
+
 	void generateFunction(FunctionEntity& entity) override
 	{
 		entity.generateReturnType(*this, true);
@@ -34,6 +50,14 @@ public:
 				auto ctx = std::static_pointer_cast <EntityContext> (entity.getReferred().getContext());
 				includes.emplace("#include <" + ctx->getInclude() + ">");
 			}
+		}
+	}
+
+	void addInclude(const std::string& include)
+	{
+		if(!include.empty())
+		{
+			includes.emplace("#include <" + include + ">");
 		}
 	}
 
@@ -72,7 +96,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 		case FunctionEntity::Type::Destructor:
 		{
 			file << "delete static_cast <" << entity.getParent().getHierarchy("::")
-				<< "*> (thisPtr)";
+				<< "*> (objectHandle)";
 
 			// Parameters aren't used for destructors.
 			return;
@@ -81,7 +105,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 		case FunctionEntity::Type::MemberFunction:
 		{
 			file << "static_cast <" << entity.getParent().getHierarchy("::")
-				<< "*> (thisPtr)->" << entity.getName();
+				<< "*> (objectHandle)->" << entity.getName();
 			break;
 		}
 
@@ -121,6 +145,13 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 		switch(entity.getType())
 		{
 			case TypeEntity::Type::Alias:
+			{
+				TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true));
+				generateTypeReference(underlying);
+
+				break;
+			}
+
 			case TypeEntity::Type::Class:
 			{
 				// Since class instances are void*, cast them to the appropriate pointer
@@ -151,28 +182,21 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 	else
 	{
-		switch(entity.getType())
+		const char* typeName = "";
+
+		switch(entity.getPrimitiveType().getType())
 		{
-			case TypeEntity::Type::Primitive:
-			{
-				const char* typeName = "";
-
-				switch(entity.getPrimitiveType().getType())
-				{
-					case PrimitiveEntity::Type::String: typeName = "const char *"; break;
-					case PrimitiveEntity::Type::ObjectHandle: typeName = "void*"; break;
-					case PrimitiveEntity::Type::Character: typeName = "char"; break;
-					case PrimitiveEntity::Type::Double: typeName = "double"; break;
-					case PrimitiveEntity::Type::Boolean: typeName = "bool"; break;
-					case PrimitiveEntity::Type::Float: typeName = "float"; break;
-					case PrimitiveEntity::Type::Integer: typeName = "int"; break;
-					case PrimitiveEntity::Type::Void: typeName = "void"; break;
-				}
-
-				file << typeName << ' ' << entity.getName();
-				break;
-			}
+			case PrimitiveEntity::Type::String: typeName = "const char *"; break;
+			case PrimitiveEntity::Type::ObjectHandle: typeName = "void*"; break;
+			case PrimitiveEntity::Type::Character: typeName = "char"; break;
+			case PrimitiveEntity::Type::Double: typeName = "double"; break;
+			case PrimitiveEntity::Type::Boolean: typeName = "bool"; break;
+			case PrimitiveEntity::Type::Float: typeName = "float"; break;
+			case PrimitiveEntity::Type::Integer: typeName = "int"; break;
+			case PrimitiveEntity::Type::Void: typeName = "void"; break;
 		}
+
+		file << typeName << ' ' << entity.getName();
 	}
 }
 

@@ -326,8 +326,9 @@ private:
 				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType()));
 
 			// Get the include path for this type alias and associate it with the entity.
-			alias->initializeContext(std::make_shared <ag::clang::EntityContext>
-				(backend.getInclusion(sourceManager.getBufferName(decl->getLocation()).str())));
+			alias->initializeContext(std::make_shared <ag::clang::EntityContext> (
+				backend.getInclusion(sourceManager.getBufferName(
+						sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation()))).str())));
 
 			result = alias;
 			parent->addChild(std::move(alias));
@@ -340,6 +341,8 @@ private:
 	void ensureClassExists(clang::CXXRecordDecl* decl)
 	{
 		auto entity = ensureEntityExists(decl);
+
+		// If no entity was returned or it already existed, do nothing.
 		if(!entity)
 		{
 			return;
@@ -351,8 +354,9 @@ private:
 		if(definition)
 		{
 			// Get the include path for this class definition and associate it with the entity.
-			classEntity->initializeContext(std::make_shared <ag::clang::EntityContext>
-				(backend.getInclusion(sourceManager.getBufferName(definition->getLocation()).str())));
+			classEntity->initializeContext(std::make_shared <ag::clang::EntityContext> (
+				backend.getInclusion(sourceManager.getBufferName(
+						sourceManager.getIncludeLoc(sourceManager.getFileID(definition->getLocation()))).str())));
 
 			for(auto base : definition->bases())
 			{
@@ -577,7 +581,7 @@ std::string Backend::getInclusion(const std::string& path)
 	}
 
 	// Not a valid inclusion as it's not in a known include path.
-	return std::string("INVALID INCLUDE PATH");
+	return std::string();
 }
 
 bool Backend::generateHierarchy()
