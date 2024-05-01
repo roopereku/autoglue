@@ -1,13 +1,27 @@
 cmake_minimum_required(VERSION 3.5)
-project(backend_clang)
+project(autoglue)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+endif()
 
 file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 
-add_library(backend_clang ${Sources})
-target_link_libraries(backend_clang autoglue LLVM clang-cpp)
-target_include_directories(backend_clang PUBLIC include)
+# TODO: Clang could have its own namespace and expose the backend as Autoglue::Clang::Backend.
+
+add_library(ClangBackend ${Sources})
+target_link_libraries(ClangBackend Autoglue LLVM clang-cpp)
+
+target_include_directories(ClangBackend PUBLIC  
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  
+    $<INSTALL_INTERFACE:include>
+)
+
+install(TARGETS ClangBackend
+	EXPORT AutoglueTargets
+)
+
+install(DIRECTORY include/ DESTINATION include)

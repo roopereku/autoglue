@@ -5,17 +5,17 @@ Right now it can be used to generate a simplified hierarchy for a C++ project.
 
 ## Usage:
 
-Add the Clang backend to your project.
+Make sure that Autoglue is built with Clang support. This can be enabled by passing `-DAUTOGLUE_BUILD_CLANG_BACKEND=ON` when building Autoglue.
 
-In your `CMakeLists.txt`:
+To add the Clang backend to your project, Add the following to your `CMakeLists.txt`:
 ```cmake
 ...
 
-set(build_clang_backend ON)
+find_package(Autoglue REQUIRED)
 
 ...
 
-target_link_libraries(sometarget autoglue backend_clang)
+target_link_libraries(YourTarget Autoglue::Autoglue Autoglue::ClangBackend)
 ```
 
 In your code:
