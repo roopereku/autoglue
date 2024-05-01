@@ -15,7 +15,7 @@ sudo cmake --install build
 
 To include Autoglue in your project, check out the specific guides:
 
-- [Clang](clang/README.md.md)
+- [Clang](clang/README.md)
 
 ## File structure
 
