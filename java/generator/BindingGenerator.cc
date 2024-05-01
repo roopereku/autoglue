@@ -409,7 +409,7 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 
 		else
 		{
-			file << entity.getReferred().getName() << ' ' << entity.getName();
+			file << entity.getReferred().getHierarchy(".") << ' ' << entity.getName();
 		}
 	}
 }
