@@ -326,9 +326,7 @@ private:
 				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType()));
 
 			// Get the include path for this type alias and associate it with the entity.
-			alias->initializeContext(std::make_shared <ag::clang::EntityContext> (
-				backend.getInclusion(sourceManager.getBufferName(
-						sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation()))).str())));
+			alias->initializeContext(std::make_shared <ag::clang::EntityContext> (getDeclInclusion(decl)));
 
 			result = alias;
 			parent->addChild(std::move(alias));
@@ -340,6 +338,12 @@ private:
 
 	void ensureClassExists(clang::CXXRecordDecl* decl)
 	{
+		// Only export classes that are defined in a header.
+		if(!isIncluded(decl))
+		{
+			return;
+		}
+
 		auto entity = ensureEntityExists(decl);
 
 		// If no entity was returned or it already existed, do nothing.
@@ -354,9 +358,8 @@ private:
 		if(definition)
 		{
 			// Get the include path for this class definition and associate it with the entity.
-			classEntity->initializeContext(std::make_shared <ag::clang::EntityContext> (
-				backend.getInclusion(sourceManager.getBufferName(
-						sourceManager.getIncludeLoc(sourceManager.getFileID(definition->getLocation()))).str())));
+			classEntity->initializeContext(std::make_shared <ag::clang::EntityContext>
+				(getDeclInclusion(definition)));
 
 			for(auto base : definition->bases())
 			{
@@ -376,6 +379,12 @@ private:
 
 	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
 	{
+		auto groupEntity = ensureEntityExists(decl);
+		if(!groupEntity)
+		{
+			return;
+		}
+
 		std::shared_ptr <ag::FunctionEntity> function;
 
 		switch(type)
@@ -414,12 +423,6 @@ private:
 			}
 		}
 
-		auto groupEntity = ensureEntityExists(decl);
-		if(!groupEntity)
-		{
-			return;
-		}
-
 		for(auto param : decl->parameters())
 		{
 			auto paramType = std::make_shared <ag::TypeReferenceEntity>
@@ -429,6 +432,18 @@ private:
 		}
 
 		groupEntity->addChild(std::move(function));
+	}
+
+
+	std::string getDeclInclusion(clang::Decl* decl)
+	{
+		return backend.getInclusion(sourceManager.getBufferName(
+				sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation()))).str());
+	}
+
+	bool isIncluded(clang::Decl* decl)
+	{
+		return sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation())).isValid();
 	}
 
 	clang::SourceManager& sourceManager;
@@ -543,7 +558,7 @@ Backend::Backend(std::string_view compilationDatabasePath)
 
 	// TODO: Do this only when explicitly specified by user.
 	// This is done elsewhere by an argument adjuster which doesn't touch the database.
-	includePaths.emplace_back("/lib/clang/16/include");
+	includePaths.emplace_back("/lib/clang/17/include");
 
 	// Sort the include paths by length. This is done to make sure that
 	std::sort(
