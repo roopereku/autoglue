@@ -1,5 +1,5 @@
 #include <autoglue/clang/Backend.hh>
-#include <autoglue/clang/EntityContext.hh>
+#include <autoglue/clang/IncludeContext.hh>
 
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
@@ -269,7 +269,7 @@ private:
 
 			if(result && isIncluded(named))
 			{
-				result->initializeContext(std::make_shared <ag::clang::EntityContext> (getDeclInclusion(named)));
+				result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(named)));
 			}
 		}
 
@@ -321,7 +321,9 @@ private:
 				return;
 			}
 
-			entity->addChild(std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramType));
+			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramType);
+			//paramEntity->initializeContext(std::make_shared <ag::clang::EntityContext>
+			entity->addChild(std::move(paramEntity));
 		}
 
 		auto group = ensureEntityExists(decl);

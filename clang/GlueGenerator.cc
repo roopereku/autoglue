@@ -1,6 +1,8 @@
 #include <autoglue/clang/GlueGenerator.hh>
 #include <autoglue/clang/Backend.hh>
 #include <autoglue/clang/EntityContext.hh>
+#include <autoglue/clang/IncludeContext.hh>
+#include <autoglue/clang/TyperefContext.hh>
 
 #include <autoglue/TypeReferenceEntity.hh>
 #include <autoglue/FunctionEntity.hh>
@@ -10,6 +12,16 @@
 
 namespace ag::clang
 {
+
+static std::shared_ptr <EntityContext> getClangContext(Entity& entity)
+{
+	if(entity.getContext())
+	{
+		return std::static_pointer_cast <EntityContext> (entity.getContext());
+	}
+
+	return nullptr;
+}
 
 class IncludeCollector : public BindingGenerator
 {
@@ -26,10 +38,10 @@ public:
 
 	void generateClass(ClassEntity& entity) override
 	{
-		if(entity.getContext())
+		auto ctx = getClangContext(entity);
+		if(ctx)
 		{
-			auto ctx = std::static_pointer_cast <EntityContext> (entity.getContext());
-			addInclude(ctx->getInclude());
+			addInclude(ctx->getIncludeContext()->getInclude());
 		}
 
 		entity.generateNested(*this);
@@ -45,10 +57,10 @@ public:
 	{
 		if(!entity.isPrimitive())
 		{
-			if(entity.getReferred().getContext())
+			auto ctx = getClangContext(entity.getReferred());
+			if(ctx)
 			{
-				auto ctx = std::static_pointer_cast <EntityContext> (entity.getReferred().getContext());
-				includes.emplace("#include <" + ctx->getInclude() + ">");
+				includes.emplace("#include <" + ctx->getIncludeContext()->getInclude() + ">");
 			}
 		}
 	}

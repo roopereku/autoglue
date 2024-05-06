@@ -4,25 +4,37 @@
 #include <autoglue/EntityContext.hh>
 
 #include <string>
+#include <memory>
 
 namespace ag::clang
 {
 
-class EntityContext : public ag::EntityContext
+class IncludeContext;
+class TyperefContext;
+
+class EntityContext : public ag::EntityContext, public std::enable_shared_from_this <EntityContext>
 {
 public:
-	EntityContext(std::string&& includePath)
-		: includePath(std::move(includePath))
+	enum class Type
 	{
-	}
+		Typeref,
+		Include
+	};
 
-	const std::string& getInclude()
-	{
-		return includePath;
-	}
+	EntityContext(Type type);
+
+	/// Gets this Clang entity context as an include context.
+	/// 
+	/// \return This context as an include context.
+	std::shared_ptr <IncludeContext> getIncludeContext();
+
+	/// Gets this Clang entity context as a typeref context.
+	/// 
+	/// \return This context as a typeref context.
+	std::shared_ptr <TyperefContext> getTyperefContext();
 
 private:
-	std::string includePath;
+	Type type;
 };
 
 }
