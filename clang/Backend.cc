@@ -313,7 +313,7 @@ private:
 		}
 
 		auto returnEntity = std::make_shared <ag::TypeReferenceEntity> ("", returnTypeEntity);
-		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (returnType.getAsString()));
+		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (returnType.getCanonicalType().getAsString()));
 
 		auto entity = std::make_shared <ag::FunctionEntity>
 			(decl->getNameAsString(), type, std::move(returnEntity));
@@ -332,7 +332,7 @@ private:
 			}
 
 			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramTypeEntity);
-			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (paramType.getAsString()));
+			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (paramType.getCanonicalType().getAsString()));
 			entity->addChild(std::move(paramEntity));
 		}
 
