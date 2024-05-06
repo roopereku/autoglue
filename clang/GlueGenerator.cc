@@ -151,6 +151,8 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
+		//std::cerr << "Passing param " << entity.getName() << ": " << entity.getReferred().getHierarchy() << " -> " << entity.getReferred().getTypeString() << '\n';
+
 		// First make the parameter a non-pointer lvalue.
 		std::string lvalue;
 
@@ -158,7 +160,15 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 		{
 			case TypeEntity::Type::Alias:
 			{
+				auto ctx = getClangContext(entity);
+				assert(ctx);
+
+				// Because a type alias can point to any sort of type, call this function
+				// recursively with the underlying type. Doing so will write the underlying type
+				// in the appropriate way depending on what the type is.
+				// In case the context is needed, copy it to the new type reference.
 				TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true));
+				underlying.initializeContext(std::move(ctx));
 				generateTypeReference(underlying);
 
 				break;
@@ -166,9 +176,12 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 			case TypeEntity::Type::Class:
 			{
+				auto ctx = getClangContext(entity);
+				assert(ctx);
+
 				// Since class instances are void*, cast them to the appropriate pointer
 				// type and dereference them to get an lvalue reference.
-				lvalue = "*static_cast <" + entity.getReferred().getHierarchy("::") +
+				lvalue = "*static_cast <" + ctx->getTyperefContext()->getWrittenType() +
 						 "*> (" + entity.getName() + ')';
 				break;
 			}

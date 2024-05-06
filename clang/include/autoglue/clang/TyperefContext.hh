@@ -11,11 +11,18 @@ namespace ag::clang
 class TyperefContext : public ag::clang::EntityContext
 {
 public:
-	TyperefContext() : EntityContext(Type::Typeref)
+	TyperefContext(std::string&& writtenType)
+		: EntityContext(Type::Typeref), writtenType(std::move(writtenType))
 	{
 	}
 
+	const std::string& getWrittenType()
+	{
+		return writtenType;
+	}
+
 private:
+	std::string writtenType;
 };
 
 }

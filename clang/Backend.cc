@@ -1,5 +1,6 @@
 #include <autoglue/clang/Backend.hh>
 #include <autoglue/clang/IncludeContext.hh>
+#include <autoglue/clang/TyperefContext.hh>
 
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
@@ -99,7 +100,7 @@ public:
 	}
 
 private:
-	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
+	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType& type)
 	{
 		// TODO: This might not be enough when there are multiple pointers.
 		// Make the type a non-pointer.
@@ -185,7 +186,9 @@ private:
 			{
 				if(args[i].getKind() == clang::TemplateArgument::ArgKind::Type)
 				{
-					auto argType = resolveType(args[i].getAsType());
+					// TODO: Save other qualifiers like references and pointers to the template name.
+					auto type = args[i].getAsType();
+					auto argType = resolveType(type);
 					if(argType)
 					{
 						name += '_' + argType->getName();
@@ -207,13 +210,15 @@ private:
 			// Check if the declaration is a typedef.
 			if(auto* typedefNode = clang::dyn_cast <clang::TypedefNameDecl> (named))
 			{
-				auto underlying = resolveType(typedefNode->getUnderlyingType());
-				if(!underlying)
+				auto underlyingType = typedefNode->getUnderlyingType();
+				auto underlyingEntity = resolveType(underlyingType);
+
+				if(!underlyingEntity)
 				{
 					return nullptr;
 				}
 
-				parentEntity->addChild(std::make_shared <ag::TypeAliasEntity> (name, underlying));
+				parentEntity->addChild(std::make_shared <ag::TypeAliasEntity> (name, underlyingEntity));
 			}
 
 			// Check if the declaration is a class or a struct.
@@ -297,23 +302,28 @@ private:
 			return;
 		}
 
-		auto returnType = resolveType(decl->getReturnType());
+		auto returnType = decl->getReturnType();
+		auto returnTypeEntity = resolveType(returnType);
 
-		if(!returnType)
+		if(!returnTypeEntity)
 		{
 			std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
 						": Failed to resolve return type (" << decl->getReturnType().getAsString() << ")\n";
 			return;
 		}
 
+		auto returnEntity = std::make_shared <ag::TypeReferenceEntity> ("", returnTypeEntity);
+		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (returnType.getAsString()));
+
 		auto entity = std::make_shared <ag::FunctionEntity>
-			(decl->getNameAsString(), type, std::make_shared <ag::TypeReferenceEntity> ("", returnType));
+			(decl->getNameAsString(), type, std::move(returnEntity));
 
 		for(auto param : decl->parameters())
 		{
-			auto paramType = resolveType(param->getType());
+			auto paramType = param->getType();
+			auto paramTypeEntity = resolveType(paramType);
 
-			if(!paramType)
+			if(!paramTypeEntity)
 			{
 				std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
 						": Failed to resolve type for parameter " << param->getNameAsString() <<
@@ -321,8 +331,8 @@ private:
 				return;
 			}
 
-			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramType);
-			//paramEntity->initializeContext(std::make_shared <ag::clang::EntityContext>
+			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramTypeEntity);
+			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (paramType.getAsString()));
 			entity->addChild(std::move(paramEntity));
 		}
 
