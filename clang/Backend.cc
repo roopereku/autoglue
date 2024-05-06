@@ -19,6 +19,7 @@
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/ASTContext.h>
 
+#include <filesystem>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -38,11 +39,6 @@ static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
 
 	else if(type->isAnyCharacterType())
 	{
-		if(type->isPointerType())
-		{
-			return ag::PrimitiveEntity::getString();
-		}
-
 		return ag::PrimitiveEntity::getCharacter();
 	}
 
@@ -78,56 +74,6 @@ public:
 	{
 	}
 
-	// TODO: Somehow make RecordDecl work.
-	bool TraverseCXXRecordDecl(clang::CXXRecordDecl* decl)
-	{
-		ensureClassExists(decl);
-		return true;
-	}
-
-	bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* decl)
-	{
-		ensureClassExists(decl);
-		return true;
-	}
-
-	bool TraverseTypeAliasDecl(clang::TypeAliasDecl* decl)
-	{
-		ensureTypeAliasExists(decl);
-		return true;
-	}
-
-	bool TraverseEnumDecl(clang::EnumDecl* decl)
-	{
-		bool created;
-		auto entity = ensureEntityExists(decl, created);
-		assert(entity);
-
-		// If the enum existed already, don't add the constants
-		// as they should already exist.
-		if(!created)
-		{
-			return true;
-		}
-
-		// Iterate the constants and add them as children.
-		for(auto value : decl->enumerators())
-		{
-			// Save the enum constant value to a string.
-			llvm::SmallVector<char, 20> valueStr;
-			value->getInitVal().toString(valueStr);
-
-			// Add an enum entry that has the integer format.
-			entity->addChild(std::make_shared <ag::EnumEntryEntity> (
-				value->getNameAsString(),
-				std::string(valueStr.begin(), valueStr.end()),
-				ag::EnumEntryEntity::Format::Integer)
-			);
-		}
-
-		return true;
-	}
-
 	bool TraverseFunctionDecl(clang::FunctionDecl* decl)
 	{
 		ensureFunctionExists(decl, ag::FunctionEntity::Type::Function);
@@ -155,290 +101,251 @@ public:
 private:
 	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
-		auto underlying = type.getNonReferenceType();
-
-		// If the type class of the underlying type is "elaborated", there might be a type alias underneath.
-		if(underlying->getTypeClass() == clang::Type::TypeClass::Elaborated)
+		// TODO: This might not be enough when there are multiple pointers.
+		// Make the type a non-pointer.
+		if(type->isPointerType())
 		{
-			// Get the named type that the elaboration is referring to.
-			auto referred = clang::cast <clang::ElaboratedType> (underlying.getTypePtrOrNull())->getNamedType();
+			type = type->getPointeeType();
 
-			// Check if the referred type is a type alias.
-			if(auto* alias = referred->getAs <clang::TypedefType> ())
+			// TODO: Maybe do this only for const types?
+			// If the pointer type is a char pointer, it's a string.
+			if(type->isCharType())
 			{
-				return ensureTypeAliasExists(alias->getDecl());
+				return ag::PrimitiveEntity::getString();
 			}
 		}
 
-		// TODO: Handle template instantiation references. For example when
-		// shared_ptr is used it resolves the template class instead of an instantation here.
-		if(auto tagDecl = underlying->getAsTagDecl())
+		type = type.getNonReferenceType();
+
+		if(type->isBuiltinType())
 		{
-			auto result = ensureEntityExists(tagDecl);
-			if(!result)
+			return getPrimitive(type);
+		}
+
+		else if(type->isTypedefNameType())
+		{
+			auto* typedefNode = type->getAs <clang::TypedefType> ();
+
+			if(typedefNode)
 			{
-				return nullptr;
+				auto result = ensureEntityExists(typedefNode->getDecl());
+				return result ? std::static_pointer_cast <ag::TypeEntity> (result) : nullptr;
 			}
 
-			return std::static_pointer_cast <ag::TypeEntity> (result);
+			// TODO: This should probably never happen.
+			else
+			{
+				std::cerr << "Unable to get the decl for typedef " << type.getAsString() << '\n';
+			}
 		}
 
-		else if(underlying->isBuiltinType())
+		else if(type->isStructureOrClassType() || type->isEnumeralType())
 		{
-			auto name = type.getAsString();
-			return getPrimitive(underlying);
+			auto* tagNode = type->getAsTagDecl();
+			auto result = ensureEntityExists(tagNode);
+
+			return result ? std::static_pointer_cast <ag::TypeEntity> (result) : nullptr;
 		}
 
-		static auto invalid = std::make_shared <ag::ClassEntity> ("invalidType");
-		return invalid;
+		return nullptr;
 	}
 
-	std::shared_ptr <ag::Entity> ensureEntityExists(clang::DeclContext* decl, unsigned depth = 0)
+	std::shared_ptr <ag::Entity> ensureEntityExists(clang::Decl* decl, bool& created)
 	{
-		bool created;
-		return ensureEntityExists(decl, created, depth);
-	}
-
-	std::shared_ptr <ag::Entity> ensureEntityExists(clang::DeclContext* decl, bool& created, unsigned depth = 0)
-	{
-		// Translation unit is the global scope.
-		if(clang::dyn_cast <clang::TranslationUnitDecl> (decl))
+		// If the declaration has no name, return the global scope entity.
+		auto named = clang::dyn_cast <clang::NamedDecl> (decl);
+		if(!named)
 		{
 			return backend.getRootPtr();
 		}
 
-		// Don't return a valid node if a function is being treated as a parent.
-		if(depth > 0 && clang::dyn_cast <clang::FunctionDecl> (decl))
-		{
-			return nullptr;
-		}
+		std::shared_ptr <ag::Entity> parentEntity = backend.getRootPtr();
 
-		auto parent = ensureEntityExists(decl->getParent(), depth + 1);
-		if(!parent)
+		// If the parent node of this declaration is another declaration, make sure that it exists.
+		auto parentDecl = clang::dyn_cast <clang::Decl> (named->getDeclContext());
+		if(parentDecl)
 		{
-			return nullptr;
-		}
+			parentEntity = ensureEntityExists(parentDecl);
 
-		if(auto* named = clang::dyn_cast <clang::NamedDecl> (decl))
-		{
-			std::string name = named->getNameAsString();
-
-			// If the declaration is a template instantiation, append template arguments to the name.
-			if(auto* instantiation = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+			// If the parent doesn't exist at this point, add nothing.
+			if(!parentEntity)
 			{
-				name += "__args";
-
-				auto& args = instantiation->getTemplateArgs();
-				for(unsigned i = 0; i < args.size(); i++)
-				{
-					// TODO: Somehow exclude arguments with default values.
-
-					if(args[i].getKind() == clang::TemplateArgument::Type)
-					{
-						auto argType = resolveType(args[i].getAsType());
-
-						if(argType)
-						{
-							name += + "_" + argType->getName();
-						}
-					}
-
-					// TODO: Handle literals as arguments.
-				}
+				return nullptr;
 			}
+		}
 
-			auto result = parent->resolve(name);
+		std::string name = named->getNameAsString();
 
-			if(!result)
+		// If the node represents a template instantiation, it will have a different name.
+		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+		{
+			// Append all of the template arguments after the name.
+			const auto& args = templateDecl->getTemplateArgs();
+			for(size_t i = 0; i < args.size(); i++)
 			{
-				// Handle structs and classes.
-				if(clang::dyn_cast <clang::RecordDecl> (named))
+				if(args[i].getKind() == clang::TemplateArgument::ArgKind::Type)
 				{
-					// Handle template instantiations.
-					if(auto* instantiation = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+					auto argType = resolveType(args[i].getAsType());
+					if(argType)
 					{
-						parent->addChild(std::make_shared <ag::ClassEntity> (name));
+						name += '_' + argType->getName();
 					}
 
 					else
 					{
-						// TODO: Filter out unions?
-						parent->addChild(std::make_shared <ag::ClassEntity> (name));
+						name += "_invalid";
 					}
 				}
-
-				// Handle namespaces.
-				else if(clang::dyn_cast <clang::NamespaceDecl> (named))
-				{
-					parent->addChild(std::make_shared <ag::ScopeEntity> (name));
-				}
-
-				// Handle enums.
-				else if(clang::dyn_cast <clang::EnumDecl> (named))
-				{
-					parent->addChild(std::make_shared <ag::EnumEntity> (name));
-				}
-
-				// Create a group for functions.
-				else if(auto* function = clang::dyn_cast <clang::FunctionDecl> (named))
-				{
-					parent->addChild(std::make_shared <ag::FunctionGroupEntity> (name));
-				}
-
-				else
-				{
-					std::cout << "Unimplemented: " << named->getDeclKindName() << '\n';
-					return nullptr;
-				}
-
-				result = parent->resolve(name);
-
-				if(!result)
-				{
-					//std::cout << "BUG: Failed to add " << name << '\n';
-					//assert(false);
-				}
-
-				created = true;
 			}
-
-			return result;
 		}
 
-		// For any non-named entity, return the parent which at latest is the global scope.
-		return parent;
-	}
-
-	std::shared_ptr <ag::TypeAliasEntity> ensureTypeAliasExists(clang::TypedefNameDecl* decl)
-	{
-		// Since TypeAliasDecl isn't a DeclContext, ensureEntityExists cannot be called directly.
-		auto parent = ensureEntityExists(decl->getDeclContext(), 1);
-		if(!parent)
-		{
-			return nullptr;
-		}
-
-		auto result = parent->resolve(decl->getNameAsString());
+		// If the parent entity doesn't contain an entity of the given name, try to add it.
+		auto result = parentEntity->resolve(name);
 
 		if(!result)
 		{
-			auto alias = std::make_shared <ag::TypeAliasEntity>
-				(decl->getNameAsString(), resolveType(decl->getTypeSourceInfo()->getType()));
+			// Check if the declaration is a typedef.
+			if(auto* typedefNode = clang::dyn_cast <clang::TypedefNameDecl> (named))
+			{
+				auto underlying = resolveType(typedefNode->getUnderlyingType());
+				if(!underlying)
+				{
+					return nullptr;
+				}
 
-			// Get the include path for this type alias and associate it with the entity.
-			alias->initializeContext(std::make_shared <ag::clang::EntityContext> (getDeclInclusion(decl)));
+				parentEntity->addChild(std::make_shared <ag::TypeAliasEntity> (name, underlying));
+			}
 
-			result = alias;
-			parent->addChild(std::move(alias));
+			// Check if the declaration is a class or a struct.
+			else if(auto* recordNode = clang::dyn_cast <clang::RecordDecl> (named))
+			{
+				parentEntity->addChild(std::make_shared <ag::ClassEntity> (name));
+			}
+
+			// Check if the declaration is a namespace.
+			else if(auto* namespaceNode = clang::dyn_cast <clang::NamespaceDecl> (named))
+			{
+				parentEntity->addChild(std::make_shared <ag::ScopeEntity> (name));
+			}
+
+			// Check if the declaration is a function.
+			else if(auto* functionNode = clang::dyn_cast <clang::FunctionDecl> (named))
+			{
+				// When a function is handled by this function, a function group is added instead.
+				// Separate overloads will be added by ensureFunctionExists.
+				parentEntity->addChild(std::make_shared <ag::FunctionGroupEntity> (name));
+			}
+
+			// Check if the declaration is an enum.
+			else if(auto* enumNode = clang::dyn_cast <clang::EnumDecl> (named))
+			{
+				auto enumEntity = std::make_shared <ag::EnumEntity> (name);
+
+				for(auto value : enumNode->enumerators())
+				{
+					// Save the enum constant value to a string.
+					llvm::SmallVector<char, 20> valueStr;
+					value->getInitVal().toString(valueStr);
+
+					enumEntity->addChild(std::make_shared <ag::EnumEntryEntity> (
+						value->getNameAsString(),
+						std::string(valueStr.begin(), valueStr.end()),
+						ag::EnumEntryEntity::Format::Integer
+					));
+				}
+
+				parentEntity->addChild(std::move(enumEntity));
+			}
+
+			else
+			{
+				std::cerr << "Unimplemented: " << named->getDeclKindName() << '\n';
+				return nullptr;
+			}
+
+			// If the new entity was added succesfully, we should be able to resolve it.
+			created = true;
+			result = parentEntity->resolve(name);
+
+			if(result && isIncluded(named))
+			{
+				result->initializeContext(std::make_shared <ag::clang::EntityContext> (getDeclInclusion(named)));
+			}
 		}
 
-		assert(result);
-		return std::static_pointer_cast <ag::TypeAliasEntity> (result);
+		return result;
 	}
 
-	void ensureClassExists(clang::CXXRecordDecl* decl)
+	std::shared_ptr <ag::Entity> ensureEntityExists(clang::Decl* decl)
 	{
-		// Only export classes that are defined in a header.
+		bool created;
+		return ensureEntityExists(decl, created);
+	}
+
+	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
+	{
+		// Only export functions that are included. This is done to only expose functions
+		// that users would gain access to through a header inclusion.
 		if(!isIncluded(decl))
 		{
 			return;
 		}
 
-		auto entity = ensureEntityExists(decl);
-
-		// If no entity was returned or it already existed, do nothing.
-		if(!entity)
+		// TODO: Implement template function instantiations.
+		if(decl->getTemplatedKind() != clang::FunctionDecl::TemplatedKind::TK_NonTemplate)
 		{
 			return;
 		}
 
-		auto classEntity = std::static_pointer_cast <ag::ClassEntity> (entity);
+		auto returnType = resolveType(decl->getReturnType());
 
-		auto definition = decl->getDefinition();
-		if(definition)
+		if(!returnType)
 		{
-			// Get the include path for this class definition and associate it with the entity.
-			classEntity->initializeContext(std::make_shared <ag::clang::EntityContext>
-				(getDeclInclusion(definition)));
-
-			for(auto base : definition->bases())
-			{
-				auto baseEntity = resolveType(base.getType());
-				if(baseEntity)
-				{
-					classEntity->addBaseClass(std::static_pointer_cast <ag::ClassEntity> (baseEntity));
-				}
-			}
-		}
-
-		for(auto nestedDecl : decl->decls())
-		{
-			TraverseDecl(nestedDecl);
-		}
-	}
-
-	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
-	{
-		auto groupEntity = ensureEntityExists(decl);
-		if(!groupEntity)
-		{
+			std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
+						": Failed to resolve return type (" << decl->getReturnType().getAsString() << ")\n";
 			return;
 		}
 
-		std::shared_ptr <ag::FunctionEntity> function;
-
-		switch(type)
-		{
-			case ag::FunctionEntity::Type::Constructor:
-			case ag::FunctionEntity::Type::Destructor:
-			{
-				// TODO: Allow protected.
-				if(decl->getAccess() != clang::AccessSpecifier::AS_public)
-				{
-					return;
-				}
-
-				function = std::make_shared <ag::FunctionEntity> (decl->getNameAsString(), type);
-				break;
-			}
-
-			case ag::FunctionEntity::Type::MemberFunction:
-			{
-				// TODO: Allow protected.
-				if(decl->getAccess() != clang::AccessSpecifier::AS_public)
-				{
-					return;
-				}
-			}
-
-			case ag::FunctionEntity::Type::Function:
-			{
-				auto returnType = std::make_shared <ag::TypeReferenceEntity>
-					("", resolveType(decl->getReturnType()));
-
-				function = std::make_shared <ag::FunctionEntity>
-					(decl->getNameAsString(), type, std::move(returnType));
-
-				break;
-			}
-		}
+		auto entity = std::make_shared <ag::FunctionEntity>
+			(decl->getNameAsString(), type, std::make_shared <ag::TypeReferenceEntity> ("", returnType));
 
 		for(auto param : decl->parameters())
 		{
-			auto paramType = std::make_shared <ag::TypeReferenceEntity>
-				(param->getNameAsString(), resolveType(param->getType()));
+			auto paramType = resolveType(param->getType());
 
-			function->addChild(std::move(paramType));
+			if(!paramType)
+			{
+				std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
+						": Failed to resolve type for parameter " << param->getNameAsString() <<
+						" (" << param->getType().getAsString() << ")\n";
+				return;
+			}
+
+			entity->addChild(std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramType));
 		}
 
-		groupEntity->addChild(std::move(function));
-	}
+		auto group = ensureEntityExists(decl);
 
+		if(!group)
+		{
+			std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
+						": Failed to ensure that the function group exists\n";
+			return;
+		}
+
+		group->addChild(std::move(entity));
+	}
 
 	std::string getDeclInclusion(clang::Decl* decl)
 	{
-		return backend.getInclusion(sourceManager.getBufferName(
-				sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation()))).str());
+		// Get the name of the file that was included to receive the given declaration.
+		// Before it is passed to Backend::getInclusion, the path is made canonical
+		// so that an absolute path with no relativity such as dots is passed in.
+		return backend.getInclusion(
+			std::filesystem::canonical(
+				sourceManager.getBufferName(sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation()))).str()
+			)
+		);
 	}
 
 	bool isIncluded(clang::Decl* decl)
