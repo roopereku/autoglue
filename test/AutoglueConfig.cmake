@@ -1,1 +1,1 @@
-include(build/autoglue/prefix/lib/cmake/autoglue/AutoglueConfig.cmake)
+include(../build/prefix/lib/cmake/autoglue/AutoglueConfig.cmake)
