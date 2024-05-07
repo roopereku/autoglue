@@ -302,6 +302,14 @@ private:
 			return;
 		}
 
+		// Only export public member functions.
+		// TODO: Export protected member functions for type extension.
+		if(clang::dyn_cast <clang::CXXMethodDecl> (decl) && decl->getAccess() != clang::AccessSpecifier::AS_public)
+		{
+			return;
+		}
+
+
 		auto returnType = decl->getReturnType();
 		auto returnTypeEntity = resolveType(returnType);
 
