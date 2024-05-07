@@ -20,10 +20,9 @@ public:
 		Function
 	};
 
-	FunctionEntity(std::string_view name, Type type);
-
 	FunctionEntity(std::string_view name, Type type,
-			std::shared_ptr <TypeReferenceEntity>&& returnType);
+			std::shared_ptr <TypeReferenceEntity>&& returnType,
+			bool overridable, bool interface);
 
 	/// Gets the parent that's not a function group.
 	///
@@ -85,6 +84,17 @@ public:
 	/// \return True if this function returns a value.
 	bool returnsValue();
 
+	/// Checks whether this function can be overridden. If a function
+	/// cannot be overridden, it should be final.
+	///
+	/// \return True if this function can be overridden.
+	bool isOverridable();
+
+	/// Checks whether this function is an interface.
+	///
+	/// \return True if this function is an interface.
+	bool isInterface();
+
 	const char* getTypeString() override;
 
 private:
@@ -95,6 +105,9 @@ private:
 	void onFirstUse() override;
 
 	static void generatePOD(BindingGenerator& generator, TypeReferenceEntity ref);
+
+	bool overridable = false;
+	bool interface = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
 	Type type;

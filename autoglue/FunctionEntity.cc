@@ -6,14 +6,11 @@
 namespace ag
 {
 
-FunctionEntity::FunctionEntity(std::string_view name, Type type)
-	: Entity(name), type(type)
-{
-}
-
 FunctionEntity::FunctionEntity(std::string_view name, Type type,
-								std::shared_ptr <TypeReferenceEntity>&& returnType)
-	: Entity(name), type(type), returnType(std::move(returnType))
+								std::shared_ptr <TypeReferenceEntity>&& returnType,
+								bool overridable, bool interface)
+	:	Entity(name), type(type), returnType(std::move(returnType)),
+		overridable(overridable), interface(interface)
 {
 }
 
@@ -35,6 +32,14 @@ std::string FunctionEntity::getHierarchy(const std::string& delimiter)
 
 void FunctionEntity::onGenerate(BindingGenerator& generator)
 {
+	// TODO: Until support code for type extensions are generated, don't generate
+	// constructors for abstract classes since they likely cannot be instantiated.
+	if(getType() == Type::Constructor &&
+		static_cast <ClassEntity&> (getParent()).isAbstract())
+	{
+		return;
+	}
+
 	generator.generateFunction(*this);
 }
 
@@ -136,6 +141,16 @@ bool FunctionEntity::returnsValue()
 	// That way any backend can decide whether a type returns a value.
 	return type == Type::Constructor ||
 			(returnType && returnType->getReferred().getName() != "void");
+}
+
+bool FunctionEntity::isOverridable()
+{
+	return overridable;
+}
+
+bool FunctionEntity::isInterface()
+{
+	return interface;
 }
 
 const char* FunctionEntity::getTypeString()

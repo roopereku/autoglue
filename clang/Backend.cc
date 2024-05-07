@@ -328,7 +328,6 @@ private:
 			return;
 		}
 
-
 		auto returnTypeEntity = resolveType(decl->getReturnType());
 
 		if(!returnTypeEntity)
@@ -341,8 +340,10 @@ private:
 		auto returnEntity = std::make_shared <ag::TypeReferenceEntity> ("", returnTypeEntity);
 		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (decl->getReturnType()));
 
-		auto entity = std::make_shared <ag::FunctionEntity>
-			(decl->getNameAsString(), type, std::move(returnEntity));
+		auto entity = std::make_shared <ag::FunctionEntity> (
+				decl->getNameAsString(), type, std::move(returnEntity),
+				decl->isVirtualAsWritten(), decl->isPure()
+		);
 
 		for(auto param : decl->parameters())
 		{
@@ -368,6 +369,12 @@ private:
 			std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
 						": Failed to ensure that the function group exists\n";
 			return;
+		}
+
+		// If this function is a pure virtual member function, the class should become abstract.
+		if(entity->isInterface())
+		{
+			static_cast <ag::ClassEntity&> (group->getParent()).setAbstract();
 		}
 
 		group->addChild(std::move(entity));

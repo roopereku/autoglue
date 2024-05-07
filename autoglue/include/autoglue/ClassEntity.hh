@@ -35,6 +35,14 @@ public:
 	/// \param generator The BindingGenerator to call functions from.
 	void generateNested(BindingGenerator& generator);
 
+	/// Checks whether this class is abstract.
+	///
+	/// \return True if this class is abstract.
+	bool isAbstract();
+
+	/// Sets this class as abstract.
+	void setAbstract();
+
 	const char* getTypeString() override;
 
 private:
@@ -44,6 +52,7 @@ private:
 	/// Makes sure that the base classes are used.
 	void onFirstUse() override;
 
+	bool abstract = false;
 	std::vector <std::weak_ptr <ClassEntity>> baseClasses;
 };
 

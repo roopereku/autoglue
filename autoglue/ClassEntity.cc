@@ -86,6 +86,16 @@ void ClassEntity::onFirstUse()
 	}
 }
 
+bool ClassEntity::isAbstract()
+{
+	return abstract;
+}
+
+void ClassEntity::setAbstract()
+{
+	abstract = true;
+}
+
 const char* ClassEntity::getTypeString()
 {
 	return "Class";

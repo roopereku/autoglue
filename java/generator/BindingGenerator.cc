@@ -47,7 +47,16 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	}
 
 	// TODO: Use protected if necessary.
-	file << "public class " << entity.getName() << ' ';
+	file << "public ";
+
+	// TODO: Once ClassEntity knows whether it is an interface, handle it here.
+
+	if(entity.isAbstract())
+	{
+		file << "abstract ";
+	}
+
+	file << "class " << entity.getName() << ' ';
 
 	entity.generateBaseClasses(*this);
 
@@ -131,6 +140,12 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// Write the method signature.
 	file << "public ";
+
+	if(!entity.isOverridable())
+	{
+		file << "final ";
+	}
+
 	entity.generateReturnType(*this, false);
 	file << entity.getName() << '(';
 	entity.generateParameters(*this, false, false);
