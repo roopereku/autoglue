@@ -207,6 +207,8 @@ private:
 
 		if(!result)
 		{
+			bool shouldGetInclude = true;
+
 			// Check if the declaration is a typedef.
 			if(auto* typedefNode = clang::dyn_cast <clang::TypedefNameDecl> (named))
 			{
@@ -225,12 +227,14 @@ private:
 			else if(auto* recordNode = clang::dyn_cast <clang::RecordDecl> (named))
 			{
 				parentEntity->addChild(std::make_shared <ag::ClassEntity> (name));
+				shouldGetInclude = false;
 			}
 
 			// Check if the declaration is a namespace.
 			else if(auto* namespaceNode = clang::dyn_cast <clang::NamespaceDecl> (named))
 			{
 				parentEntity->addChild(std::make_shared <ag::ScopeEntity> (name));
+				shouldGetInclude = false;
 			}
 
 			// Check if the declaration is a function.
@@ -239,6 +243,7 @@ private:
 				// When a function is handled by this function, a function group is added instead.
 				// Separate overloads will be added by ensureFunctionExists.
 				parentEntity->addChild(std::make_shared <ag::FunctionGroupEntity> (name));
+				shouldGetInclude = false;
 			}
 
 			// Check if the declaration is an enum.
@@ -272,9 +277,23 @@ private:
 			created = true;
 			result = parentEntity->resolve(name);
 
-			if(result && isIncluded(named))
+			if(shouldGetInclude && result && isIncluded(named))
 			{
 				result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(named)));
+			}
+		}
+
+		// Since Clang will only tell us the true location of any given class when a node
+		// pointing to it has a definition, it has to be checked here.
+		if(result && !result->getContext())
+		{
+			if(auto* recordNode = clang::dyn_cast <clang::RecordDecl> (named))
+			{
+				auto* def = recordNode->getDefinition();
+				if(def)
+				{
+					result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(def)));
+				}
 			}
 		}
 
@@ -356,16 +375,41 @@ private:
 		group->addChild(std::move(entity));
 	}
 
-	std::string getDeclInclusion(clang::Decl* decl)
+	std::string getDeclInclusion(clang::NamedDecl* decl)
 	{
-		// Get the name of the file that was included to receive the given declaration.
-		// Before it is passed to Backend::getInclusion, the path is made canonical
-		// so that an absolute path with no relativity such as dots is passed in.
-		return backend.getInclusion(
-			std::filesystem::canonical(
-				sourceManager.getBufferName(sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation()))).str()
-			)
-		);
+		auto loc = decl->getLocation();
+
+		if(loc.isInvalid())
+		{
+			return std::string();
+		}
+
+		auto filename = sourceManager.getFilename(loc);
+		if(filename.empty())
+		{
+			return std::string();
+		}
+
+		// TODO: /bits/ isn't a thing in MSVC.
+		// Some C++ standard library includes are presented as the one where
+		// the implementation resides. In such a case getIncludeLoc can be
+		// used to get the inclusion that was actually used in the source code.
+		// E.g. <bits/fs_path.h> -> <filesystem>
+		if(filename.contains("/bits/"))
+		{
+			loc = sourceManager.getIncludeLoc(sourceManager.getFileID(loc));
+			filename = sourceManager.getBufferName(loc);
+
+			// If the source location still points to a file in /bits/, return nothing at all.
+			if(filename.contains("/bits/"))
+			{
+				return std::string();
+			}
+		}
+
+		// Convert the path of the included file to its canonical format and check if it
+		// has a matching prefix to some include directory specified in the compilation database.
+		return backend.getInclusion(std::filesystem::canonical(sourceManager.getBufferName(loc).str()));
 	}
 
 	bool isIncluded(clang::Decl* decl)
