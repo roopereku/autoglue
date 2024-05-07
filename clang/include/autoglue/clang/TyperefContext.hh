@@ -3,6 +3,8 @@
 
 #include <autoglue/clang/EntityContext.hh>
 
+#include <clang/AST/Type.h>
+
 #include <string>
 
 namespace ag::clang
@@ -11,18 +13,15 @@ namespace ag::clang
 class TyperefContext : public ag::clang::EntityContext
 {
 public:
-	TyperefContext(std::string&& writtenType)
-		: EntityContext(Type::Typeref), writtenType(std::move(writtenType))
-	{
-	}
+	TyperefContext(::clang::QualType type);
 
-	const std::string& getWrittenType()
-	{
-		return writtenType;
-	}
+	bool isRValueReference();
+
+	const std::string& getWrittenType();
 
 private:
 	std::string writtenType;
+	bool rvalueReference;;
 };
 
 }

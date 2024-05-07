@@ -155,12 +155,12 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 		// First make the parameter a non-pointer lvalue.
 		std::string lvalue;
+		auto ctx = getClangContext(entity);
 
 		switch(entity.getType())
 		{
 			case TypeEntity::Type::Alias:
 			{
-				auto ctx = getClangContext(entity);
 				assert(ctx);
 
 				// Because a type alias can point to any sort of type, call this function
@@ -176,7 +176,6 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 			case TypeEntity::Type::Class:
 			{
-				auto ctx = getClangContext(entity);
 				assert(ctx);
 
 				// Since class instances are void*, cast them to the appropriate pointer
@@ -201,8 +200,16 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 			}
 		}
 
-		// TODO: Some conversion might need to be done for the lvalue in the future.
-		file << lvalue;
+		if(ctx && ctx->getTyperefContext()->isRValueReference())
+		{
+			// TODO: Include <utility> in IncludeCollector.
+			file << "std::move(" << lvalue << ")";
+		}
+
+		else
+		{
+			file << lvalue;
+		}
 	}
 
 	else

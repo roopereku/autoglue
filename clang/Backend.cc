@@ -100,7 +100,7 @@ public:
 	}
 
 private:
-	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType& type)
+	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
 		// TODO: This might not be enough when there are multiple pointers.
 		// Make the type a non-pointer.
@@ -329,8 +329,7 @@ private:
 		}
 
 
-		auto returnType = decl->getReturnType();
-		auto returnTypeEntity = resolveType(returnType);
+		auto returnTypeEntity = resolveType(decl->getReturnType());
 
 		if(!returnTypeEntity)
 		{
@@ -340,15 +339,14 @@ private:
 		}
 
 		auto returnEntity = std::make_shared <ag::TypeReferenceEntity> ("", returnTypeEntity);
-		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (returnType.getCanonicalType().getAsString()));
+		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (decl->getReturnType()));
 
 		auto entity = std::make_shared <ag::FunctionEntity>
 			(decl->getNameAsString(), type, std::move(returnEntity));
 
 		for(auto param : decl->parameters())
 		{
-			auto paramType = param->getType();
-			auto paramTypeEntity = resolveType(paramType);
+			auto paramTypeEntity = resolveType(param->getType());
 
 			if(!paramTypeEntity)
 			{
@@ -359,7 +357,7 @@ private:
 			}
 
 			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramTypeEntity);
-			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (paramType.getCanonicalType().getAsString()));
+			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (param->getType()));
 			entity->addChild(std::move(paramEntity));
 		}
 

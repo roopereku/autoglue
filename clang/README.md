@@ -47,4 +47,3 @@ int main()
 ## TODO:
 
 - Generate glue code required for type extension (To support implementing virtual functions through the language bindings)
-- Make function parameters be aware of rvalue references (Use `std::move` when passing a parameter from a bridge function).
