@@ -8,11 +8,11 @@
 namespace ag
 {
 
-FunctionEntity::FunctionEntity(std::string_view name, Type type,
+FunctionEntity::FunctionEntity(std::string_view name, std::string&& postfix, Type type,
 								std::shared_ptr <TypeReferenceEntity>&& returnType,
 								bool overridable, bool interface)
-	:	Entity(name), type(type), returnType(std::move(returnType)),
-		overridable(overridable), interface(interface)
+	:	Entity(name), postfix(std::move(postfix)), type(type),
+		returnType(std::move(returnType)), overridable(overridable), interface(interface)
 {
 }
 
@@ -158,6 +158,11 @@ TypeReferenceEntity& FunctionEntity::getReturnType()
 {
 	assert(returnType);
 	return *returnType;
+}
+
+std::string FunctionEntity::getBridgeName()
+{
+	return getHierarchy("_") + postfix;
 }
 
 const char* FunctionEntity::getTypeString()

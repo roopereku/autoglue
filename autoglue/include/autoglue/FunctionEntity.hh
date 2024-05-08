@@ -20,7 +20,7 @@ public:
 		Function
 	};
 
-	FunctionEntity(std::string_view name, Type type,
+	FunctionEntity(std::string_view name, std::string&& postfix, Type type,
 			std::shared_ptr <TypeReferenceEntity>&& returnType,
 			bool overridable, bool interface);
 
@@ -100,6 +100,11 @@ public:
 	/// \return The return type of this function.
 	TypeReferenceEntity& getReturnType();
 
+	/// Gets the name of the corresponding bridge function.
+	///
+	/// \return The name of the corresponding bridge function.
+	std::string getBridgeName();
+
 	const char* getTypeString() override;
 
 private:
@@ -115,6 +120,7 @@ private:
 	bool interface = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
+	std::string postfix;
 	Type type;
 };
 

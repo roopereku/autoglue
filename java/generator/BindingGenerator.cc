@@ -182,7 +182,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	// JNI is written next.
 	inJni = true;
-	auto bridgeName = entity.getHierarchy();
+	auto bridgeName = entity.getBridgeName();
 
 	// Locate the external bridge function.
 	inExtern = true;
