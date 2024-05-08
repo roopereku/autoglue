@@ -325,7 +325,10 @@ void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
 	// Function calls in the JNI are always calls to bridge functions.
 	if(onlyParameterNames)
 	{
-		if(entity.getType() == TypeEntity::Type::Class)
+		assert(entity.isPrimitive());
+
+		// Treat object handles as opaque pointers.
+		if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::ObjectHandle)
 		{
 			jni << "reinterpret_cast <void*> (" << entity.getName() << ')';
 		}
