@@ -156,7 +156,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 	}
 
 	entity.generateReturnType(*this, true);
-	file << entity.getHierarchy() << "(";
+	file << entity.getBridgeName() << "(";
 
 	entity.generateParameters(*this, true, true);
 	file << ")\n{\n";

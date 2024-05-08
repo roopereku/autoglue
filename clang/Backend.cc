@@ -351,8 +351,8 @@ private:
 		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (decl->getReturnType()));
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
-				decl->getNameAsString(), type, std::move(returnEntity),
-				decl->isVirtualAsWritten(), decl->isPure()
+				decl->getNameAsString(), std::to_string(decl->getODRHash()), type,
+				std::move(returnEntity), decl->isVirtualAsWritten(), decl->isPure()
 		);
 
 		for(auto param : decl->parameters())
