@@ -13,22 +13,21 @@ class ClassEntity : public TypeEntity
 public:
 	ClassEntity(std::string_view name);
 
-	/// Adds a new base class for this class entity.
+	/// Adds a new base type for this class entity.
 	///
-	/// \param base The base class to add.
-	void addBaseClass(std::shared_ptr <ClassEntity> base);
+	/// \param base The base type to add.
+	void addBaseType(std::shared_ptr <TypeEntity> base);
 
-	/// Generates the base classes of this class.
+	/// Generates the base types of this class.
 	/// Calls generateTypeReference internally.
 	///
 	/// \param generator The BindingGenerator to call functions from.
-	void generateBaseClasses(BindingGenerator& generator);
+	void generateBaseTypes(BindingGenerator& generator);
 
-	/// Checks if this class base classes has any base classes.
-	/// Any base class ClassEntity that doesn't exist upon invocation isn't counted.
+	/// Checks if this class has any existing base types.
 	///
 	/// \return True If this class has base classes.
-	bool hasBaseClasses();
+	bool hasBaseTypes();
 
 	/// Generates the nested entities within this class.
 	///
@@ -53,7 +52,7 @@ private:
 	void onFirstUse() override;
 
 	bool abstract = false;
-	std::vector <std::weak_ptr <ClassEntity>> baseClasses;
+	std::vector <std::weak_ptr <TypeEntity>> baseTypes;
 };
 
 }

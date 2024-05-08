@@ -58,10 +58,10 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 
 	file << "class " << entity.getName() << ' ';
 
-	entity.generateBaseClasses(*this);
+	entity.generateBaseTypes(*this);
 
 	// Add the object handle if this class has no base classes.
-	if(!entity.hasBaseClasses())
+	if(!entity.hasBaseTypes())
 	{
 		file << " {\n";
 
@@ -273,7 +273,7 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	changeClassDepth(-1);
 }
 
-void BindingGenerator::generateBaseClass(ClassEntity& entity, size_t index)
+void BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
 	if(index == 0)
 	{

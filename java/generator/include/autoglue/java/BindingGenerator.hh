@@ -21,7 +21,7 @@ private:
 	void generateFunction(FunctionEntity& entity) override;
 	void generateTypeReference(TypeReferenceEntity& entity) override;
 	void generateTypeAlias(TypeAliasEntity& entity) override;
-	void generateBaseClass(ClassEntity& entity, size_t index) override;
+	void generateBaseType(TypeEntity& entity, size_t index) override;
 	void generateNamedScope(ScopeEntity& entity) override;
 	void generateArgumentSeparator() override;
 

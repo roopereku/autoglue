@@ -9,10 +9,10 @@ ClassEntity::ClassEntity(std::string_view name)
 {
 }
 
-void ClassEntity::addBaseClass(std::shared_ptr <ClassEntity> base)
+void ClassEntity::addBaseType(std::shared_ptr <TypeEntity> base)
 {
 	// Make sure that the given base isn't already found.
-	for(auto baseRef : baseClasses)
+	for(auto baseRef : baseTypes)
 	{
 		if(baseRef.expired())
 		{
@@ -25,21 +25,21 @@ void ClassEntity::addBaseClass(std::shared_ptr <ClassEntity> base)
 		}
 	}
 
-	baseClasses.emplace_back(base);
+	baseTypes.emplace_back(base);
 }
 
-void ClassEntity::generateBaseClasses(BindingGenerator& generator)
+void ClassEntity::generateBaseTypes(BindingGenerator& generator)
 {
-	for(size_t i = 0; i < baseClasses.size(); i++)
+	for(size_t i = 0; i < baseTypes.size(); i++)
 	{
-		// Only if the class definition still exists, generate it as a base class.
-		if(!baseClasses[i].expired())
+		// Only if the type definition still exists, generate it as a base type.
+		if(!baseTypes[i].expired())
 		{
-			auto base = baseClasses[i].lock();
-			generator.generateBaseClass(*base, i);
+			auto base = baseTypes[i].lock();
+			generator.generateBaseType(*base, i);
 
-			// Add an argument separator for base classes that aren't the last one.
-			if(i != baseClasses.size() - 1)
+			// Add an argument separator for base types that aren't the last one.
+			if(i != baseTypes.size() - 1)
 			{
 				generator.generateArgumentSeparator();
 			}
@@ -47,11 +47,11 @@ void ClassEntity::generateBaseClasses(BindingGenerator& generator)
 	}
 }
 
-bool ClassEntity::hasBaseClasses()
+bool ClassEntity::hasBaseTypes()
 {
 	size_t bases = 0;
 
-	for(auto base : baseClasses)
+	for(auto base : baseTypes)
 	{
 		bases += !base.expired();
 	}
@@ -77,11 +77,11 @@ void ClassEntity::onGenerate(BindingGenerator& generator)
 
 void ClassEntity::onFirstUse()
 {
-	for(size_t i = 0; i < baseClasses.size(); i++)
+	for(size_t i = 0; i < baseTypes.size(); i++)
 	{
-		if(!baseClasses[i].expired())
+		if(!baseTypes[i].expired())
 		{
-			baseClasses[i].lock()->use();
+			baseTypes[i].lock()->use();
 		}
 	}
 }

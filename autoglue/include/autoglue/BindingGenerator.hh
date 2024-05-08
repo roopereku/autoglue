@@ -7,6 +7,7 @@ namespace ag
 {
 
 class ClassEntity;
+class TypeEntity;
 class EnumEntity;
 class EnumEntryEntity;
 class FunctionEntity;
@@ -57,11 +58,11 @@ public:
 	/// \param entity The TypeAliasEntity to generate.
 	virtual void generateTypeAlias(TypeAliasEntity& entity);
 
-	/// Generates a base class specification.
+	/// Generates a base type specification.
 	///
-	/// \param entity The ClassEntity containing the base class.
-	/// \param index The index of the base class.
-	virtual void generateBaseClass(ClassEntity& entity, size_t index);
+	/// \param entity The TypeEntity containing the base type.
+	/// \param index The index of the base type.
+	virtual void generateBaseType(TypeEntity& entity, size_t index);
 
 	/// Generates a named scope.
 	///

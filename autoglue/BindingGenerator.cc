@@ -31,7 +31,7 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity&) {}
 void BindingGenerator::generateFunction(FunctionEntity&) {}
 void BindingGenerator::generateTypeReference(TypeReferenceEntity&) {}
 void BindingGenerator::generateTypeAlias(TypeAliasEntity&) {}
-void BindingGenerator::generateBaseClass(ClassEntity&, size_t) {}
+void BindingGenerator::generateBaseType(TypeEntity&, size_t) {}
 void BindingGenerator::generateNamedScope(ScopeEntity&) {}
 void BindingGenerator::generateArgumentSeparator() {}
 

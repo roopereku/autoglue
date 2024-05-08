@@ -298,6 +298,25 @@ private:
 				if(def)
 				{
 					result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(def)));
+
+					if(auto* cxxDef = clang::dyn_cast <clang::CXXRecordDecl> (def))
+					{
+						auto classEntity = std::static_pointer_cast <ag::ClassEntity> (result);
+
+						// Since the class definition is available here, collect its base classes.
+						for(auto base : cxxDef->bases())
+						{
+							auto baseEntity = resolveType(base.getType());
+							if(!baseEntity)
+							{
+								std::cerr << "Unable to add base type for " << def->getQualifiedNameAsString() <<
+											": Failed to resolve type " << base.getType().getAsString() << '\n';
+								continue;
+							}
+
+							classEntity->addBaseType(baseEntity);
+						}
+					}
 				}
 			}
 		}
