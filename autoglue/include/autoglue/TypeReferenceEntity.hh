@@ -12,7 +12,7 @@ namespace ag
 class TypeReferenceEntity : public Entity
 {
 public:
-	TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type);
+	TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type, bool reference);
 
 	/// Checks if this type reference is identical to another one.
 	///
@@ -29,6 +29,11 @@ public:
 	///
 	/// \return The referred type entity as an entity.
 	Entity& getReferred();
+
+	/// Gets the referred type entity as a shared pointer.
+	///
+	/// \return The referred type entity as a shared pointer.
+	std::shared_ptr <Entity> getReferredPtr();
 
 	/// Checks if this type reference refers to a class type.
 	///
@@ -70,6 +75,13 @@ public:
 	/// \return The referred type entity as a primitive type.
 	PrimitiveEntity& getPrimitiveType();
 
+	/// Checks whether this type reference entity represents a reference.
+	/// This information is especially important in return values, as it
+	/// determines if a foreign language should own a returned object or not.
+	///
+	/// \return True if this type reference entity represents a reference.
+	bool isReference();
+
 	const char* getTypeString() override;
 
 private:
@@ -81,8 +93,8 @@ private:
 
 	void onList(std::string_view indent) override;
 
-	bool isReference = false;
-	bool isUnsigned = false;
+	bool reference = false;
+	bool unsignedType = false;
 	size_t size = 0;
 
 	std::shared_ptr <TypeEntity> referred;

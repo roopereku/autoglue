@@ -7,8 +7,8 @@
 namespace ag
 {
 
-TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type)
-	: Entity(name), referred(type)
+TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type, bool reference)
+	: Entity(name), referred(type), reference(reference)
 {
 }
 
@@ -30,7 +30,13 @@ TypeEntity::Type TypeReferenceEntity::getType()
 
 Entity& TypeReferenceEntity::getReferred()
 {
+	assert(referred);
 	return *referred;
+}
+
+std::shared_ptr <Entity> TypeReferenceEntity::getReferredPtr()
+{
+	return referred;
 }
 
 bool TypeReferenceEntity::isClass()
@@ -75,6 +81,11 @@ PrimitiveEntity& TypeReferenceEntity::getPrimitiveType()
 {
 	assert(isPrimitive());
 	return static_cast <PrimitiveEntity&> (*referred);
+}
+
+bool TypeReferenceEntity::isReference()
+{
+	return reference;
 }
 
 const char* TypeReferenceEntity::getTypeString()

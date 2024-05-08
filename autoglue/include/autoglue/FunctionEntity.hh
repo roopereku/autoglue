@@ -95,6 +95,11 @@ public:
 	/// \return True if this function is an interface.
 	bool isInterface();
 
+	/// Gets the return type of this function.
+	///
+	/// \return The return type of this function.
+	TypeReferenceEntity& getReturnType();
+
 	const char* getTypeString() override;
 
 private:

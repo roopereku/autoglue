@@ -3,6 +3,8 @@
 #include <autoglue/BindingGenerator.hh>
 #include <autoglue/TypeReferenceEntity.hh>
 
+#include <cassert>
+
 namespace ag
 {
 
@@ -56,7 +58,7 @@ void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
 	// If this function is a constructor, generate an object handle.
 	if(type == Type::Constructor && asPOD)
 	{
-		TypeReferenceEntity podRef("", PrimitiveEntity::getObjectHandle());
+		TypeReferenceEntity podRef("", PrimitiveEntity::getObjectHandle(), false);
 		generator.generateTypeReference(podRef);
 
 		return;
@@ -81,7 +83,7 @@ void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD,
 	// If the self parameter should be included, export it for member functions and destructors.
 	if(includeSelf && needsThisHandle())
 	{
-		TypeReferenceEntity self("objectHandle", PrimitiveEntity::getObjectHandle());
+		TypeReferenceEntity self("objectHandle", PrimitiveEntity::getObjectHandle(), false);
 		generator.generateTypeReference(self);
 
 		// If there are more parameters, add a separator.
@@ -137,10 +139,9 @@ bool FunctionEntity::needsThisHandle()
 
 bool FunctionEntity::returnsValue()
 {
-	// TODO: Don't assume "void" but add an abstract flag.
-	// That way any backend can decide whether a type returns a value.
+	// The function returns a value if its a constructor or doesn't return void.
 	return type == Type::Constructor ||
-			(returnType && returnType->getReferred().getName() != "void");
+			(returnType && returnType->getReferredPtr() != PrimitiveEntity::getVoid());
 }
 
 bool FunctionEntity::isOverridable()
@@ -151,6 +152,12 @@ bool FunctionEntity::isOverridable()
 bool FunctionEntity::isInterface()
 {
 	return interface;
+}
+
+TypeReferenceEntity& FunctionEntity::getReturnType()
+{
+	assert(returnType);
+	return *returnType;
 }
 
 const char* FunctionEntity::getTypeString()
@@ -164,7 +171,7 @@ void FunctionEntity::generatePOD(BindingGenerator& generator, TypeReferenceEntit
 	{
 		case TypeEntity::Type::Class:
 		{
-			TypeReferenceEntity podRef(ref.getName(), PrimitiveEntity::getObjectHandle());
+			TypeReferenceEntity podRef(ref.getName(), PrimitiveEntity::getObjectHandle(), ref.isReference());
 			generator.generateTypeReference(podRef);
 
 			break;
@@ -172,7 +179,7 @@ void FunctionEntity::generatePOD(BindingGenerator& generator, TypeReferenceEntit
 
 		case TypeEntity::Type::Enum:
 		{
-			TypeReferenceEntity podRef(ref.getName(), PrimitiveEntity::getInteger());
+			TypeReferenceEntity podRef(ref.getName(), PrimitiveEntity::getInteger(), ref.isReference());
 			generator.generateTypeReference(podRef);
 
 			break;
@@ -180,7 +187,7 @@ void FunctionEntity::generatePOD(BindingGenerator& generator, TypeReferenceEntit
 
 		case TypeEntity::Type::Alias:
 		{
-			TypeReferenceEntity podRef(ref.getName(), ref.getAliasType().getUnderlying(true));
+			TypeReferenceEntity podRef(ref.getName(), ref.getAliasType().getUnderlying(true), ref.isReference());
 			generatePOD(generator, podRef);
 
 			break;
