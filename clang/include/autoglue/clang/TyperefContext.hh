@@ -16,12 +16,17 @@ public:
 	TyperefContext(::clang::QualType type);
 
 	bool isRValueReference();
+	bool isPointer();
+	bool isConst();
 
 	const std::string& getWrittenType();
 
 private:
 	std::string writtenType;
-	bool rvalueReference;;
+
+	bool rvalueReference;
+	bool pointer;
+	bool constType;
 };
 
 }

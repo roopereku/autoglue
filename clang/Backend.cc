@@ -26,6 +26,11 @@
 #include <fstream>
 #include <cassert>
 
+bool isReferenceType(clang::QualType type)
+{
+	return type->isPointerType() || type->isReferenceType();
+}
+
 static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
 {
 	if(type->isVoidType())
@@ -337,7 +342,12 @@ private:
 			return;
 		}
 
-		auto returnEntity = std::make_shared <ag::TypeReferenceEntity> ("", returnTypeEntity);
+		auto returnEntity = std::make_shared <ag::TypeReferenceEntity> (
+			"",
+			returnTypeEntity,
+			isReferenceType(decl->getReturnType())
+		);
+
 		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (decl->getReturnType()));
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
@@ -357,7 +367,12 @@ private:
 				return;
 			}
 
-			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (param->getNameAsString(), paramTypeEntity);
+			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (
+				param->getNameAsString(),
+				paramTypeEntity,
+				isReferenceType(param->getType())
+			);
+
 			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (param->getType()));
 			entity->addChild(std::move(paramEntity));
 		}

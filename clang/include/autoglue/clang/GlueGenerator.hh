@@ -22,6 +22,8 @@ private:
 	void generateClass(ClassEntity& entity) override;
 	void generateArgumentSeparator() override;
 
+	bool convertReturnIfNecessary(TypeReferenceEntity& entity);
+
 	std::ofstream file;
 	bool onlyParameterNames = false;
 };
