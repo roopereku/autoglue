@@ -303,6 +303,13 @@ private:
 					{
 						auto classEntity = std::static_pointer_cast <ag::ClassEntity> (result);
 
+						// Since a C++ class can be abstract without defining pure virtual
+						// functions of its own, perform an extra check for it.
+						if(cxxDef->isAbstract())
+						{
+							classEntity->setAbstract();
+						}
+
 						// Since the class definition is available here, collect its base classes.
 						for(auto base : cxxDef->bases())
 						{
