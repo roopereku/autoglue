@@ -83,7 +83,7 @@ void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD,
 	// If the self parameter should be included, export it for member functions and destructors.
 	if(includeSelf && needsThisHandle())
 	{
-		TypeReferenceEntity self("objectHandle", PrimitiveEntity::getObjectHandle(), false);
+		TypeReferenceEntity self(generator.getObjectHandleName(), PrimitiveEntity::getObjectHandle(), false);
 		generator.generateTypeReference(self);
 
 		// If there are more parameters, add a separator.

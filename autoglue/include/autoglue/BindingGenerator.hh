@@ -3,6 +3,8 @@
 
 #include <autoglue/Backend.hh>
 
+#include <string_view>
+
 namespace ag
 {
 
@@ -76,6 +78,8 @@ public:
 	///
 	/// \param amount Positive or a negative number indicating which way the class depth should go.
 	void changeClassDepth(int amount);
+
+	virtual std::string_view getObjectHandleName();
 
 protected:
 	unsigned getClassDepth();

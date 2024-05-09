@@ -35,4 +35,9 @@ void BindingGenerator::generateBaseType(TypeEntity&, size_t) {}
 void BindingGenerator::generateNamedScope(ScopeEntity&) {}
 void BindingGenerator::generateArgumentSeparator() {}
 
+std::string_view BindingGenerator::getObjectHandleName()
+{
+	return "mObjectHandle";
+}
+
 }
