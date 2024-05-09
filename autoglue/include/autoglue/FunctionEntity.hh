@@ -105,6 +105,11 @@ public:
 	/// \return The name of the corresponding bridge function.
 	std::string getBridgeName();
 
+	/// Checks whether this function is a class member function.
+	///
+	/// \return True if this function is a class member function.
+	bool isClassMemberFunction();
+
 	const char* getTypeString() override;
 
 private:

@@ -13,6 +13,13 @@ public:
 
 	const char* getTypeString() override;
 
+	/// Find a function from this function group that has matching
+	/// parameter types to the given function.
+	///
+	/// \param entity The function to match against.
+	/// \return Function entity containing matching parameters if any.
+	std::shared_ptr <FunctionEntity> findMatchingParameters(FunctionEntity& entity);
+
 private:
 	/// Generates function overloads.
 	void onGenerate(BindingGenerator& generator) override;

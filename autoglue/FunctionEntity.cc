@@ -165,6 +165,13 @@ std::string FunctionEntity::getBridgeName()
 	return getHierarchy("_") + postfix;
 }
 
+bool FunctionEntity::isClassMemberFunction()
+{
+	return type == Type::MemberFunction ||
+			type == Type::Constructor ||
+			type == Type::Destructor;
+}
+
 const char* FunctionEntity::getTypeString()
 {
 	return "Function";
