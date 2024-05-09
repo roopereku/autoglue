@@ -29,7 +29,7 @@ private:
 
 	void generateTyperefJNI(TypeReferenceEntity& entity);
 	void generateTyperefJava(TypeReferenceEntity& entity);
-	bool handleReturnValue(TypeReferenceEntity& entity);
+	bool handleReturnValue(TypeReferenceEntity& entity, std::string&& originalType);
 
 	void openFile(Entity& entity);
 

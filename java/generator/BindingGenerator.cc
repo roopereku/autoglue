@@ -178,7 +178,8 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	else if(entity.returnsValue())
 	{
 		file << "return ";
-		closeParenthesis = handleReturnValue(entity.getReturnType());	
+		closeParenthesis = handleReturnValue(entity.getReturnType(),
+				entity.getReturnType().getReferred().getHierarchy("."));	
 	}
 
 	file << nativeName << "(";
@@ -244,7 +245,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	inJni = false;
 }
 
-bool BindingGenerator::handleReturnValue(TypeReferenceEntity& entity)
+bool BindingGenerator::handleReturnValue(TypeReferenceEntity& entity, std::string&& originalType)
 {
 	switch(entity.getType())
 	{
@@ -253,20 +254,27 @@ bool BindingGenerator::handleReturnValue(TypeReferenceEntity& entity)
 			// Because a type alias can point to any type, recursively call this
 			// function with the underlying type.
 			TypeReferenceEntity ref("", entity.getAliasType().getUnderlying(true), entity.isReference());
-			return handleReturnValue(ref);
+			return handleReturnValue(ref, std::move(originalType));
 		}
 
 		case TypeEntity::Type::Class:
 		{
+			// TODO: Until type extension support is generated, don't instantiate abstract classes.
+			if(entity.getClassType().isAbstract())
+			{
+				file << "null; //";
+				return false;
+			}
+
 			// For a class return value, instantiate new Java objects holding the resulting pointer.
-			file << "new " << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << '(';
+			file << "new " << packagePrefix << '.' << std::move(originalType) << '(';
 			return true;
 		}
 
 		case TypeEntity::Type::Enum:
 		{
 			// In order to convert integers to enum types, use the fromInt method.
-			file << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << ".fromInt(";
+			file << packagePrefix << '.' << std::move(originalType) << ".fromInt(";
 			return true;
 		}
 
