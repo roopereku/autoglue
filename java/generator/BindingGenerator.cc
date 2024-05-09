@@ -51,6 +51,12 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 
 	// TODO: Once ClassEntity knows whether it is an interface, handle it here.
 
+	// Make all nested classes static.
+	if(getClassDepth() > 1)
+	{
+		file << "static ";
+	}
+
 	if(entity.isAbstract())
 	{
 		file << "abstract ";
@@ -314,9 +320,17 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	auto underlying = entity.getUnderlying();
 	assert(underlying);
 
+	file << "public ";
+
+	// Make all nested classes static.
+	if(getClassDepth() > 1)
+	{
+		file << "static ";
+	}
+
 	// Java has no type aliases, so create a new class that extends the aliased type.
 	// TODO: For primitive types and enums do special handling.
-	file << "public class " << entity.getName() << " extends " << packagePrefix << '.' << underlying->getHierarchy(".") << " {\n";
+	file << "class " << entity.getName() << " extends " << packagePrefix << '.' << underlying->getHierarchy(".") << " {\n";
 
 	// TODO: In order to make the type alias instantiable, generate constructors from the aliased type.
 	// No JNI code is required from them as they just would call super().
