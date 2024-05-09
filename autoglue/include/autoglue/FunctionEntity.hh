@@ -22,7 +22,7 @@ public:
 
 	FunctionEntity(std::string_view name, std::string&& postfix, Type type,
 			std::shared_ptr <TypeReferenceEntity>&& returnType,
-			bool overridable, bool interface);
+			bool overridable, bool overrides, bool interface);
 
 	/// Gets the parent that's not a function group.
 	///
@@ -90,6 +90,11 @@ public:
 	/// \return True if this function can be overridden.
 	bool isOverridable();
 
+	/// Checks whether this function overrides another function.
+	///
+	/// \return True if this function overrides another function.
+	bool isOverride();
+
 	/// Checks whether this function is an interface.
 	///
 	/// \return True if this function is an interface.
@@ -122,6 +127,7 @@ private:
 	static void generatePOD(BindingGenerator& generator, TypeReferenceEntity ref);
 
 	bool overridable = false;
+	bool overrides = false;
 	bool interface = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;

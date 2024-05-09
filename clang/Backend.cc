@@ -376,9 +376,16 @@ private:
 
 		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (decl->getReturnType()));
 
+		// If this is a method in a C++ class, check if it overrides a base class method.
+		bool isOverride = false;
+		if(auto* cxxRecordNode = clang::dyn_cast <clang::CXXMethodDecl> (decl))
+		{
+			isOverride = cxxRecordNode->size_overridden_methods() > 0;
+		}
+
 		auto entity = std::make_shared <ag::FunctionEntity> (
 				decl->getNameAsString(), std::to_string(decl->getODRHash()), type,
-				std::move(returnEntity), decl->isVirtualAsWritten(), decl->isPure()
+				std::move(returnEntity), decl->isVirtualAsWritten(), isOverride, decl->isPure()
 		);
 
 		for(auto param : decl->parameters())

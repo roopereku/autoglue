@@ -10,9 +10,9 @@ namespace ag
 
 FunctionEntity::FunctionEntity(std::string_view name, std::string&& postfix, Type type,
 								std::shared_ptr <TypeReferenceEntity>&& returnType,
-								bool overridable, bool interface)
-	:	Entity(name), postfix(std::move(postfix)), type(type),
-		returnType(std::move(returnType)), overridable(overridable), interface(interface)
+								bool overridable, bool overrides, bool interface)
+	:	Entity(name), postfix(std::move(postfix)), type(type), returnType(std::move(returnType)),
+		overridable(overridable), overrides(overrides), interface(interface)
 {
 }
 
@@ -148,6 +148,12 @@ bool FunctionEntity::isOverridable()
 {
 	return overridable;
 }
+
+bool FunctionEntity::isOverride()
+{
+	return overrides;
+}
+
 
 bool FunctionEntity::isInterface()
 {
