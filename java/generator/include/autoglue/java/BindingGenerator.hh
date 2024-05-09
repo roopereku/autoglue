@@ -31,6 +31,8 @@ private:
 	void generateTyperefJava(TypeReferenceEntity& entity);
 	bool handleReturnValue(TypeReferenceEntity& entity, std::string&& originalType);
 
+	std::string sanitizeName(Entity& entity);
+
 	void openFile(Entity& entity);
 
 	std::ofstream file;

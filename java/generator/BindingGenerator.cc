@@ -136,7 +136,7 @@ void BindingGenerator::generateEnum(EnumEntity& entity)
 void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 {
 	// Generate enum values.
-	file << entity.getName() << '(' << entity.getValue() << ')'
+	file << sanitizeName(entity) << '(' << entity.getValue() << ')'
 		<< (entity.isLast() ? ";\n" : ",\n");
 }
 
@@ -465,7 +465,7 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
-		file << entity.getName();
+		file << sanitizeName(entity);
 
 		switch(entity.getType())
 		{
@@ -511,14 +511,26 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 				case PrimitiveEntity::Type::String: typeName = "String"; break;
 			}
 
-			file << typeName << ' ' << entity.getName();
+			file << typeName << ' ' << sanitizeName(entity);
 		}
 
 		else
 		{
-			file << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << ' ' << entity.getName();
+			file << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << ' ' << sanitizeName(entity);
 		}
 	}
+}
+
+std::string BindingGenerator::sanitizeName(Entity& entity)
+{
+	auto name = entity.getName();
+
+	if(name == "interface")
+	{
+		name = "interface_";
+	}
+
+	return name;
 }
 
 }
