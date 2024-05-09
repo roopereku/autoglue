@@ -33,6 +33,6 @@ int main(int argc, char** argv)
 	glueGen.generateBindings();
 
 	// Export bindings for Java.
-	ag::java::BindingGenerator javaGen(clangBackend);
+	ag::java::BindingGenerator javaGen(clangBackend, "org");
 	javaGen.generateBindings();
 }

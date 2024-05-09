@@ -3,7 +3,9 @@
 
 #include <autoglue/BindingGenerator.hh>
 
+#include <string_view>
 #include <fstream>
+#include <string>
 #include <stack>
 
 namespace ag::java
@@ -12,7 +14,7 @@ namespace ag::java
 class BindingGenerator : public ag::BindingGenerator
 {
 public:
-	BindingGenerator(Backend& backend);
+	BindingGenerator(Backend& backend, std::string_view packagePrefix);
 
 private:
 	void generateClass(ClassEntity& entity) override;
@@ -27,12 +29,15 @@ private:
 
 	void generateTyperefJNI(TypeReferenceEntity& entity);
 	void generateTyperefJava(TypeReferenceEntity& entity);
+	bool handleReturnValue(TypeReferenceEntity& entity);
 
 	void openFile(Entity& entity);
 
 	std::ofstream file;
 	std::ofstream jni;
+
 	std::stack <std::string> package;
+	std::string packagePrefix;
 
 	/// Used to only write parameter names when a bridge function is called.
 	bool onlyParameterNames = false;

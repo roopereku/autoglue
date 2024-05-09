@@ -15,13 +15,13 @@
 namespace ag::java
 {
 
-BindingGenerator::BindingGenerator(Backend& backend)
-	: ag::BindingGenerator(backend), jni("jni_glue.cpp")
+BindingGenerator::BindingGenerator(Backend& backend, std::string_view packagePrefix)
+	: ag::BindingGenerator(backend), jni("jni_glue.cpp"), packagePrefix(packagePrefix)
 {
 	// Create a directory to put the java classes in.
-	std::filesystem::remove_all("com");
-	std::filesystem::create_directory("com");
-	package.emplace("com");
+	std::filesystem::remove_all(this->packagePrefix);
+	std::filesystem::create_directory(this->packagePrefix);
+	package.emplace(this->packagePrefix);
 
 	jni << "#include <jni.h>\n";
 }
@@ -60,6 +60,12 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 
 	entity.generateBaseTypes(*this);
 
+	// FIXME: Until multiple inheritance works, ignore all but the first base class.
+	if(entity.hasBaseTypes())
+	{
+		file << " */ ";
+	}
+
 	// Add the object handle if this class has no base classes.
 	if(!entity.hasBaseTypes())
 	{
@@ -68,8 +74,8 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 		// Store a pointer to the "this" object.
 		file << "protected long mObjectHandle;\n\n";
 
-		// Define a protected constructor for assigning the pointer to the "this" object.
-		file << "protected " + entity.getName() + "(long objectHandle) {\n";
+		// Define a constructor that constructs an object using an existing pointer.
+		file << "public " + entity.getName() + "(long objectHandle) {\n";
 		file << "mObjectHandle = objectHandle;\n}\n";
 
 		// Define a public getter for the object handle.
@@ -83,7 +89,7 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 		file << "{\n";
 
 		// Call the pointer initialization constructor of the first base class.
-		file << "protected " + entity.getName() + "(long objectHandle) {\n";
+		file << "public " + entity.getName() + "(long objectHandle) {\n";
 		file << "super(objectHandle);\n}\n";
 	}
 
@@ -112,6 +118,10 @@ void BindingGenerator::generateEnum(EnumEntity& entity)
 	// Add a getter for the integer value.
 	file << "public int getValue() {\nreturn mValue;\n}\n\n";
 
+	// Add a method that converts an integer to the corresponding enum value.
+	file << "public static " << entity.getName() << " fromInt(int i) {\n";
+	file << "return " << entity.getName() << ".values()[i];\n}\n";
+
 	// Generate a constructor for the enum that takes an integer.
 	file << "private " << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
 	file << "private int mValue;\n}\n\n";
@@ -131,7 +141,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	nativeName[1] = toupper(nativeName[1]);
 
 	// Declare a native method.
-	file << "private native ";
+	file << "private static native ";
 	entity.generateReturnType(*this, true);
 	file << nativeName << "(";
 
@@ -141,26 +151,34 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	// Write the method signature.
 	file << "public ";
 
-	if(!entity.isOverridable())
+	if(entity.getType() != FunctionEntity::Type::Constructor)
 	{
-		file << "final ";
+		if(!entity.isOverridable())
+		{
+			file << "final ";
+		}
+
+		entity.generateReturnType(*this, false);
 	}
 
-	entity.generateReturnType(*this, false);
 	file << entity.getName() << '(';
 	entity.generateParameters(*this, false, false);
 	file << ") {\n";
+
+	bool closeParenthesis = false;
 
 	// For constructors, give the resulting pointer to the constructor that saves it.
 	if(entity.getType() == FunctionEntity::Type::Constructor)
 	{
 		file << "this(";
+		closeParenthesis = true;
 	}
 
 	// For non-constructor functions that return a value, add return.
 	else if(entity.returnsValue())
 	{
 		file << "return ";
+		closeParenthesis = handleReturnValue(entity.getReturnType());	
 	}
 
 	file << nativeName << "(";
@@ -171,8 +189,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	onlyParameterNames = false;
 	file << ")";
 
-	// Close the deferred constructor call.
-	if(entity.getType() == FunctionEntity::Type::Constructor)
+	if(closeParenthesis)
 	{
 		file << ")";
 	}
@@ -199,8 +216,9 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	jni << "JNICALL ";
 
 	// Declare the JNI function with the appropriate parameters.
-	jni << "Java_com_" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, ";
-	jni << (entity.needsThisHandle() ? "jobject" : "jclass");
+	jni << "Java_" << packagePrefix << "_" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, ";
+	//jni << (entity.needsThisHandle() ? "jobject" : "jclass");
+	jni << "jclass";
 
 	// If there are more arguments, add a comma.
 	if(entity.getParameterCount(true) > 0)
@@ -224,6 +242,41 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	jni << ");\n}\n\n";
 	inJni = false;
+}
+
+bool BindingGenerator::handleReturnValue(TypeReferenceEntity& entity)
+{
+	switch(entity.getType())
+	{
+		case TypeEntity::Type::Alias:
+		{
+			// Because a type alias can point to any type, recursively call this
+			// function with the underlying type.
+			TypeReferenceEntity ref("", entity.getAliasType().getUnderlying(true), entity.isReference());
+			return handleReturnValue(ref);
+		}
+
+		case TypeEntity::Type::Class:
+		{
+			// For a class return value, instantiate new Java objects holding the resulting pointer.
+			file << "new " << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << '(';
+			return true;
+		}
+
+		case TypeEntity::Type::Enum:
+		{
+			// In order to convert integers to enum types, use the fromInt method.
+			file << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << ".fromInt(";
+			return true;
+		}
+
+		case TypeEntity::Type::Primitive:
+		{
+			break;
+		}
+	}
+
+	return false;
 }
 
 void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
@@ -255,10 +308,13 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 
 	// Java has no type aliases, so create a new class that extends the aliased type.
 	// TODO: For primitive types and enums do special handling.
-	file << "public class " << entity.getName() << " extends " << underlying->getName() << " {\n";
+	file << "public class " << entity.getName() << " extends " << packagePrefix << '.' << underlying->getHierarchy(".") << " {\n";
 
 	// TODO: In order to make the type alias instantiable, generate constructors from the aliased type.
 	// No JNI code is required from them as they just would call super().
+
+	file << "public " + entity.getName() + "(long objectHandle) {\n";
+	file << "super(objectHandle);\n}\n";
 
 	file << "}\n";
 
@@ -277,13 +333,16 @@ void BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
 	if(index == 0)
 	{
-		file << "extends " << entity.getName();
+		file << "extends " << packagePrefix << '.' << entity.getHierarchy(".");
+
+		// FIXME: Until multiple inheritance works, ignore all but the first base class.
+		file << "/* ";
 	}
 
 	else
 	{
 		// TODO: Maybe every base class should have "implements" in the case of multiple inheritance.
-		file << "implements " << entity.getName();
+		file << "implements " << entity.getHierarchy(".");
 	}
 }
 
@@ -388,6 +447,14 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 
 		switch(entity.getType())
 		{
+			case TypeEntity::Type::Alias:
+			{
+				TypeReferenceEntity ref("", entity.getAliasType().getUnderlying(true), entity.isReference());
+				generateTyperefJava(ref);
+
+				break;
+			}
+
 			case TypeEntity::Type::Class:
 			{
 				file << ".getObjectHandle()";
@@ -419,7 +486,7 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 				case PrimitiveEntity::Type::Float: typeName = "float"; break;
 				case PrimitiveEntity::Type::Double: typeName = "double"; break;
 				case PrimitiveEntity::Type::Void: typeName = "void"; break;
-				case PrimitiveEntity::Type::String: typeName = "string"; break;
+				case PrimitiveEntity::Type::String: typeName = "String"; break;
 			}
 
 			file << typeName << ' ' << entity.getName();
@@ -427,7 +494,7 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 
 		else
 		{
-			file << entity.getReferred().getHierarchy(".") << ' ' << entity.getName();
+			file << packagePrefix << '.' << entity.getReferred().getHierarchy(".") << ' ' << entity.getName();
 		}
 	}
 }
