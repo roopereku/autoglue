@@ -29,6 +29,17 @@ public:
 	/// \return True If this class has base classes.
 	bool hasBaseTypes();
 
+	/// Gets the amount of base types for this class.
+	///
+	/// \return The amount of base types for this class.
+	size_t getBaseTypeCount();
+
+	/// Gets the nth base type for this class.
+	///
+	/// \param The index of the desired base type.
+	/// \return The base type at the given index.
+	TypeEntity& getBaseType(size_t index);
+
 	/// Generates the nested entities within this class.
 	///
 	/// \param generator The BindingGenerator to call functions from.

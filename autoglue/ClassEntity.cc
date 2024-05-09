@@ -1,6 +1,8 @@
 #include <autoglue/ClassEntity.hh>
 #include <autoglue/BindingGenerator.hh>
 
+#include <cassert>
+
 namespace ag
 {
 
@@ -57,6 +59,19 @@ bool ClassEntity::hasBaseTypes()
 	}
 
 	return bases > 0;
+}
+
+size_t ClassEntity::getBaseTypeCount()
+{
+	return baseTypes.size();
+}
+
+TypeEntity& ClassEntity::getBaseType(size_t index)
+{
+	auto weak = baseTypes[index];
+	assert(!weak.expired());
+
+	return *weak.lock();
 }
 
 void ClassEntity::generateNested(BindingGenerator& generator)
