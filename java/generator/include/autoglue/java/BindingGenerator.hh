@@ -32,6 +32,7 @@ private:
 	bool handleReturnValue(TypeReferenceEntity& entity, std::string&& originalType);
 
 	std::string sanitizeName(Entity& entity);
+	std::shared_ptr <FunctionEntity> findClashing(FunctionEntity& entity, TypeEntity& from, int baseDepth);
 
 	void openFile(Entity& entity);
 

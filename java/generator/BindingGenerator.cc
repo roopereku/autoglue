@@ -1,6 +1,7 @@
 #include <autoglue/java/BindingGenerator.hh>
 #include <autoglue/TypeReferenceEntity.hh>
 #include <autoglue/TypeAliasEntity.hh>
+#include <autoglue/FunctionGroupEntity.hh>
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/ClassEntity.hh>
 #include <autoglue/EnumEntity.hh>
@@ -10,6 +11,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <iostream>
 #include <cassert>
 
 namespace ag::java
@@ -154,6 +156,12 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	entity.generateParameters(*this, true, true);
 	file << ");\n\n";
 
+	// Mark overriding function appropriately.
+	if(entity.isOverride())
+	{
+		file << "@Override\n";
+	}
+
 	// Write the method signature.
 	file << "public ";
 
@@ -167,7 +175,28 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		entity.generateReturnType(*this, false);
 	}
 
-	file << entity.getName() << '(';
+	std::string functionName;
+
+	// If this class member function isn't an override, there's a possibility of a name clash.
+	if(entity.isClassMemberFunction() && !entity.isOverride())
+	{
+		auto clashing = findClashing(entity, static_cast <TypeEntity&> (entity.getParent()), 0);
+
+		if(clashing)
+		{
+			// TODO: Instead of just using the parent class name, the full
+			// hierarchy could be used since you could have mulitple classes
+			// of the same name when they are in different scopes.
+			functionName = entity.getName() + entity.getParent().getName();
+		}
+	}
+
+	if(functionName.empty())
+	{
+		functionName = sanitizeName(entity);
+	}
+
+	file << functionName << '(';
 	entity.generateParameters(*this, false, false);
 	file << ") {\n";
 
@@ -530,7 +559,76 @@ std::string BindingGenerator::sanitizeName(Entity& entity)
 		name = "interface_";
 	}
 
+	// TODO: When multiple inheritance is implemented, getObjectHandle
+	//  is likely to be renamed to getSomeClassName.
+	else if(name == "getObjectHandle")
+	{
+		name = "getObjectHandle_";
+	}
+
 	return name;
+}
+
+std::shared_ptr <FunctionEntity> BindingGenerator::findClashing(FunctionEntity& entity, TypeEntity& from, int baseDepth)
+{
+	// If the type to look from is a class, check if it has a clashing function.
+	if(from.getType() == TypeEntity::Type::Class)
+	{
+		// Check if the given class has an entity with same name as the function.
+		auto& classEntity = static_cast <ClassEntity&> (from);
+
+		if(baseDepth > 0)
+		{
+			auto sameName = classEntity.resolve(entity.getName());
+
+			if(sameName)
+			{
+				// TODO: If Entity ever gets something like a getType(), use that instead.
+				auto group = std::dynamic_pointer_cast <FunctionGroupEntity> (sameName);
+
+				// If the entity with the same name is a function group, check if it
+				// has any overload with the same parameters as the given function.
+				if(group)
+				{
+					auto result = group->findMatchingParameters(entity);
+					if(result)
+					{
+						// If the matched function is final or has a different return type, there's a clash.
+						if(!result->isOverridable() ||
+							!result->getReturnType().isIdentical(entity.getReturnType()))
+						{
+							return result;
+						}
+					}
+				}
+			}
+		}
+
+		// If this class didn't have a clashing function, one of its bases might.
+		for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
+		{
+			auto& baseType = classEntity.getBaseType(i);
+			auto result = findClashing(entity, baseType, baseDepth + 1);
+
+			if(result)
+			{
+				return result;
+			}
+		}
+	}
+
+	// When a clashing function is looked for within a type alias,
+	// look for it in the underlying type instead.
+	else if(from.getType() == TypeEntity::Type::Alias)
+	{
+		auto& aliasEntity = static_cast <TypeAliasEntity&> (from);
+		auto underlying = aliasEntity.getUnderlying(true);
+
+		assert(underlying);
+		return findClashing(entity, *underlying, baseDepth);
+	}
+
+	return nullptr;
 }
 
 }
