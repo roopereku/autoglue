@@ -28,7 +28,7 @@ void TypeAliasEntity::onFirstUse()
 {
 	if(!underlying.expired())
 	{
-		underlying.lock()->use();
+		underlying.lock()->useAll();
 	}
 }
 

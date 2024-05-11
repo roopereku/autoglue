@@ -96,7 +96,7 @@ void ClassEntity::onFirstUse()
 	{
 		if(!baseTypes[i].expired())
 		{
-			baseTypes[i].lock()->use();
+			baseTypes[i].lock()->useAll();
 		}
 	}
 }
