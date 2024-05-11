@@ -178,6 +178,22 @@ bool FunctionEntity::isClassMemberFunction()
 			type == Type::Destructor;
 }
 
+void FunctionEntity::setOverloadedOperator(OverloadedOperator overloaded, bool compound)
+{
+	overloadedOperator = overloaded;
+	compoundOperator = compound;
+}
+
+FunctionEntity::OverloadedOperator FunctionEntity::getOverloadedOperator()
+{
+	return overloadedOperator;
+}
+
+bool FunctionEntity::overloadsCompoundOperator()
+{
+	return compoundOperator;
+}
+
 const char* FunctionEntity::getTypeString()
 {
 	return "Function";

@@ -20,6 +20,27 @@ public:
 		Function
 	};
 
+	enum class OverloadedOperator
+	{
+		None,
+		Addition,
+		Subtraction,
+		Multiplication,
+		Division,
+		Modulus,
+
+		Less,
+		Greater,
+		Equal,
+		NotEqual,
+
+		BitwiseAND,
+		BitwiseOR,
+		BitwiseXOR,
+		BitwiseShiftLeft,
+		BitwiseShiftRight
+	};
+
 	FunctionEntity(std::string_view name, std::string&& postfix, Type type,
 			std::shared_ptr <TypeReferenceEntity>&& returnType,
 			bool overridable, bool overrides, bool interface);
@@ -115,6 +136,22 @@ public:
 	/// \return True if this function is a class member function.
 	bool isClassMemberFunction();
 
+	/// Sets the overloaded operator for this function.
+	///
+	/// \param overloaded The operator that this function overloads.
+	/// \param compound Boolean determining whether this is a compound operator overload.
+	void setOverloadedOperator(OverloadedOperator overloaded, bool compound);
+
+	/// Gets the overloaded operator.
+	///
+	/// \return The overloaded operator if any.
+	OverloadedOperator getOverloadedOperator();
+
+	/// Checks whether this function overloads a compound operator such as "+=".
+	///
+	/// \return True if this operator overloads a compound operator.
+	bool overloadsCompoundOperator();
+
 	const char* getTypeString() override;
 
 private:
@@ -129,6 +166,9 @@ private:
 	bool overridable = false;
 	bool overrides = false;
 	bool interface = false;
+
+	OverloadedOperator overloadedOperator = OverloadedOperator::None;
+	bool compoundOperator = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
 	std::string postfix;
