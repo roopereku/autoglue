@@ -103,12 +103,6 @@ static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
 		return ag::PrimitiveEntity::getFloat();
 	}
 
-	if(type->isObjectType())
-	{
-		return ag::PrimitiveEntity::getObjectHandle();
-	}
-
-	assert(false);
 	return nullptr;
 }
 
@@ -185,7 +179,7 @@ private:
 			// TODO: This should probably never happen.
 			else
 			{
-				std::cerr << "Unable to get the decl for typedef " << type.getAsString() << '\n';
+				//std::cerr << "Unable to get the decl for typedef " << type.getAsString() << '\n';
 			}
 		}
 
@@ -225,6 +219,13 @@ private:
 		}
 
 		std::string name = named->getNameAsString();
+
+		// Anonymous declarations might make sense in C and C++, but they might not in foreign languages.
+		// Until there is a nice way to contain them in the simplified hierarchy, ignore them.
+		if(name.empty())
+		{
+			return nullptr;
+		}
 
 		// If the node represents a template instantiation, it will have a different name.
 		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
@@ -318,7 +319,7 @@ private:
 
 			else
 			{
-				std::cerr << "Unimplemented: " << named->getDeclKindName() << '\n';
+				//std::cerr << "Unimplemented: " << named->getDeclKindName() << '\n';
 				return nullptr;
 			}
 
@@ -361,8 +362,8 @@ private:
 							auto baseEntity = resolveType(base.getType());
 							if(!baseEntity)
 							{
-								std::cerr << "Unable to add base type for " << def->getQualifiedNameAsString() <<
-											": Failed to resolve type " << base.getType().getAsString() << '\n';
+								//std::cerr << "Unable to add base type for " << def->getQualifiedNameAsString() <<
+								//			": Failed to resolve type " << base.getType().getAsString() << '\n';
 								continue;
 							}
 
@@ -447,8 +448,8 @@ private:
 
 		if(!returnTypeEntity)
 		{
-			std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
-						": Failed to resolve return type (" << decl->getReturnType().getAsString() << ")\n";
+			//std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
+			//			": Failed to resolve return type (" << decl->getReturnType().getAsString() << ")\n";
 			return;
 		}
 
@@ -487,34 +488,39 @@ private:
 			entity->setOverloadedOperator(overloadedOperator, compound);
 		}
 
+		size_t paramIndex = 1;
 		for(auto param : decl->parameters())
 		{
 			auto paramTypeEntity = resolveType(param->getType());
 
 			if(!paramTypeEntity)
 			{
-				std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
-						": Failed to resolve type for parameter " << param->getNameAsString() <<
-						" (" << param->getType().getAsString() << ")\n";
+				//std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
+				//		": Failed to resolve type for parameter " << param->getNameAsString() <<
+				//		" (" << param->getType().getAsString() << ")\n";
 				return;
 			}
 
+			auto name = param->getNameAsString();
+
 			auto paramEntity = std::make_shared <ag::TypeReferenceEntity> (
-				param->getNameAsString(),
+				name.empty() ? "param" + std::to_string(paramIndex) : name,
 				paramTypeEntity,
 				isReferenceType(param->getType())
 			);
 
 			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (param->getType()));
 			entity->addChild(std::move(paramEntity));
+
+			paramIndex++;
 		}
 
 		auto group = ensureEntityExists(decl);
 
 		if(!group)
 		{
-			std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
-						": Failed to ensure that the function group exists\n";
+			//std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
+			//			": Failed to ensure that the function group exists\n";
 			return;
 		}
 
