@@ -91,7 +91,7 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 		file << "return mObjectHandle;\n}\n\n";
 	}
 
-	// If there are base classes, add an additional space.
+	// If there are base classes, add a constructor that calls super.
 	else
 	{
 		file << "{\n";
@@ -144,9 +144,19 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 
 void BindingGenerator::generateFunction(FunctionEntity& entity)
 {
-	// The native method name is the function name capitalized prefixed with "n".
-	std::string nativeName = 'n' + entity.getName();
-	nativeName[1] = toupper(nativeName[1]);
+	// TODO: Implement Java destructors.
+	if(entity.getType() == FunctionEntity::Type::Destructor)
+	{
+		return;
+	}
+
+	// TODO: Generate function overloads with the appropriate names.
+	if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
+	{
+		return;
+	}
+
+	std::string nativeName = entity.getBridgeName(true);
 
 	// Declare a native method.
 	file << "private static native ";
@@ -177,8 +187,14 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	std::string functionName;
 
+	// Name constructors with the class name.
+	if(entity.getType() == FunctionEntity::Type::Constructor)
+	{
+		functionName = entity.getParent().getName();
+	}
+
 	// If this class member function isn't an override, there's a possibility of a name clash.
-	if(entity.isClassMemberFunction() && !entity.isOverride())
+	else if(entity.isClassMemberFunction() && !entity.isOverride())
 	{
 		auto clashing = findClashing(entity, static_cast <TypeEntity&> (entity.getParent()), 0);
 
@@ -195,6 +211,8 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	{
 		functionName = sanitizeName(entity);
 	}
+
+
 
 	file << functionName << '(';
 	entity.generateParameters(*this, false, false);
@@ -337,6 +355,13 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 
 void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 {
+	// Java doesn't support aliasing primitive types.
+	auto finalUnderlying = entity.getUnderlying(true);
+	if(finalUnderlying->getType() == TypeEntity::Type::Primitive)
+	{
+		return;
+	}
+
 	// Since type aliases are just simple classes, increment the class depth.
 	changeClassDepth(+1);
 
@@ -557,6 +582,11 @@ std::string BindingGenerator::sanitizeName(Entity& entity)
 	if(name == "interface")
 	{
 		name = "interface_";
+	}
+
+	else if(name == "native")
+	{
+		name = "native_";
 	}
 
 	// TODO: When multiple inheritance is implemented, getObjectHandle
