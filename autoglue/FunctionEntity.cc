@@ -166,8 +166,13 @@ TypeReferenceEntity& FunctionEntity::getReturnType()
 	return *returnType;
 }
 
-std::string FunctionEntity::getBridgeName()
+std::string FunctionEntity::getBridgeName(bool shortened)
 {
+	if(shortened)
+	{
+		return getName() + postfix;
+	}
+
 	return getHierarchy("_") + postfix;
 }
 

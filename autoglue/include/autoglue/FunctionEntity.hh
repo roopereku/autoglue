@@ -128,8 +128,9 @@ public:
 
 	/// Gets the name of the corresponding bridge function.
 	///
+	/// \param shorted If true, the location of the function is excluded.
 	/// \return The name of the corresponding bridge function.
-	std::string getBridgeName();
+	std::string getBridgeName(bool shortened = false);
 
 	/// Checks whether this function is a class member function.
 	///
