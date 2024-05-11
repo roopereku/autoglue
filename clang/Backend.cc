@@ -26,6 +26,46 @@
 #include <fstream>
 #include <cassert>
 
+ag::FunctionEntity::OverloadedOperator getOverloadedOperator(clang::OverloadedOperatorKind kind, bool& compound)
+{
+	switch(kind)
+	{
+		// Non-compound operators.
+		case clang::OverloadedOperatorKind::OO_Plus: return ag::FunctionEntity::OverloadedOperator::Addition;
+		case clang::OverloadedOperatorKind::OO_Minus: return ag::FunctionEntity::OverloadedOperator::Subtraction;
+		case clang::OverloadedOperatorKind::OO_Star: return ag::FunctionEntity::OverloadedOperator::Multiplication;
+		case clang::OverloadedOperatorKind::OO_Slash: return ag::FunctionEntity::OverloadedOperator::Addition;
+		case clang::OverloadedOperatorKind::OO_Percent: return ag::FunctionEntity::OverloadedOperator::Modulus;
+
+		case clang::OverloadedOperatorKind::OO_Less: return ag::FunctionEntity::OverloadedOperator::Less;
+		case clang::OverloadedOperatorKind::OO_Greater: return ag::FunctionEntity::OverloadedOperator::Greater;
+		case clang::OverloadedOperatorKind::OO_EqualEqual: return ag::FunctionEntity::OverloadedOperator::Equal;
+		case clang::OverloadedOperatorKind::OO_ExclaimEqual: return ag::FunctionEntity::OverloadedOperator::NotEqual;
+
+		case clang::OverloadedOperatorKind::OO_LessLess: return ag::FunctionEntity::OverloadedOperator::BitwiseShiftLeft;
+		case clang::OverloadedOperatorKind::OO_GreaterGreater: return ag::FunctionEntity::OverloadedOperator::BitwiseShiftRight;
+		case clang::OverloadedOperatorKind::OO_Caret: return ag::FunctionEntity::OverloadedOperator::BitwiseXOR;
+
+		// Compound operators.
+		case clang::OverloadedOperatorKind::OO_PlusEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Addition;
+		case clang::OverloadedOperatorKind::OO_MinusEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Subtraction;
+		case clang::OverloadedOperatorKind::OO_StarEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Multiplication;
+		case clang::OverloadedOperatorKind::OO_SlashEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Addition;
+		case clang::OverloadedOperatorKind::OO_PercentEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Modulus;
+
+		case clang::OverloadedOperatorKind::OO_LessEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Less;
+		case clang::OverloadedOperatorKind::OO_GreaterEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::Greater;
+
+		case clang::OverloadedOperatorKind::OO_LessLessEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::BitwiseShiftLeft;
+		case clang::OverloadedOperatorKind::OO_GreaterGreaterEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::BitwiseShiftRight;
+		case clang::OverloadedOperatorKind::OO_CaretEqual: compound = true; return ag::FunctionEntity::OverloadedOperator::BitwiseXOR;
+
+		default: {}
+	}
+
+	return ag::FunctionEntity::OverloadedOperator::None;
+}
+
 bool isReferenceType(clang::QualType type)
 {
 	return type->isPointerType() || type->isReferenceType();
@@ -80,27 +120,31 @@ public:
 	{
 	}
 
-	bool TraverseFunctionDecl(clang::FunctionDecl* decl)
-	{
-		ensureFunctionExists(decl, ag::FunctionEntity::Type::Function);
-		return true;
-	}
+	// TODO: Handle non-methods.
+	//bool TraverseFunctionDecl(clang::FunctionDecl* decl)
+	//{
+	//	ensureFunctionExists(decl, ag::FunctionEntity::Type::Function);
+	//	return true;
+	//}
 
 	bool TraverseCXXMethodDecl(clang::CXXMethodDecl* decl)
 	{
-		ensureFunctionExists(decl, ag::FunctionEntity::Type::MemberFunction);
-		return true;
-	}
+		// Make sure that this function group and its containing entities exist.
+		// Because this function is a class member function, ensureEntityExists
+		// will add the member functions in the containing class, including this one.
+		ensureEntityExists(decl);
 
-	bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* decl)
-	{
-		ensureFunctionExists(decl, ag::FunctionEntity::Type::Constructor);
-		return true;
-	}
+		// Try to resolve the return type. If it's a template type instantiation,
+		// ensureEntityExists will eventually store it and save its instantiated members.
+		resolveType(decl->getReturnType());
 
-	bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* decl)
-	{
-		ensureFunctionExists(decl, ag::FunctionEntity::Type::Destructor);
+		// Try to resolve the parameter types. If they are template type instantiations,
+		// ensureEntityExists will eventually store them and save their instantiated members.
+		for(auto param : decl->parameters())
+		{
+			resolveType(param->getType());
+		}
+
 		return true;
 	}
 
@@ -295,6 +339,7 @@ private:
 			if(auto* recordNode = clang::dyn_cast <clang::RecordDecl> (named))
 			{
 				auto* def = recordNode->getDefinition();
+
 				if(def)
 				{
 					result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(def)));
@@ -324,6 +369,51 @@ private:
 							classEntity->addBaseType(baseEntity);
 						}
 					}
+
+					// Because Clang only seems to provide definitions for instantiated template functions
+					// when accessed through a record definition, go through every declaration found
+					// within this class and try to add them to the hierarchy.
+					for(auto subDecl : def->decls())
+					{
+						// For whatever reason the first decl seems to be pointing to the class itself
+						// be it a template or not. If this was not skipped, every class would contain
+						// itself as a nested class.
+						if(subDecl == *def->decls_begin())
+						{
+							continue;
+						}
+
+						if(auto* method = clang::dyn_cast <clang::FunctionDecl> (subDecl))
+						{
+							switch(method->getKind())
+							{
+								case clang::Decl::Kind::CXXConstructor:
+								{
+									ensureFunctionExists(method, ag::FunctionEntity::Type::Constructor);
+									break;
+								}
+
+								case clang::Decl::Kind::CXXDestructor:
+								{
+									ensureFunctionExists(method, ag::FunctionEntity::Type::Destructor);
+									break;
+								}
+
+								case clang::Decl::Kind::CXXMethod:
+								{
+									ensureFunctionExists(method, ag::FunctionEntity::Type::MemberFunction);
+									break;
+								}
+
+								default: {}
+							}
+						}
+
+						else
+						{
+							ensureEntityExists(subDecl);
+						}
+					}
 				}
 			}
 		}
@@ -342,12 +432,6 @@ private:
 		// Only export functions that are included. This is done to only expose functions
 		// that users would gain access to through a header inclusion.
 		if(!isIncluded(decl))
-		{
-			return;
-		}
-
-		// TODO: Implement template function instantiations.
-		if(decl->getTemplatedKind() != clang::FunctionDecl::TemplatedKind::TK_NonTemplate)
 		{
 			return;
 		}
@@ -387,6 +471,21 @@ private:
 				decl->getNameAsString(), std::to_string(decl->getODRHash()), type,
 				std::move(returnEntity), decl->isVirtualAsWritten(), isOverride, decl->isPure()
 		);
+
+		// If the function is an operator overload, check which one it is.
+		if(decl->isOverloadedOperator())
+		{
+			bool compound = false;
+			auto overloadedOperator = getOverloadedOperator(decl->getOverloadedOperator(), compound);
+
+			// If there is no abstraction for the given operator overload, don't add this function.
+			if(overloadedOperator == ag::FunctionEntity::OverloadedOperator::None)
+			{
+				return;
+			}
+
+			entity->setOverloadedOperator(overloadedOperator, compound);
+		}
 
 		for(auto param : decl->parameters())
 		{
