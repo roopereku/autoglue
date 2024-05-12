@@ -13,6 +13,11 @@ class ClassEntity : public TypeEntity
 public:
 	ClassEntity(std::string_view name);
 
+	/// Adds a nested entity for this class.
+	///
+	/// \param nested The entity to add to this class.
+	void addNested(std::shared_ptr <Entity>&& nested);
+
 	/// Adds a new base type for this class entity.
 	///
 	/// \param base The base type to add.

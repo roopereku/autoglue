@@ -15,6 +15,11 @@ FunctionEntity::FunctionEntity(std::string&& postfix, std::shared_ptr <TypeRefer
 {
 }
 
+void FunctionEntity::addParameter(std::shared_ptr <TypeReferenceEntity>&& param)
+{
+	addChild(std::move(param));
+}
+
 Entity& FunctionEntity::getParent() const
 {
 	// The parent that a user might care about is the parent of the containing group.

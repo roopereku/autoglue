@@ -9,6 +9,14 @@ FunctionGroupEntity::FunctionGroupEntity(std::string_view name, FunctionEntity::
 {
 }
 
+void FunctionGroupEntity::addOverload(std::shared_ptr <FunctionEntity>&& overload)
+{
+	if(!findMatchingParameters(*overload))
+	{
+		addChild(std::move(overload));
+	}
+}
+
 std::shared_ptr <FunctionEntity> FunctionGroupEntity::findMatchingParameters(FunctionEntity& entity)
 {
 	for(auto child : children)
@@ -72,13 +80,6 @@ void FunctionGroupEntity::onGenerate(BindingGenerator& generator)
 	{
 		child->generate(generator);
 	}
-}
-
-bool FunctionGroupEntity::interceptNewChild(Entity& newChild)
-{
-	// Ignore duplicate functions.
-	auto& function = static_cast <FunctionEntity&> (newChild);
-	return !findMatchingParameters(function);
 }
 
 const char* FunctionGroupEntity::getTypeString()

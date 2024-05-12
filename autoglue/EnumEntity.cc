@@ -10,6 +10,11 @@ EnumEntity::EnumEntity(std::string_view name)
 {
 }
 
+void EnumEntity::addEntry(std::shared_ptr <EnumEntryEntity>&& entry)
+{
+	addChild(std::move(entry));
+}
+
 void EnumEntity::generateValues(BindingGenerator& generator)
 {
 	// Generate the enum values.

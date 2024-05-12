@@ -2,6 +2,7 @@
 #define AUTOGLUE_ENUM_ENTITY_HH
 
 #include <autoglue/TypeEntity.hh>
+#include <autoglue/EnumEntryEntity.hh>
 
 namespace ag
 {
@@ -10,6 +11,11 @@ class EnumEntity : public TypeEntity
 {
 public:
 	EnumEntity(std::string_view name);
+
+	/// Adds a new entry to this enum.
+	///
+	/// \param entry The enum entry to add.
+	void addEntry(std::shared_ptr <EnumEntryEntity>&& entry);
 
 	/// Generates the values of this enum.
 	///

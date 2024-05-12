@@ -319,7 +319,7 @@ private:
 					llvm::SmallVector<char, 20> valueStr;
 					value->getInitVal().toString(valueStr);
 
-					enumEntity->addChild(std::make_shared <ag::EnumEntryEntity> (
+					enumEntity->addEntry(std::make_shared <ag::EnumEntryEntity> (
 						value->getNameAsString(),
 						std::string(valueStr.begin(), valueStr.end()),
 						ag::EnumEntryEntity::Format::Integer
@@ -507,7 +507,7 @@ private:
 			);
 
 			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (param->getType()));
-			entity->addChild(std::move(paramEntity));
+			entity->addParameter(std::move(paramEntity));
 
 			paramIndex++;
 		}
@@ -527,7 +527,7 @@ private:
 			static_cast <ag::ClassEntity&> (group->getParent()).setAbstract();
 		}
 
-		group->addChild(std::move(entity));
+		std::static_pointer_cast <ag::FunctionGroupEntity> (group)->addOverload(std::move(entity));
 	}
 
 	std::string getDeclInclusion(clang::NamedDecl* decl)

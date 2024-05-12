@@ -12,6 +12,11 @@ class FunctionGroupEntity : public Entity
 public:
 	FunctionGroupEntity(std::string_view name, FunctionEntity::Type type);
 
+	/// Adds a new overload to this function group.
+	///
+	/// \param overload The overload to add.
+	void addOverload(std::shared_ptr <FunctionEntity>&& overload);
+
 	const char* getTypeString() override;
 
 	/// Find a function from this function group that has matching
@@ -43,9 +48,6 @@ private:
 
 	/// Generates function overloads.
 	void onGenerate(BindingGenerator& generator) override;
-
-	/// Ignores functions which already exist.
-	bool interceptNewChild(Entity& newChild) override;
 
 	FunctionEntity::Type type;
 };

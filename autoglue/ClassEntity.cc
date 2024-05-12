@@ -11,6 +11,11 @@ ClassEntity::ClassEntity(std::string_view name)
 {
 }
 
+void ClassEntity::addNested(std::shared_ptr <Entity>&& nested)
+{
+	addChild(std::move(nested));
+}
+
 void ClassEntity::addBaseType(std::shared_ptr <TypeEntity> base)
 {
 	// Make sure that the given base isn't already found.

@@ -44,6 +44,11 @@ public:
 	FunctionEntity(std::string&& postfix, std::shared_ptr <TypeReferenceEntity>&& returnType,
 					bool overridable, bool overrides, bool interface);
 
+	/// Adds a new parameter to this function.
+	///
+	/// \param The parameter to add.
+	void addParameter(std::shared_ptr <TypeReferenceEntity>&& param);
+
 	/// Gets the parent that's not a function group.
 	///
 	/// \return The non function group parent entity.
