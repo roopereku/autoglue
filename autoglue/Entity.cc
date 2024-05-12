@@ -58,7 +58,7 @@ std::shared_ptr <Entity> Entity::resolve(std::string_view qualifiedName)
 
 	for(auto child : children)
 	{
-		if(child->name == current)
+		if(child->hasName(current))
 		{
 			// If there are no more dots, this is the resulting entity.
 			if(currentEnd == qualifiedName.size())
@@ -171,6 +171,11 @@ void Entity::list(unsigned depth)
 void Entity::onList(std::string_view indent)
 {
 	std::cout << indent << " " << getTypeString() << " " << name << '\n';
+}
+
+bool Entity::hasName(std::string_view str)
+{
+	return name == str;
 }
 
 void Entity::onFirstUse()

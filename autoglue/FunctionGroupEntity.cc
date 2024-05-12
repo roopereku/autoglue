@@ -54,6 +54,18 @@ FunctionEntity::Type FunctionGroupEntity::getType()
 	return type;
 }
 
+bool FunctionGroupEntity::hasName(std::string_view str)
+{
+	// If this function group contains constructors, add an alias for
+	// them so that they can be more easily resolved.
+	if(type == FunctionEntity::Type::Constructor && str == "Constructor")
+	{
+		return true;
+	}
+
+	return Entity::hasName(str);
+}
+
 void FunctionGroupEntity::onGenerate(BindingGenerator& generator)
 {
 	for(auto child : children)

@@ -96,6 +96,8 @@ public:
 protected:
 	virtual void onList(std::string_view indent);
 
+	virtual bool hasName(std::string_view str);
+
 	/// This function is implemented by the given entity class.
 	/// It calls the appropriate functions from a binding generator.
 	///
