@@ -157,6 +157,13 @@ public:
 private:
 	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
+		// TODO: Ignore void pointers until there's a nice way to
+		// present them in the abstraction.
+		if(type->isVoidPointerType())
+		{
+			return nullptr;
+		}
+
 		// TODO: This might not be enough when there are multiple pointers.
 		// Make the type a non-pointer.
 		if(type->isPointerType())
