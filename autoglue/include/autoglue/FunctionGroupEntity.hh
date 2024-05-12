@@ -21,12 +21,26 @@ public:
 	/// \return Function entity containing matching parameters if any.
 	std::shared_ptr <FunctionEntity> findMatchingParameters(FunctionEntity& entity);
 
+	/// Gets the amount of overloads within this function group.
+	///
+	/// \return The amount of overlaods within this function group.
+	size_t getOverloadCount();
+
+	/// Gets the nth function overload within this function group.
+	///
+	/// \return The nth function overload within this function group.
+	FunctionEntity& getOverload(size_t index);
+
 	/// Gets the type of the functions that this FunctionGroupEntity contains.
 	///
 	/// \return The type of the contained functions.
 	FunctionEntity::Type getType();
 
 private:
+	/// Checks if this function group has the given name or
+	/// if it matches the given alias name.
+	bool hasName(std::string_view str) override;
+
 	/// Generates function overloads.
 	void onGenerate(BindingGenerator& generator) override;
 

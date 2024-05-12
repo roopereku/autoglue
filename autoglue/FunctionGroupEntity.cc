@@ -39,6 +39,16 @@ std::shared_ptr <FunctionEntity> FunctionGroupEntity::findMatchingParameters(Fun
 	return nullptr;
 }
 
+size_t FunctionGroupEntity::getOverloadCount()
+{
+	return children.size();
+}
+
+FunctionEntity& FunctionGroupEntity::getOverload(size_t index)
+{
+	return static_cast <FunctionEntity&> (*children[index]);
+}
+
 FunctionEntity::Type FunctionGroupEntity::getType()
 {
 	return type;
