@@ -45,6 +45,9 @@ private:
 	/// Used to only write parameter names when a bridge function is called.
 	bool onlyParameterNames = false;
 
+	/// Used to delegate parameters to base class constructors in type aliases.
+	bool delegateParameters = false;
+
 	/// Used to indicate that type parameters should be written to the JNI.
 	bool inJni = false;
 

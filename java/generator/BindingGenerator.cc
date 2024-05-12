@@ -212,8 +212,6 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		functionName = sanitizeName(entity);
 	}
 
-
-
 	file << functionName << '(';
 	entity.generateParameters(*this, false, false);
 	file << ") {\n";
@@ -389,8 +387,31 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	// TODO: In order to make the type alias instantiable, generate constructors from the aliased type.
 	// No JNI code is required from them as they just would call super().
 
-	file << "public " + entity.getName() + "(long objectHandle) {\n";
+	file << "public " << entity.getName() << "(long objectHandle) {\n";
 	file << "super(objectHandle);\n}\n";
+
+	// Generate delegating constructors if the type alias points to a class.
+	if(finalUnderlying->getType() == TypeEntity::Type::Class)
+	{
+		// Try to find the function group for constructors.
+		auto result = finalUnderlying->resolve("Constructor");
+		if(result)
+		{
+			// Create a delegating constructor for each of the constructor overloads.
+			auto& constructors = static_cast <FunctionGroupEntity&> (*result);
+			for(size_t i = 0; i < constructors.getOverloadCount(); i++)
+			{
+				file << "public " << entity.getName() << "(";
+				constructors.getOverload(i).generateParameters(*this, false, false);
+
+				file << ") {\nsuper(";
+				delegateParameters = true;
+				constructors.getOverload(i).generateParameters(*this, false, false);
+				delegateParameters = false;
+				file << ");\n}\n";
+			}
+		}
+	}
 
 	file << "}\n";
 
@@ -517,7 +538,12 @@ void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
 
 void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 {
-	if(onlyParameterNames)
+	if(delegateParameters)
+	{
+		file << sanitizeName(entity);
+	}
+
+	else if(onlyParameterNames)
 	{
 		file << sanitizeName(entity);
 
