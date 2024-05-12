@@ -393,22 +393,28 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	// Generate delegating constructors if the type alias points to a class.
 	if(finalUnderlying->getType() == TypeEntity::Type::Class)
 	{
-		// Try to find the function group for constructors.
-		auto result = finalUnderlying->resolve("Constructor");
-		if(result)
+		// TODO: When type extension support is generated, generate delegating
+		//  constructors for abstract classes.
+		auto underlyingClass = std::static_pointer_cast <ClassEntity> (finalUnderlying);
+		if(!underlyingClass->isAbstract())
 		{
-			// Create a delegating constructor for each of the constructor overloads.
-			auto& constructors = static_cast <FunctionGroupEntity&> (*result);
-			for(size_t i = 0; i < constructors.getOverloadCount(); i++)
+			// Try to find the function group for constructors.
+			auto result = finalUnderlying->resolve("Constructor");
+			if(result)
 			{
-				file << "public " << entity.getName() << "(";
-				constructors.getOverload(i).generateParameters(*this, false, false);
+				// Create a delegating constructor for each of the constructor overloads.
+				auto& constructors = static_cast <FunctionGroupEntity&> (*result);
+				for(size_t i = 0; i < constructors.getOverloadCount(); i++)
+				{
+					file << "public " << entity.getName() << "(";
+					constructors.getOverload(i).generateParameters(*this, false, false);
 
-				file << ") {\nsuper(";
-				delegateParameters = true;
-				constructors.getOverload(i).generateParameters(*this, false, false);
-				delegateParameters = false;
-				file << ");\n}\n";
+					file << ") {\nsuper(";
+					delegateParameters = true;
+					constructors.getOverload(i).generateParameters(*this, false, false);
+					delegateParameters = false;
+					file << ");\n}\n";
+				}
 			}
 		}
 	}
@@ -587,8 +593,8 @@ void BindingGenerator::generateTyperefJava(TypeReferenceEntity& entity)
 				case PrimitiveEntity::Type::Boolean: typeName = "boolean"; break;
 				case PrimitiveEntity::Type::Float: typeName = "float"; break;
 				case PrimitiveEntity::Type::Double: typeName = "double"; break;
-				case PrimitiveEntity::Type::Void: typeName = "void"; break;
 				case PrimitiveEntity::Type::String: typeName = "String"; break;
+				case PrimitiveEntity::Type::Void: typeName = "void"; break;
 			}
 
 			file << typeName << ' ' << sanitizeName(entity);
