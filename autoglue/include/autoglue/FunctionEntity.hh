@@ -41,19 +41,24 @@ public:
 		BitwiseShiftRight
 	};
 
-	FunctionEntity(std::string_view name, std::string&& postfix, Type type,
-			std::shared_ptr <TypeReferenceEntity>&& returnType,
-			bool overridable, bool overrides, bool interface);
+	FunctionEntity(std::string&& postfix, std::shared_ptr <TypeReferenceEntity>&& returnType,
+					bool overridable, bool overrides, bool interface);
 
 	/// Gets the parent that's not a function group.
 	///
 	/// \return The non function group parent entity.
-	Entity& getParent() override;
+	Entity& getParent() const override;
+
+	/// Gets the name of this function. This is the same as the name
+	/// of the containing FunctionGroupEntity.
+	///
+	/// \return The name of the containing FunctionGroupEntity.
+	const std::string& getName() const override;
 
 	/// Gets the function group that this function entity is in.
 	///
 	/// \return The function group that this function entity is in.
-	FunctionGroupEntity& getGroup();
+	FunctionGroupEntity& getGroup() const;
 
 	/// Gets the hierarchy leading up to this function.
 	/// This override exists so that the function name isn't duplicated which
@@ -88,7 +93,8 @@ public:
 	/// \return The parameter at the given index.
 	TypeReferenceEntity& getParameter(size_t index);
 
-	/// Gets the function type.
+	/// Gets the function type. This is the same as calling getType
+	/// of the containing FunctionGroupEntity.
 	///
 	/// \return The function type.
 	Type getType();
@@ -173,7 +179,6 @@ private:
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
 	std::string postfix;
-	Type type;
 };
 
 }

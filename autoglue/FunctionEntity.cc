@@ -8,21 +8,25 @@
 namespace ag
 {
 
-FunctionEntity::FunctionEntity(std::string_view name, std::string&& postfix, Type type,
-								std::shared_ptr <TypeReferenceEntity>&& returnType,
+FunctionEntity::FunctionEntity(std::string&& postfix, std::shared_ptr <TypeReferenceEntity>&& returnType,
 								bool overridable, bool overrides, bool interface)
-	:	Entity(name), postfix(std::move(postfix)), type(type), returnType(std::move(returnType)),
+	:	Entity(""), postfix(std::move(postfix)), returnType(std::move(returnType)),
 		overridable(overridable), overrides(overrides), interface(interface)
 {
 }
 
-Entity& FunctionEntity::getParent()
+Entity& FunctionEntity::getParent() const
 {
 	// The parent that a user might care about is the parent of the containing group.
 	return getGroup().getParent();
 }
 
-FunctionGroupEntity& FunctionEntity::getGroup()
+const std::string& FunctionEntity::getName() const
+{
+	return getGroup().getName();
+}
+
+FunctionGroupEntity& FunctionEntity::getGroup() const
 {
 	return static_cast <FunctionGroupEntity&> (Entity::getParent());
 }
@@ -56,7 +60,7 @@ void FunctionEntity::onFirstUse()
 void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
 {
 	// If this function is a constructor, generate an object handle.
-	if(type == Type::Constructor && asPOD)
+	if(getType() == Type::Constructor && asPOD)
 	{
 		TypeReferenceEntity podRef("", PrimitiveEntity::getObjectHandle(), false);
 		generator.generateTypeReference(podRef);
@@ -127,20 +131,20 @@ TypeReferenceEntity& FunctionEntity::getParameter(size_t index)
 
 FunctionEntity::Type FunctionEntity::getType()
 {
-	return type;
+	return getGroup().getType();
 }
 
 bool FunctionEntity::needsThisHandle()
 {
 	// TODO: Exclude static functions.
-	return type == Type::MemberFunction ||
-			type == Type::Destructor;
+	return getType() == Type::MemberFunction ||
+			getType() == Type::Destructor;
 }
 
 bool FunctionEntity::returnsValue()
 {
 	// The function returns a value if its a constructor or doesn't return void.
-	return type == Type::Constructor ||
+	return getType() == Type::Constructor ||
 			(returnType && returnType->getReferredPtr() != PrimitiveEntity::getVoid());
 }
 
@@ -178,9 +182,9 @@ std::string FunctionEntity::getBridgeName(bool shortened)
 
 bool FunctionEntity::isClassMemberFunction()
 {
-	return type == Type::MemberFunction ||
-			type == Type::Constructor ||
-			type == Type::Destructor;
+	return getType() == Type::MemberFunction ||
+			getType() == Type::Constructor ||
+			getType() == Type::Destructor;
 }
 
 void FunctionEntity::setOverloadedOperator(OverloadedOperator overloaded, bool compound)

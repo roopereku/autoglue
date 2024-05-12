@@ -32,7 +32,7 @@ public:
 	/// Gets the parent entity.
 	///
 	/// \return The parent entity.
-	virtual Entity& getParent();
+	virtual Entity& getParent() const;
 
 	/// Initializes the context for this entity. This function does nothing
 	/// if the context is already set.
@@ -55,7 +55,7 @@ public:
 	/// Gets the entity name.
 	///
 	/// \return The entity name if any.
-	const std::string& getName() const;
+	virtual const std::string& getName() const;
 
 	/// Returns a string containing the hierarchy leading up to this entity.
 	///

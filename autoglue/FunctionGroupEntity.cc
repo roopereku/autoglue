@@ -4,8 +4,8 @@
 namespace ag
 {
 
-FunctionGroupEntity::FunctionGroupEntity(std::string_view name)
-	: Entity(name)
+FunctionGroupEntity::FunctionGroupEntity(std::string_view name, FunctionEntity::Type type)
+	: Entity(name), type(type)
 {
 }
 
@@ -37,6 +37,11 @@ std::shared_ptr <FunctionEntity> FunctionGroupEntity::findMatchingParameters(Fun
 	}
 
 	return nullptr;
+}
+
+FunctionEntity::Type FunctionGroupEntity::getType()
+{
+	return type;
 }
 
 void FunctionGroupEntity::onGenerate(BindingGenerator& generator)

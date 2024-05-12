@@ -28,7 +28,7 @@ bool Entity::isRoot()
 	return !parent;
 }
 
-Entity& Entity::getParent()
+Entity& Entity::getParent() const
 {
 	assert(parent);
 	return *parent;
