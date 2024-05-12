@@ -26,6 +26,18 @@
 #include <fstream>
 #include <cassert>
 
+ag::FunctionEntity::Type getFunctionType(clang::FunctionDecl* decl)
+{
+	switch(decl->getKind())
+	{
+		case clang::Decl::Kind::CXXConstructor: return ag::FunctionEntity::Type::Constructor;
+		case clang::Decl::Kind::CXXDestructor: return ag::FunctionEntity::Type::Destructor;
+		case clang::Decl::Kind::CXXMethod: return ag::FunctionEntity::Type::MemberFunction;
+
+		default: return ag::FunctionEntity::Type::Function;
+	}
+}
+
 ag::FunctionEntity::OverloadedOperator getOverloadedOperator(clang::OverloadedOperatorKind kind, bool& compound)
 {
 	switch(kind)
@@ -292,7 +304,7 @@ private:
 			{
 				// When a function is handled by this function, a function group is added instead.
 				// Separate overloads will be added by ensureFunctionExists.
-				parentEntity->addChild(std::make_shared <ag::FunctionGroupEntity> (name));
+				parentEntity->addChild(std::make_shared <ag::FunctionGroupEntity> (name, getFunctionType(functionNode)));
 				shouldGetInclude = false;
 			}
 
@@ -386,28 +398,7 @@ private:
 
 						if(auto* method = clang::dyn_cast <clang::FunctionDecl> (subDecl))
 						{
-							switch(method->getKind())
-							{
-								case clang::Decl::Kind::CXXConstructor:
-								{
-									ensureFunctionExists(method, ag::FunctionEntity::Type::Constructor);
-									break;
-								}
-
-								case clang::Decl::Kind::CXXDestructor:
-								{
-									ensureFunctionExists(method, ag::FunctionEntity::Type::Destructor);
-									break;
-								}
-
-								case clang::Decl::Kind::CXXMethod:
-								{
-									ensureFunctionExists(method, ag::FunctionEntity::Type::MemberFunction);
-									break;
-								}
-
-								default: {}
-							}
+							ensureFunctionExists(method, getFunctionType(method));
 						}
 
 						else
@@ -444,6 +435,12 @@ private:
 			return;
 		}
 
+		// TODO: Implement type conversion once they have an abstraction.
+		if(decl->getKind() == clang::Decl::Kind::CXXConversion)
+		{
+			return;
+		}
+
 		auto returnTypeEntity = resolveType(decl->getReturnType());
 
 		if(!returnTypeEntity)
@@ -469,8 +466,8 @@ private:
 		}
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
-				decl->getNameAsString(), std::to_string(decl->getODRHash()), type,
-				std::move(returnEntity), decl->isVirtualAsWritten(), isOverride, decl->isPure()
+				std::to_string(decl->getODRHash()), std::move(returnEntity),
+				decl->isVirtualAsWritten(), isOverride, decl->isPure()
 		);
 
 		// If the function is an operator overload, check which one it is.
