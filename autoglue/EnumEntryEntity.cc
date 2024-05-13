@@ -5,7 +5,7 @@ namespace ag
 {
 
 EnumEntryEntity::EnumEntryEntity(std::string_view name, std::string&& value, Format format)
-	: Entity(name), value(std::move(value)), format(format)
+	: Entity(Type::EnumEntry, name), value(std::move(value)), format(format)
 {
 }
 

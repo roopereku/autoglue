@@ -5,7 +5,7 @@ namespace ag
 {
 
 FunctionGroupEntity::FunctionGroupEntity(std::string_view name, FunctionEntity::Type type)
-	: Entity(name), type(type)
+	: Entity(Type::FunctionGroup, name), type(type)
 {
 }
 

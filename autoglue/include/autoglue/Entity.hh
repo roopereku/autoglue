@@ -16,8 +16,17 @@ class BindingGenerator;
 class Entity
 {
 public:
-	Entity(std::string_view name);
-	Entity();
+	enum class Type
+	{
+		Scope,
+		Function,
+		FunctionGroup,
+		Type,
+		TypeReference,
+		EnumEntry
+	};
+
+	Entity(Type type, std::string_view name);
 
 	/// Adds a child entity
 	///
@@ -84,6 +93,11 @@ public:
 	/// Indicates that all entities within this entity should be used.
 	void useAll();
 
+	/// Gets the type of this entity.
+	///
+	/// \return The type of this entity.
+	Type getType();
+
 	/// Gets the amount of usages.
 	///
 	/// \return The count of usages.
@@ -115,6 +129,7 @@ private:
 	bool generated = false;
 	Entity* parent = nullptr;
 
+	Type type;
 	std::shared_ptr <EntityContext> context;
 };
 

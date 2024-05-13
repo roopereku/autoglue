@@ -4,7 +4,7 @@ namespace ag
 {
 
 TypeEntity::TypeEntity(std::string_view name, Type type)
-	: Entity(name), type(type)
+	: Entity(Entity::Type::Type, name), type(type)
 {
 }
 

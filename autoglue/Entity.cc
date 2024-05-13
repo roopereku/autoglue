@@ -6,11 +6,8 @@
 namespace ag
 {
 
-Entity::Entity(std::string_view name) : name(name)
-{
-}
-
-Entity::Entity()
+Entity::Entity(Type type, std::string_view name)
+	: type(type), name(name)
 {
 }
 
@@ -147,6 +144,11 @@ void Entity::useAll()
 	{
 		child->useAll();
 	}
+}
+
+Entity::Type Entity::getType()
+{
+	return type;
 }
 
 unsigned Entity::getUsages()

@@ -5,11 +5,12 @@ namespace ag
 {
 
 ScopeEntity::ScopeEntity(std::string_view name)
-	: Entity(name)
+	: Entity(Type::Scope, name)
 {
 }
 
 ScopeEntity::ScopeEntity()
+	: Entity(Type::Scope, "")
 {
 }
 
