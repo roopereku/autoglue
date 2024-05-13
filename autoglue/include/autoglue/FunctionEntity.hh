@@ -41,7 +41,7 @@ public:
 		BitwiseShiftRight
 	};
 
-	FunctionEntity(std::string&& postfix, std::shared_ptr <TypeReferenceEntity>&& returnType,
+	FunctionEntity(std::shared_ptr <TypeReferenceEntity>&& returnType,
 					bool overridable, bool overrides, bool interface);
 
 	/// Adds a new parameter to this function.
@@ -164,6 +164,11 @@ public:
 	/// \return True if this operator overloads a compound operator.
 	bool overloadsCompoundOperator();
 
+	/// Set the index of this overload. This function is intended to be used by FunctionGroupEntity.
+	///
+	/// \param index The index of this overload.
+	void setOverloadIndex(size_t index);
+
 	const char* getTypeString() override;
 
 private:
@@ -183,7 +188,7 @@ private:
 	bool compoundOperator = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
-	std::string postfix;
+	size_t overloadIndex = 0;
 };
 
 }

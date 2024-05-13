@@ -13,6 +13,7 @@ void FunctionGroupEntity::addOverload(std::shared_ptr <FunctionEntity>&& overloa
 {
 	if(!findMatchingParameters(*overload))
 	{
+		overload->setOverloadIndex(children.size());
 		addChild(std::move(overload));
 	}
 }

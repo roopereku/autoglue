@@ -8,9 +8,9 @@
 namespace ag
 {
 
-FunctionEntity::FunctionEntity(std::string&& postfix, std::shared_ptr <TypeReferenceEntity>&& returnType,
+FunctionEntity::FunctionEntity(std::shared_ptr <TypeReferenceEntity>&& returnType,
 								bool overridable, bool overrides, bool interface)
-	:	Entity(""), postfix(std::move(postfix)), returnType(std::move(returnType)),
+	:	Entity(""), returnType(std::move(returnType)),
 		overridable(overridable), overrides(overrides), interface(interface)
 {
 }
@@ -179,10 +179,10 @@ std::string FunctionEntity::getBridgeName(bool shortened)
 {
 	if(shortened)
 	{
-		return getName() + postfix;
+		return getName() + std::to_string(overloadIndex);
 	}
 
-	return getHierarchy("_") + postfix;
+	return getHierarchy("_") + std::to_string(overloadIndex);
 }
 
 bool FunctionEntity::isClassMemberFunction()
@@ -206,6 +206,11 @@ FunctionEntity::OverloadedOperator FunctionEntity::getOverloadedOperator()
 bool FunctionEntity::overloadsCompoundOperator()
 {
 	return compoundOperator;
+}
+
+void FunctionEntity::setOverloadIndex(size_t index)
+{
+	overloadIndex = index;
 }
 
 const char* FunctionEntity::getTypeString()
