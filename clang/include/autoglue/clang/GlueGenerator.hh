@@ -22,8 +22,8 @@ private:
 	void generateClass(ClassEntity& entity) override;
 	void generateArgumentSeparator() override;
 	std::string_view getObjectHandleName() override;
+	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override;
 
-	bool convertReturnIfNecessary(TypeReferenceEntity& entity);
 	std::string getSelfType(FunctionEntity& entity);
 
 	std::ofstream file;

@@ -90,66 +90,6 @@ GlueGenerator::GlueGenerator(Backend& backend)
 	}
 }
 
-bool GlueGenerator::convertReturnIfNecessary(TypeReferenceEntity& entity)
-{
-	if(entity.isReference())
-	{
-		auto ctx = getClangContext(entity);
-		assert(ctx);
-
-		// If the reference return value isn't a pointer (Should be a C++ reference),
-		// take its memory address.
-		if(!ctx->getTyperefContext()->isPointer())
-		{
-			file << "&";
-		}
-
-		return false;
-	}
-
-	// Primitive types don't need to be casted.
-	if(entity.isPrimitive())
-	{
-		return false;
-	}
-
-	// Cast enum return values to an int. Especially in C++ this is important
-	// because scoped enums cannot be implicitly casted to a primitive.
-	if(entity.isEnum())
-	{
-		// TODO: Use the appropriate type as specified by the enum.
-		file << "static_cast <int> (";
-	}
-
-	else if(entity.isClass())
-	{
-		if(!entity.getContext())
-		{
-			return false;
-		}
-		//assert(entity.getContext());
-
-		// When a C++ function return a copy of a class object, in order to retain
-		// the object it has to be allocated on the heap. Any given foreign language
-		// should manage this object as they are the ones requesting it.
-		auto ctx = getClangContext(entity);
-		file << "new " << ctx->getTyperefContext()->getWrittenType() << '(';
-	}
-
-	else if(entity.isAlias())
-	{
-		// Because a type alias can point to whatever type, call this function recursively
-		// with a temporary type reference pointing to the underlying type.
-		TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
-		underlying.initializeContext(entity.getContext());
-
-		assert(underlying.getContext());
-		return convertReturnIfNecessary(underlying);
-	}
-
-	return true;
-}
-
 void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
 	file << "extern \"C\"\n";
@@ -189,12 +129,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 
 		case FunctionEntity::Type::MemberFunction:
 		{
-			if(entity.returnsValue())
-			{
-				file << "return ";
-				closeParenthesis = convertReturnIfNecessary(returnType);
-			}
-
+			closeParenthesis = entity.generateReturnStatement(*this, false);
 			auto ctx = getClangContext(entity.getGroup());
 			
 			file << "static_cast <" << getSelfType(entity) << "*> (objectHandle)->" << ctx->getFunctionContext()->getOriginalName();
@@ -354,6 +289,65 @@ void GlueGenerator::generateArgumentSeparator()
 std::string_view GlueGenerator::getObjectHandleName()
 {
 	return "objectHandle";
+}
+
+bool GlueGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
+{
+	if(entity.isReference())
+	{
+		auto ctx = getClangContext(entity);
+		assert(ctx);
+
+		file << "return ";
+
+		// If the reference return value isn't a pointer (Should be a C++ reference),
+		// take its memory address.
+		if(!ctx->getTyperefContext()->isPointer())
+		{
+			file << "&";
+		}
+
+		return false;
+	}
+
+	// Primitive types don't need to be casted.
+	if(entity.isPrimitive())
+	{
+		file << "return ";
+		return false;
+	}
+
+	// Cast enum return values to an int. Especially in C++ this is important
+	// because scoped enums cannot be implicitly casted to a primitive.
+	if(entity.isEnum())
+	{
+		// TODO: Use the appropriate type as specified by the enum.
+		file << "return static_cast <int> (";
+	}
+
+	else if(entity.isClass())
+	{
+		assert(entity.getContext());
+
+		// When a C++ function return a copy of a class object, in order to retain
+		// the object it has to be allocated on the heap. Any given foreign language
+		// should manage this object as they are the ones requesting it.
+		auto ctx = getClangContext(entity);
+		file << "return new " << ctx->getTyperefContext()->getWrittenType() << '(';
+	}
+
+	else if(entity.isAlias())
+	{
+		// Because a type alias can point to whatever type, call this function recursively
+		// with a temporary type reference pointing to the underlying type.
+		TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
+		underlying.initializeContext(entity.getContext());
+
+		assert(underlying.getContext());
+		return generateReturnStatement(underlying, target);
+	}
+
+	return true;
 }
 
 std::string GlueGenerator::getSelfType(FunctionEntity& entity)

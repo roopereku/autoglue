@@ -74,6 +74,13 @@ public:
 	/// Generates an argument separator, such as a comma.
 	virtual void generateArgumentSeparator();
 
+	/// Generators a return statement for the given return type.
+	/// 
+	/// \param entity The return type to generate a return statement for.
+	/// \param target The function that the return statement is being generated for.
+	/// \return Depending on the implementation, true could be returned when an additional enclosure is generated.
+	virtual bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target);
+
 	/// Changes the class depth.
 	///
 	/// \param amount Positive or a negative number indicating which way the class depth should go.

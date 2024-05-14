@@ -93,6 +93,17 @@ void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
 	}
 }
 
+bool FunctionEntity::generateReturnStatement(BindingGenerator& generator, bool asPOD)
+{
+	if(returnsValue())
+	{
+		auto retType = getReturnType(asPOD);
+		return generator.generateReturnStatement(retType, *this);
+	}
+
+	return false;
+}
+
 void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf)
 {
 	// If the self parameter should be included, export it for member functions and destructors.
@@ -157,7 +168,8 @@ bool FunctionEntity::returnsValue()
 {
 	// The function returns a value if its a constructor or doesn't return void.
 	return getType() == Type::Constructor ||
-			(returnType && returnType->getReferredPtr() != PrimitiveEntity::getVoid());
+			!(returnType->isPrimitive() &&
+			 returnType->getPrimitiveType().getType() == PrimitiveEntity::Type::Void);
 }
 
 bool FunctionEntity::isOverridable()
@@ -175,9 +187,16 @@ bool FunctionEntity::isInterface()
 	return interface;
 }
 
-TypeReferenceEntity FunctionEntity::getReturnType()
+TypeReferenceEntity FunctionEntity::getReturnType(bool asPOD)
 {
-	// Return a refrence to the parent class for constructors.
+	// If specified by the caller, return the POD return type.
+	if(asPOD)
+	{
+		auto ret = getReturnType(false);
+		return ret.getAsPOD();
+	}
+
+	// Return a reference to the parent class for constructors.
 	if(getType() == Type::Constructor)
 	{
 		return TypeReferenceEntity("", static_cast <ClassEntity&> (getParent()).shared_from_this(), false);

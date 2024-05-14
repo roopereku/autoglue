@@ -78,6 +78,14 @@ public:
 	/// \param asPOD If true, the POD version of the return type is generated.
 	void generateReturnType(BindingGenerator& generator, bool asPOD);
 
+	/// Generate a return statement for this function. The return statement is generated
+	/// only if the function should return a value, as indicated by returnsValue.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	/// \param asPOD If true, a return statement for the POD return type is generated.
+	/// \return Depending on the implementation, true could be returned when an additional enclosure is generated.
+	bool generateReturnStatement(BindingGenerator& generator, bool asPOD);
+
 	/// Generates the parameters type entities of this function.
 	/// This isn't called by FunctionEntity::generate as different
 	/// languages might want to handle parameters differently.
@@ -135,8 +143,9 @@ public:
 	/// Gets the return type of this function.
 	/// Note that this will always return the parent class type for constructors.
 	///
+	/// \param asPOD If true, the POD version of the return type will be returned.
 	/// \return The return type of this function.
-	TypeReferenceEntity getReturnType();
+	TypeReferenceEntity getReturnType(bool asPOD = false);
 
 	/// Gets the name of the corresponding bridge function.
 	///

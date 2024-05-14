@@ -117,6 +117,12 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 
 void BindingGenerator::generateEnum(EnumEntity& entity)
 {
+	// If no class has been opened, this is a top level enum which needs its own file.
+	if(getClassDepth() == 0)
+	{
+		openFile(entity);
+	}
+
 	// TODO: Use the proper visibility.
 	file << "public enum " << entity.getName() << " {\n";
 
@@ -133,6 +139,14 @@ void BindingGenerator::generateEnum(EnumEntity& entity)
 	// Generate a constructor for the enum that takes an integer.
 	file << "private " << entity.getName() << "(int value) {\nmValue = value;\n}\n\n";
 	file << "private int mValue;\n}\n\n";
+
+	// Since each top level enum goes to its own file,
+	// close the current file if a top level enum is being ended.
+	if(getClassDepth() == 0)
+	{
+		assert(file.is_open());
+		file.close();
+	}
 }
 
 void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
@@ -216,23 +230,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	entity.generateParameters(*this, false, false);
 	file << ") {\n";
 
-	bool closeParenthesis = false;
-
-	// For constructors, give the resulting pointer to the constructor that saves it.
-	if(entity.getType() == FunctionEntity::Type::Constructor)
-	{
-		file << "this(";
-		closeParenthesis = true;
-	}
-
-	// For non-constructor functions that return a value, add return.
-	else if(entity.returnsValue())
-	{
-		file << "return ";
-		closeParenthesis = handleReturnValue(entity.getReturnType(),
-				entity.getReturnType().getReferred().getHierarchy("."));	
-	}
-
+	bool closeParenthesis = entity.generateReturnStatement(*this, false);
 	file << nativeName << "(";
 
 	// Call the native method with the passed parameters.
@@ -281,61 +279,22 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	entity.generateParameters(*this, true, true);
 	jni << ")\n{\n";
 
-	if(entity.returnsValue())
-	{
-		jni << "return ";
-	}
-
+	closeParenthesis = entity.generateReturnStatement(*this, true);
 	jni << bridgeName << '(';
 
 	onlyParameterNames = true;
 	entity.generateParameters(*this, true, true);
 	onlyParameterNames = false;
 
-	jni << ");\n}\n\n";
-	inJni = false;
-}
+	jni << ')';
 
-bool BindingGenerator::handleReturnValue(TypeReferenceEntity& entity, std::string&& originalType)
-{
-	switch(entity.getType())
+	if(closeParenthesis)
 	{
-		case TypeEntity::Type::Alias:
-		{
-			// Because a type alias can point to any type, recursively call this
-			// function with the underlying type.
-			TypeReferenceEntity ref("", entity.getAliasType().getUnderlying(true), entity.isReference());
-			return handleReturnValue(ref, std::move(originalType));
-		}
-
-		case TypeEntity::Type::Class:
-		{
-			// TODO: Until type extension support is generated, don't instantiate abstract classes.
-			if(entity.getClassType().isAbstract())
-			{
-				file << "null; //";
-				return false;
-			}
-
-			// For a class return value, instantiate new Java objects holding the resulting pointer.
-			file << "new " << packagePrefix << '.' << std::move(originalType) << '(';
-			return true;
-		}
-
-		case TypeEntity::Type::Enum:
-		{
-			// In order to convert integers to enum types, use the fromInt method.
-			file << packagePrefix << '.' << std::move(originalType) << ".fromInt(";
-			return true;
-		}
-
-		case TypeEntity::Type::Primitive:
-		{
-			break;
-		}
+		jni << ')';
 	}
 
-	return false;
+	jni << ";\n}\n\n";
+	inJni = false;
 }
 
 void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
@@ -400,7 +359,7 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 		{
 			// Try to find the function group for constructors.
 			auto result = finalUnderlying->resolve("Constructor");
-			if(result)
+			if(result && result->getType() == Entity::Type::FunctionGroup)
 			{
 				// Create a delegating constructor for each of the constructor overloads.
 				auto& constructors = static_cast <FunctionGroupEntity&> (*result);
@@ -643,10 +602,9 @@ std::shared_ptr <FunctionEntity> BindingGenerator::findClashing(FunctionEntity& 
 		{
 			auto sameName = classEntity.resolve(entity.getName());
 
-			if(sameName)
+			if(sameName && sameName->getType() == Entity::Type::FunctionGroup)
 			{
-				// TODO: If Entity ever gets something like a getType(), use that instead.
-				auto group = std::dynamic_pointer_cast <FunctionGroupEntity> (sameName);
+				auto group = std::static_pointer_cast <FunctionGroupEntity> (sameName);
 
 				// If the entity with the same name is a function group, check if it
 				// has any overload with the same parameters as the given function.
@@ -691,6 +649,74 @@ std::shared_ptr <FunctionEntity> BindingGenerator::findClashing(FunctionEntity& 
 	}
 
 	return nullptr;
+}
+
+bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
+{
+	if(inJni)
+	{
+		assert(entity.isPrimitive());
+		jni << "return ";
+
+		if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::ObjectHandle)
+		{
+			jni << "reinterpret_cast <jlong> (";
+			return true;
+		}
+	}
+
+	else
+	{
+		// Constructors don't return, but instead call the constructor taking an object handle.
+		if(target.getType() == FunctionEntity::Type::Constructor)
+		{
+			file << "this(";
+			return true;
+		}
+
+		switch(entity.getType())
+		{
+			case TypeEntity::Type::Alias:
+			{
+				// Because a type alias can point to any type, recursively call this
+				// function with the underlying type.
+				TypeReferenceEntity ref("", entity.getAliasType().getUnderlying(true), entity.isReference());
+				return generateReturnStatement(ref, target);
+			}
+
+			case TypeEntity::Type::Class:
+			{
+				// TODO: Until type extension support is generated, don't instantiate abstract classes.
+				if(entity.getClassType().isAbstract())
+				{
+					file << "return null; //";
+					return false;
+				}
+
+				// For a class return value, instantiate new Java objects holding the resulting pointer.
+				file << "return new " << packagePrefix << '.' <<
+						target.getReturnType().getReferred().getHierarchy(".") << '(';
+
+				return true;
+			}
+
+			case TypeEntity::Type::Enum:
+			{
+				// In order to convert integers to enum types, use the fromInt method.
+				file << "return " << packagePrefix << '.' <<
+						target.getReturnType().getReferred().getHierarchy(".") << ".fromInt(";
+				return true;
+			}
+
+			case TypeEntity::Type::Primitive:
+			{
+				file << "return ";
+				break;
+			}
+		}
+	}
+
+	return false;
 }
 
 }

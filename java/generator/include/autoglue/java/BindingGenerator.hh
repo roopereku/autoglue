@@ -26,10 +26,10 @@ private:
 	void generateBaseType(TypeEntity& entity, size_t index) override;
 	void generateNamedScope(ScopeEntity& entity) override;
 	void generateArgumentSeparator() override;
+	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override;
 
 	void generateTyperefJNI(TypeReferenceEntity& entity);
 	void generateTyperefJava(TypeReferenceEntity& entity);
-	bool handleReturnValue(TypeReferenceEntity& entity, std::string&& originalType);
 
 	std::string sanitizeName(Entity& entity);
 	std::shared_ptr <FunctionEntity> findClashing(FunctionEntity& entity, TypeEntity& from, int baseDepth);
