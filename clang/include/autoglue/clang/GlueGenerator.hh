@@ -21,8 +21,10 @@ private:
 	void generateNamedScope(ScopeEntity& entity) override;
 	void generateClass(ClassEntity& entity) override;
 	void generateArgumentSeparator() override;
+	std::string_view getObjectHandleName() override;
 
 	bool convertReturnIfNecessary(TypeReferenceEntity& entity);
+	std::string getSelfType(FunctionEntity& entity);
 
 	std::ofstream file;
 	bool onlyParameterNames = false;

@@ -3,8 +3,10 @@
 #include <autoglue/clang/EntityContext.hh>
 #include <autoglue/clang/IncludeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
+#include <autoglue/clang/FunctionContext.hh>
 
 #include <autoglue/TypeReferenceEntity.hh>
+#include <autoglue/FunctionGroupEntity.hh>
 #include <autoglue/FunctionEntity.hh>
 
 #include <iostream>
@@ -13,7 +15,7 @@
 namespace ag::clang
 {
 
-static std::shared_ptr <EntityContext> getClangContext(Entity& entity)
+static std::shared_ptr <EntityContext> getClangContext(const Entity& entity)
 {
 	if(entity.getContext())
 	{
@@ -92,12 +94,12 @@ bool GlueGenerator::convertReturnIfNecessary(TypeReferenceEntity& entity)
 {
 	if(entity.isReference())
 	{
-		assert(entity.getContext());
-		auto ctx = std::static_pointer_cast <EntityContext> (entity.getContext())->getTyperefContext();
+		auto ctx = getClangContext(entity);
+		assert(ctx);
 
 		// If the reference return value isn't a pointer (Should be a C++ reference),
 		// take its memory address.
-		if(!ctx->isPointer())
+		if(!ctx->getTyperefContext()->isPointer())
 		{
 			file << "&";
 		}
@@ -121,12 +123,16 @@ bool GlueGenerator::convertReturnIfNecessary(TypeReferenceEntity& entity)
 
 	else if(entity.isClass())
 	{
-		assert(entity.getContext());
+		if(!entity.getContext())
+		{
+			return false;
+		}
+		//assert(entity.getContext());
 
 		// When a C++ function return a copy of a class object, in order to retain
 		// the object it has to be allocated on the heap. Any given foreign language
 		// should manage this object as they are the ones requesting it.
-		auto ctx = std::static_pointer_cast <EntityContext> (entity.getContext());
+		auto ctx = getClangContext(entity);
 		file << "new " << ctx->getTyperefContext()->getWrittenType() << '(';
 	}
 
@@ -147,10 +153,12 @@ bool GlueGenerator::convertReturnIfNecessary(TypeReferenceEntity& entity)
 void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
 	file << "extern \"C\"\n";
+	auto returnType = entity.getReturnType();
+	auto returnCtx = getClangContext(returnType);
 
 	// In case the return type of a function is const, mark the bridge function
 	// const to make C++ happy. This shouldn't affect foreign languages in any way.
-	if(getClangContext(entity.getReturnType())->getTyperefContext()->isConst())
+	if(returnCtx && returnCtx->getTyperefContext()->isConst())
 	{
 		file << "const ";
 	}
@@ -163,26 +171,17 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 
 	bool closeParenthesis = false;
 
-	if(entity.returnsValue())
-	{
-		auto& ret = entity.getReturnType();
-		file << "return ";
-
-		closeParenthesis = convertReturnIfNecessary(ret);
-	}
-
 	switch(entity.getType())
 	{
 		case FunctionEntity::Type::Constructor:
 		{
-			file << "new " << entity.getParent().getHierarchy("::");
+			file << "return new " << getSelfType(entity);
 			break;
 		}
 
 		case FunctionEntity::Type::Destructor:
 		{
-			file << "delete static_cast <" << entity.getParent().getHierarchy("::")
-				<< "*> (objectHandle)";
+			file << "delete static_cast <" << getSelfType(entity) << "*> (objectHandle);\n}\n";
 
 			// Parameters aren't used for destructors.
 			return;
@@ -190,8 +189,15 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 
 		case FunctionEntity::Type::MemberFunction:
 		{
-			file << "static_cast <" << entity.getParent().getHierarchy("::")
-				<< "*> (objectHandle)->" << entity.getName();
+			if(entity.returnsValue())
+			{
+				file << "return ";
+				closeParenthesis = convertReturnIfNecessary(returnType);
+			}
+
+			auto ctx = getClangContext(entity.getGroup());
+			
+			file << "static_cast <" << getSelfType(entity) << "*> (objectHandle)->" << ctx->getFunctionContext()->getOriginalName();
 			break;
 		}
 
@@ -232,9 +238,15 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 	{
 		//std::cerr << "Passing param " << entity.getName() << ": " << entity.getReferred().getHierarchy() << " -> " << entity.getReferred().getTypeString() << '\n';
 
-		// First make the parameter a non-pointer lvalue.
-		std::string lvalue;
 		auto ctx = getClangContext(entity);
+		bool closeParenthesis = false;
+
+		if(ctx && ctx->getTyperefContext()->isRValueReference())
+		{
+			// TODO: Include <utility> in IncludeCollector.
+			file << "std::move(";
+			closeParenthesis = true;
+		}
 
 		switch(entity.getType())
 		{
@@ -257,37 +269,51 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 			{
 				assert(ctx);
 
+				if(!ctx->getTyperefContext()->isPointer())
+				{
+					file << '*';
+				}
+
 				// Since class instances are void*, cast them to the appropriate pointer
 				// type and dereference them to get an lvalue reference.
-				lvalue = "*static_cast <" + ctx->getTyperefContext()->getWrittenType() +
-						 "*> (" + entity.getName() + ')';
+				file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
+						 "*> (" << entity.getName() << ')';
 				break;
 			}
 
 			case TypeEntity::Type::Enum:
 			{
 				// Cast enum types from integers to the appropriate enum type.
-				lvalue = "static_cast <" + entity.getReferred().getHierarchy("::") +
-						 "> (" + entity.getName() + ')';
+				file << "static_cast <" << entity.getReferred().getHierarchy("::") <<
+						 "> (" << entity.getName() << ')';
 				break;
 			}
 			
 			default:
 			{
-				lvalue = entity.getName();
+				if(entity.isReference())
+				{
+					if(!ctx->getTyperefContext()->isPointer())
+					{
+						file << '*';
+					}
+
+					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
+							 "*> (" << entity.getName() << ')';
+				}
+
+				else
+				{
+					file << entity.getName();
+				}
+
 				break;
 			}
 		}
 
-		if(ctx && ctx->getTyperefContext()->isRValueReference())
+		if(closeParenthesis)
 		{
-			// TODO: Include <utility> in IncludeCollector.
-			file << "std::move(" << lvalue << ")";
-		}
-
-		else
-		{
-			file << lvalue;
+			file << ')';
 		}
 	}
 
@@ -323,6 +349,22 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 void GlueGenerator::generateArgumentSeparator()
 {
 	file << ", ";
+}
+
+std::string_view GlueGenerator::getObjectHandleName()
+{
+	return "objectHandle";
+}
+
+std::string GlueGenerator::getSelfType(FunctionEntity& entity)
+{
+	// If this function was originally a C++ function, the backend should've initialized
+	// a typeref context for the function group. This context would contain the full
+	// type (including templates) of the "this type" for the function.
+	//
+	// If the context isn't present, just use the location provided by the hierarchy.
+	auto ctx = getClangContext(entity.getGroup());
+	return ctx ? std::string(ctx->getFunctionContext()->getSelfType()) : entity.getParent().getHierarchy("::");
 }
 
 }

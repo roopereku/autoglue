@@ -1,11 +1,17 @@
 #include <autoglue/clang/TyperefContext.hh>
 
+#include <clang/AST/PrettyPrinter.h>
+
 namespace ag::clang
 {
 
 TyperefContext::TyperefContext(::clang::QualType type)
 	: EntityContext(Type::Typeref)
 {
+	// Make getAsString output "bool" instead of "_Bool".
+	::clang::PrintingPolicy pp(::clang::LangOptions{});
+	pp.Bool = 1;
+
 	if(type->isPointerType())
 	{
 		pointer = true;
@@ -16,7 +22,7 @@ TyperefContext::TyperefContext(::clang::QualType type)
 	type = type.getNonReferenceType();
 
 	constType = type.isConstQualified();
-	writtenType = type.getCanonicalType().getAsString();
+	writtenType = type.getCanonicalType().getAsString(pp);
 }
 
 bool TyperefContext::isRValueReference()

@@ -1,6 +1,7 @@
 #include <autoglue/clang/Backend.hh>
 #include <autoglue/clang/IncludeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
+#include <autoglue/clang/FunctionContext.hh>
 
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
@@ -155,6 +156,57 @@ public:
 	}
 
 private:
+	std::string getEntityName(clang::NamedDecl* named)
+	{
+		std::string name = named->getNameAsString();
+
+		if(auto* functionNode = clang::dyn_cast <clang::FunctionDecl> (named))
+		{
+			if(auto* destructorNode = clang::dyn_cast <clang::CXXDestructorDecl> (functionNode))
+			{
+				name = "Destructor";
+			}
+
+			else if(auto* conversionNode = clang::dyn_cast <clang::CXXConversionDecl> (functionNode))
+			{
+				// TODO: Implement type conversions in the simplified hierarchy.
+				return std::string();
+			}
+
+			else if(functionNode->isOverloadedOperator())
+			{
+				name = "OperatorOverload" + std::to_string(functionNode->getOverloadedOperator());
+			}
+		}
+
+		// If the node represents a template instantiation, it will have a different name.
+		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+		{
+			// Append all of the template arguments after the name.
+			const auto& args = templateDecl->getTemplateArgs();
+			for(size_t i = 0; i < args.size(); i++)
+			{
+				if(args[i].getKind() == clang::TemplateArgument::ArgKind::Type)
+				{
+					// TODO: Save other qualifiers like references and pointers to the template name.
+					auto type = args[i].getAsType();
+					auto argType = resolveType(type);
+					if(argType)
+					{
+						name += '_' + argType->getName();
+					}
+
+					else
+					{
+						name += "_invalid";
+					}
+				}
+			}
+		}
+
+		return name;
+	}
+
 	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
 		// TODO: Ignore void pointers until there's a nice way to
@@ -237,7 +289,7 @@ private:
 			}
 		}
 
-		std::string name = named->getNameAsString();
+		std::string name = getEntityName(named);
 
 		// Anonymous declarations might make sense in C and C++, but they might not in foreign languages.
 		// Until there is a nice way to contain them in the simplified hierarchy, ignore them.
@@ -245,32 +297,7 @@ private:
 		{
 			return nullptr;
 		}
-
-		// If the node represents a template instantiation, it will have a different name.
-		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
-		{
-			// Append all of the template arguments after the name.
-			const auto& args = templateDecl->getTemplateArgs();
-			for(size_t i = 0; i < args.size(); i++)
-			{
-				if(args[i].getKind() == clang::TemplateArgument::ArgKind::Type)
-				{
-					// TODO: Save other qualifiers like references and pointers to the template name.
-					auto type = args[i].getAsType();
-					auto argType = resolveType(type);
-					if(argType)
-					{
-						name += '_' + argType->getName();
-					}
-
-					else
-					{
-						name += "_invalid";
-					}
-				}
-			}
-		}
-
+		
 		// If the parent entity doesn't contain an entity of the given name, try to add it.
 		auto result = parentEntity->resolve(name);
 
@@ -309,9 +336,12 @@ private:
 			// Check if the declaration is a function.
 			else if(auto* functionNode = clang::dyn_cast <clang::FunctionDecl> (named))
 			{
+				auto group = std::make_shared <ag::FunctionGroupEntity> (name, getFunctionType(functionNode));
+				group->initializeContext(std::make_shared <ag::clang::FunctionContext> (functionNode));
+
 				// When a function is handled by this function, a function group is added instead.
 				// Separate overloads will be added by ensureFunctionExists.
-				parentEntity->addChild(std::make_shared <ag::FunctionGroupEntity> (name, getFunctionType(functionNode)));
+				parentEntity->addChild(group);
 				shouldGetInclude = false;
 			}
 
@@ -442,10 +472,26 @@ private:
 			return;
 		}
 
+		// Don't export deleted functions as they cannot be called.
+		if(decl->isDeleted())
+		{
+			return;
+		}
+
 		// TODO: Implement type conversion once they have an abstraction.
 		if(decl->getKind() == clang::Decl::Kind::CXXConversion)
 		{
 			return;
+		}
+
+		// Ignore copy constructors.
+		// TODO: Think of a way to nicely expose these to foreign languages.
+		if(auto* constructorNode = clang::dyn_cast <clang::CXXConstructorDecl> (decl))
+		{
+			if(constructorNode->isCopyConstructor())
+			{
+				return;
+			}
 		}
 
 		auto returnTypeEntity = resolveType(decl->getReturnType());

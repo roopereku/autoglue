@@ -11,6 +11,7 @@ namespace ag::clang
 
 class IncludeContext;
 class TyperefContext;
+class FunctionContext;
 
 class EntityContext : public ag::EntityContext, public std::enable_shared_from_this <EntityContext>
 {
@@ -18,7 +19,8 @@ public:
 	enum class Type
 	{
 		Typeref,
-		Include
+		Include,
+		Function
 	};
 
 	EntityContext(Type type);
@@ -32,6 +34,11 @@ public:
 	/// 
 	/// \return This context as a typeref context.
 	std::shared_ptr <TyperefContext> getTyperefContext();
+
+	/// Gets this Clang entity context as a function context.
+	/// 
+	/// \return This context as a function context.
+	std::shared_ptr <FunctionContext> getFunctionContext();
 
 private:
 	Type type;
