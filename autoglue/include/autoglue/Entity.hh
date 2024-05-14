@@ -52,7 +52,7 @@ public:
 	/// Gets the context for this entity.
 	///
 	/// \return The context for this entity.
-	std::shared_ptr <EntityContext> getContext();
+	std::shared_ptr <EntityContext> getContext() const;
 
 	/// Resolves an entity that has the given qualified
 	/// name relative to this entity.

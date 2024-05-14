@@ -36,7 +36,7 @@ void Entity::initializeContext(std::shared_ptr <EntityContext>&& ctx)
 	}
 }
 
-std::shared_ptr <EntityContext> Entity::getContext()
+std::shared_ptr <EntityContext> Entity::getContext() const
 {
 	return context;
 }
