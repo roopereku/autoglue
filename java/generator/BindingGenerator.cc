@@ -26,6 +26,12 @@ BindingGenerator::BindingGenerator(Backend& backend, std::string_view packagePre
 	package.emplace(this->packagePrefix);
 
 	jni << "#include <jni.h>\n";
+
+	jni << "struct JavaString\n{\npublic:\n" <<
+			"JavaString(JNIEnv* env, jstring value)" <<
+			" : env(env), javaString(value), cString(env->GetStringUTFChars(value, 0)) {}\n" <<
+			"~JavaString() { env->ReleaseStringUTFChars(javaString, cString); }\n" <<
+			"JNIEnv* env;\njstring javaString;\nconst char* cString;\n};\n";
 }
 
 void BindingGenerator::openFile(Entity& entity)
@@ -266,9 +272,8 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	jni << "JNICALL ";
 
 	// Declare the JNI function with the appropriate parameters.
-	jni << "Java_" << packagePrefix << "_" <<  entity.getParent().getHierarchy() << '_' << nativeName << "(JNIEnv*, ";
-	//jni << (entity.needsThisHandle() ? "jobject" : "jclass");
-	jni << "jclass";
+	jni << "Java_" << packagePrefix << "_" <<  entity.getParent().getHierarchy() << '_' <<
+			nativeName << "(JNIEnv* env, jclass";
 
 	// If there are more arguments, add a comma.
 	if(entity.getParameterCount(true) > 0)
@@ -452,6 +457,11 @@ void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
 		if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::ObjectHandle)
 		{
 			jni << "reinterpret_cast <void*> (" << entity.getName() << ')';
+		}
+
+		else if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String)
+		{
+			jni << "JavaString(env, " << entity.getName() << ").cString";
 		}
 
 		else
@@ -661,6 +671,12 @@ bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, Func
 		if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::ObjectHandle)
 		{
 			jni << "reinterpret_cast <jlong> (";
+			return true;
+		}
+
+		else if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String)
+		{
+			jni << "env->NewStringUTF(";
 			return true;
 		}
 	}
