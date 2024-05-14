@@ -10,7 +10,7 @@ namespace ag
 
 FunctionEntity::FunctionEntity(std::shared_ptr <TypeReferenceEntity>&& returnType,
 								bool overridable, bool overrides, bool interface)
-	:	Entity(""), returnType(std::move(returnType)),
+	:	Entity(Entity::Type::Function, ""), returnType(std::move(returnType)),
 		overridable(overridable), overrides(overrides), interface(interface)
 {
 }
@@ -77,7 +77,8 @@ void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
 	{
 		if(asPOD && returnType->getType() != TypeEntity::Type::Primitive)
 		{
-			generatePOD(generator, *returnType);
+			auto podRef = returnType->getAsPOD();
+			generator.generateTypeReference(podRef);
 		}
 
 		else
@@ -108,7 +109,8 @@ void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD,
 
 		if(asPOD && current->getType() != TypeEntity::Type::Primitive)
 		{
-			generatePOD(generator, *current);
+			auto podRef = current->getAsPOD();
+			generator.generateTypeReference(podRef);
 		}
 
 		else
@@ -163,14 +165,19 @@ bool FunctionEntity::isOverride()
 	return overrides;
 }
 
-
 bool FunctionEntity::isInterface()
 {
 	return interface;
 }
 
-TypeReferenceEntity& FunctionEntity::getReturnType()
+TypeReferenceEntity FunctionEntity::getReturnType()
 {
+	// Return a refrence to the parent class for constructors.
+	if(getType() == Type::Constructor)
+	{
+		return TypeReferenceEntity("", static_cast <ClassEntity&> (getParent()).shared_from_this(), false);
+	}
+
 	assert(returnType);
 	return *returnType;
 }
@@ -216,42 +223,6 @@ void FunctionEntity::setOverloadIndex(size_t index)
 const char* FunctionEntity::getTypeString()
 {
 	return "Function";
-}
-
-void FunctionEntity::generatePOD(BindingGenerator& generator, TypeReferenceEntity ref)
-{
-	switch(ref.getType())
-	{
-		case TypeEntity::Type::Class:
-		{
-			TypeReferenceEntity podRef(ref.getName(), PrimitiveEntity::getObjectHandle(), ref.isReference());
-			generator.generateTypeReference(podRef);
-
-			break;
-		}
-
-		case TypeEntity::Type::Enum:
-		{
-			TypeReferenceEntity podRef(ref.getName(), PrimitiveEntity::getInteger(), ref.isReference());
-			generator.generateTypeReference(podRef);
-
-			break;
-		}
-
-		case TypeEntity::Type::Alias:
-		{
-			TypeReferenceEntity podRef(ref.getName(), ref.getAliasType().getUnderlying(true), ref.isReference());
-			generatePOD(generator, podRef);
-
-			break;
-		}
-
-		case TypeEntity::Type::Primitive:
-		{
-			generator.generateTypeReference(ref);
-			break;
-		}
-	}
 }
 
 }

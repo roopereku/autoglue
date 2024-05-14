@@ -8,7 +8,7 @@ namespace ag
 {
 
 TypeReferenceEntity::TypeReferenceEntity(std::string_view name, std::shared_ptr <TypeEntity> type, bool reference)
-	: Entity(name), referred(type), reference(reference)
+	: Entity(Type::TypeReference, name), referred(type), reference(reference)
 {
 }
 
@@ -86,6 +86,42 @@ PrimitiveEntity& TypeReferenceEntity::getPrimitiveType()
 bool TypeReferenceEntity::isReference()
 {
 	return reference;
+}
+
+TypeReferenceEntity TypeReferenceEntity::getAsPOD()
+{
+	switch(getType())
+	{
+		case TypeEntity::Type::Class:
+		{
+			TypeReferenceEntity podRef(getName(), PrimitiveEntity::getObjectHandle(), isReference());
+			podRef.initializeContext(getContext());
+
+			return podRef;
+		}
+
+		case TypeEntity::Type::Enum:
+		{
+			TypeReferenceEntity podRef(getName(), PrimitiveEntity::getInteger(), isReference());
+			podRef.initializeContext(getContext());
+
+			return podRef;
+		}
+
+		case TypeEntity::Type::Alias:
+		{
+			TypeReferenceEntity podRef(getName(), getAliasType().getUnderlying(true), isReference());
+			podRef.initializeContext(getContext());
+
+			// In order to get to correct POD type for the underlying type, call this function recursively.
+			return podRef.getAsPOD();
+		}
+
+		default: {}
+	}
+
+	// No conversion needs to be done.
+	return *this;
 }
 
 const char* TypeReferenceEntity::getTypeString()

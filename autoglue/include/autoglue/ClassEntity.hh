@@ -3,12 +3,15 @@
 
 #include <autoglue/TypeEntity.hh>
 
+#include <memory>
+
 namespace ag
 {
 
 class TypeReferenceEntity;
 
-class ClassEntity : public TypeEntity
+class ClassEntity : public TypeEntity,
+					public std::enable_shared_from_this <ClassEntity>
 {
 public:
 	ClassEntity(std::string_view name);

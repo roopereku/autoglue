@@ -133,9 +133,10 @@ public:
 	bool isInterface();
 
 	/// Gets the return type of this function.
+	/// Note that this will always return the parent class type for constructors.
 	///
 	/// \return The return type of this function.
-	TypeReferenceEntity& getReturnType();
+	TypeReferenceEntity getReturnType();
 
 	/// Gets the name of the corresponding bridge function.
 	///
@@ -177,8 +178,6 @@ private:
 
 	/// Makes sure that the return type is used.
 	void onFirstUse() override;
-
-	static void generatePOD(BindingGenerator& generator, TypeReferenceEntity ref);
 
 	bool overridable = false;
 	bool overrides = false;

@@ -82,6 +82,11 @@ public:
 	/// \return True if this type reference entity represents a reference.
 	bool isReference();
 
+	/// Returns the POD representation of this type reference.
+	///
+	/// \return The POD representation of this type reference.
+	TypeReferenceEntity getAsPOD();
+
 	const char* getTypeString() override;
 
 private:
