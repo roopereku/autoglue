@@ -67,7 +67,7 @@ private:
 	/// Generates the child entities wrapped inside class beginning and ending.
 	void onGenerate(BindingGenerator& generator) override;
 
-	/// Makes sure that the base classes are used.
+	/// Makes sure that the base classes and constructors are used.
 	void onFirstUse() override;
 
 	bool abstract = false;

@@ -83,6 +83,14 @@ void FunctionGroupEntity::onGenerate(BindingGenerator& generator)
 	}
 }
 
+void FunctionGroupEntity::onFirstUse()
+{
+	for(auto child : children)
+	{
+		child->use();
+	}
+}
+
 const char* FunctionGroupEntity::getTypeString()
 {
 	return "Function group";

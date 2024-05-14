@@ -36,6 +36,12 @@ void EnumEntity::onFirstUse()
 	{
 		std::static_pointer_cast <EnumEntryEntity> (children.back())->last = true;
 	}
+
+	// Make sure that the enum entries are used.
+	for(auto child : children)
+	{
+		child->use();
+	}
 }
 
 const char* EnumEntity::getTypeString()

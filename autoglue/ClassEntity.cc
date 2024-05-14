@@ -97,11 +97,19 @@ void ClassEntity::onGenerate(BindingGenerator& generator)
 
 void ClassEntity::onFirstUse()
 {
+	// In order to make this class type instantiable, make sure
+	// that its constructors are used.
+	auto constructors = resolve("Constructor");
+	if(constructors)
+	{
+		constructors->use();
+	}
+
 	for(size_t i = 0; i < baseTypes.size(); i++)
 	{
 		if(!baseTypes[i].expired())
 		{
-			baseTypes[i].lock()->useAll();
+			baseTypes[i].lock()->use();
 		}
 	}
 }

@@ -49,6 +49,9 @@ private:
 	/// Generates function overloads.
 	void onGenerate(BindingGenerator& generator) override;
 
+	/// Calls use() on every overload of this group.
+	void onFirstUse() override;
+
 	FunctionEntity::Type type;
 };
 

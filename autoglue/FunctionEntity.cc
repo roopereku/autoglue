@@ -60,6 +60,11 @@ void FunctionEntity::onFirstUse()
 	{
 		returnType->use();
 	}
+
+	for(auto param : children)
+	{
+		param->use();
+	}
 }
 
 void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
