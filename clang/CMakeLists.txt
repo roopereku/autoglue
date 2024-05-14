@@ -12,7 +12,7 @@ find_package(Clang REQUIRED CONFIG)
 
 # TODO: Clang could have its own namespace and expose the backend as Autoglue::Clang::Backend.
 
-add_library(ClangBackend ${Sources})
+add_library(ClangBackend SHARED ${Sources})
 target_link_libraries(ClangBackend Autoglue LLVM clang-cpp)
 
 target_include_directories(ClangBackend PUBLIC  

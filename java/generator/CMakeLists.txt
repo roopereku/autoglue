@@ -5,7 +5,7 @@ file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 # TODO: Once a Java backend exists, maybe expose the generator as Autoglue::Java::Generator?
 
-add_library(JavaGenerator ${Sources})
+add_library(JavaGenerator SHARED ${Sources})
 target_link_libraries(JavaGenerator Autoglue)
 
 target_include_directories(JavaGenerator PUBLIC  
