@@ -17,6 +17,43 @@
 namespace ag::java
 {
 
+static std::string getEscapedNameJNI(std::string_view name)
+{
+	std::string result;
+
+	size_t start = 0;
+	size_t index = name.find('_');
+
+	// Append "1" after underscores.
+	while(index != std::string_view::npos)
+	{
+		result.append(name.begin() + start, name.begin() + index);
+		result += "_1";
+
+		start = index + 1;
+		index = name.find('_', index + 1);
+	}
+
+	result.append(name.begin() + start, name.end());
+	return result;
+}
+
+static std::string getEntityPathJNI(Entity& entity)
+{
+	// Once a non-class entity is found, return its path without modifications.
+	if(entity.getType() != Entity::Type::Type)
+	{
+		return entity.getHierarchy("_");
+	}
+
+	return getEntityPathJNI(entity.getParent()) + "_" + getEscapedNameJNI(entity.getName());
+}
+
+static std::string getFunctionNameJNI(FunctionEntity& entity)
+{
+	return getEntityPathJNI(entity.getParent()) + "_" + getEscapedNameJNI(entity.getBridgeName(true));
+}
+
 BindingGenerator::BindingGenerator(Backend& backend, std::string_view packagePrefix)
 	: ag::BindingGenerator(backend), jni("jni_glue.cpp"), packagePrefix(packagePrefix)
 {
@@ -272,8 +309,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	jni << "JNICALL ";
 
 	// Declare the JNI function with the appropriate parameters.
-	jni << "Java_" << packagePrefix << "_" <<  entity.getParent().getHierarchy() << '_' <<
-			nativeName << "(JNIEnv* env, jclass";
+	jni << "Java_" << packagePrefix << "_" << getFunctionNameJNI(entity) << "(JNIEnv* env, jclass";
 
 	// If there are more arguments, add a comma.
 	if(entity.getParameterCount(true) > 0)
