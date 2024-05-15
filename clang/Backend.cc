@@ -348,7 +348,8 @@ private:
 			// Check if the declaration is an enum.
 			else if(auto* enumNode = clang::dyn_cast <clang::EnumDecl> (named))
 			{
-				auto enumEntity = std::make_shared <ag::EnumEntity> (name);
+				// TODO: Somehow expose the actual underlying enum type?
+				auto enumEntity = std::make_shared <ag::EnumEntity> (name, ag::EnumEntity::Format::Integer);
 
 				for(auto value : enumNode->enumerators())
 				{
@@ -358,8 +359,7 @@ private:
 
 					enumEntity->addEntry(std::make_shared <ag::EnumEntryEntity> (
 						value->getNameAsString(),
-						std::string(valueStr.begin(), valueStr.end()),
-						ag::EnumEntryEntity::Format::Integer
+						std::string(valueStr.begin(), valueStr.end())
 					));
 				}
 

@@ -5,8 +5,8 @@
 namespace ag
 {
 
-EnumEntity::EnumEntity(std::string_view name)
-	: TypeEntity(name, Type::Enum)
+EnumEntity::EnumEntity(std::string_view name, Format format)
+	: TypeEntity(name, Type::Enum), format(format)
 {
 }
 
@@ -42,6 +42,11 @@ void EnumEntity::onFirstUse()
 	{
 		child->use();
 	}
+}
+
+EnumEntity::Format EnumEntity::getFormat()
+{
+	return format;
 }
 
 const char* EnumEntity::getTypeString()
