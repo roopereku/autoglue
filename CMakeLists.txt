@@ -14,6 +14,11 @@ if(DEFINED AUTOGLUE_BUILD_JAVA_GENERATOR AND AUTOGLUE_BUILD_JAVA_GENERATOR)
 	add_subdirectory(java/generator)
 endif()
 
+if(DEFINED AUTOGLUE_BUILD_CSHARP_GENERATOR AND AUTOGLUE_BUILD_CSHARP_GENERATOR)
+	# TODO: Only add csharp when a C# backend exists.
+	add_subdirectory(csharp/generator)
+endif()
+
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/AutoglueConfig.cmake.in

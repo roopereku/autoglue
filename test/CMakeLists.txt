@@ -9,4 +9,5 @@ target_link_libraries(autogluetest
 	Autoglue::Autoglue
 	Autoglue::ClangBackend
 	Autoglue::JavaGenerator
+	Autoglue::CSharpGenerator
 )
