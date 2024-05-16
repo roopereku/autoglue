@@ -28,12 +28,12 @@ public:
 	/// Gets the referred type entity as an entity.
 	///
 	/// \return The referred type entity as an entity.
-	Entity& getReferred();
+	TypeEntity& getReferred();
 
 	/// Gets the referred type entity as a shared pointer.
 	///
 	/// \return The referred type entity as a shared pointer.
-	std::shared_ptr <Entity> getReferredPtr();
+	std::shared_ptr <TypeEntity> getReferredPtr();
 
 	/// Checks if this type reference refers to a class type.
 	///

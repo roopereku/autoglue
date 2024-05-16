@@ -28,13 +28,13 @@ TypeEntity::Type TypeReferenceEntity::getType()
 	return referred->getType();
 }
 
-Entity& TypeReferenceEntity::getReferred()
+TypeEntity& TypeReferenceEntity::getReferred()
 {
 	assert(referred);
 	return *referred;
 }
 
-std::shared_ptr <Entity> TypeReferenceEntity::getReferredPtr()
+std::shared_ptr <TypeEntity> TypeReferenceEntity::getReferredPtr()
 {
 	return referred;
 }
