@@ -86,6 +86,11 @@ public:
 	/// \return Depending on the implementation, true could be returned when an additional enclosure is generated.
 	bool generateReturnStatement(BindingGenerator& generator, bool asPOD);
 
+	/// Generates a call to the bridge function.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateBridgeCall(BindingGenerator& generator);
+
 	/// Generates the parameters type entities of this function.
 	/// This isn't called by FunctionEntity::generate as different
 	/// languages might want to handle parameters differently.

@@ -35,6 +35,7 @@ void BindingGenerator::generateBaseType(TypeEntity&, size_t) {}
 void BindingGenerator::generateNamedScope(ScopeEntity&) {}
 void BindingGenerator::generateArgumentSeparator() {}
 bool BindingGenerator::generateReturnStatement(TypeReferenceEntity&, FunctionEntity&) { return false; }
+void BindingGenerator::generateBridgeCall(FunctionEntity&) {}
 
 std::string_view BindingGenerator::getObjectHandleName()
 {

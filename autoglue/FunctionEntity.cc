@@ -104,6 +104,11 @@ bool FunctionEntity::generateReturnStatement(BindingGenerator& generator, bool a
 	return false;
 }
 
+void FunctionEntity::generateBridgeCall(BindingGenerator& generator)
+{
+	generator.generateBridgeCall(*this);
+}
+
 void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf)
 {
 	// If the self parameter should be included, export it for member functions and destructors.
