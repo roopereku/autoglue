@@ -13,7 +13,7 @@ Every entity inherits `ag::Entity` and has an entry in `ag::Entity::Type`. When 
 Entities should override the following functions from `ag::Entity`:
 
 - To give users easy access to the string representation of the entity type, `ag::Entity::getTypeString()` should be overridden.
-- To let `ag::BindingGenerator` generate any given entity without having to check its type, `ag::Entity::generate(ag::BindingGenerator&)` should be overridden. This will be invoked upon an entity being generated and an entity can call desired functions from `ag::BindingGenerator` through the passed object among other code that may be needed.
+- To let `ag::BindingGenerator` generate any given entity without having to check its type, `ag::Entity::onGenerate(ag::BindingGenerator&)` should be overridden. This will be invoked upon an entity being generated and an entity can call desired functions from `ag::BindingGenerator` through the passed object among other code that may be needed.
 
 ## Generators
 
