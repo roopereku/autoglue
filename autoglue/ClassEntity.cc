@@ -105,6 +105,14 @@ void ClassEntity::onFirstUse()
 		constructors->use();
 	}
 
+	// In order to clean up any allocated memory, make sure
+	// that the class destructors are used.
+	auto destructors = resolve("Destructor");
+	if(destructors)
+	{
+		destructors->use();
+	}
+
 	for(size_t i = 0; i < baseTypes.size(); i++)
 	{
 		if(!baseTypes[i].expired())

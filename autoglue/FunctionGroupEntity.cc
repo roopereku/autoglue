@@ -72,6 +72,13 @@ bool FunctionGroupEntity::hasName(std::string_view str)
 		return true;
 	}
 
+	// If this function group contains destructors, add an alias for
+	// them so that they can be more easily resolved.
+	else if(type == FunctionEntity::Type::Destructor && str == "Destructor")
+	{
+		return true;
+	}
+
 	return Entity::hasName(str);
 }
 
