@@ -121,6 +121,13 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 
 		case FunctionEntity::Type::Destructor:
 		{
+			// If this is a destructor for std::string_view, explicitly delete its data.
+			// This is because the string parameters for std::string_view are duplicated as described below.
+			if(entity.getParent().getHierarchy(".") == "std.basic_string_view_Character_char_traits_Character")
+			{
+				file << "delete static_cast <" << getSelfType(entity) << "*> (objectHandle)->data();\n";
+			}
+
 			file << "delete static_cast <" << getSelfType(entity) << "*> (objectHandle);\n}\n";
 
 			// Parameters aren't used for destructors.
@@ -142,6 +149,21 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 		}
 	}
 
+	// If this function is a constructor for std::string_view, the passed in strings
+	// should be duplicated in order for the string_view to be able to reference them.
+	// This has to be done because things like C#, Java and Python will destroy
+	// a passed in c-string as soon as they don't need it.
+	//
+	// This is a bit hacky because std::string_view is supposed to be a
+	// non-owning type, but what can you really do?
+	//
+	// TODO: Similiar things may need to be done for other referencing types?
+	if(entity.getType() == FunctionEntity::Type::Constructor &&
+		entity.getParent().getHierarchy(".") == "std.basic_string_view_Character_char_traits_Character")
+	{
+		duplicateString = true;
+	}
+
 	file << '(';
 	onlyParameterNames = true;
 	entity.generateParameters(*this, false, false);
@@ -153,6 +175,7 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 		file << ')';
 	}
 
+	duplicateString = false;
 	file << ";\n}\n\n";
 }
 
@@ -224,7 +247,7 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 				break;
 			}
 			
-			default:
+			case TypeEntity::Type::Primitive:
 			{
 				if(entity.isReference())
 				{
@@ -233,8 +256,21 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 						file << '*';
 					}
 
+					// If a string should be duplicated, pass it into stdup.
+					// NOTE: Since strings are pointers, they should be caught here.
+					if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
+					{
+						file << "strdup(";
+					}
+
 					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
 							 "*> (" << entity.getName() << ')';
+
+					// If strdup was called, close the function call.
+					if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
+					{
+						file << ")";
+					}
 				}
 
 				else

@@ -28,6 +28,10 @@ private:
 
 	std::ofstream file;
 	bool onlyParameterNames = false;
+
+	/// When a parameter is std::string_view, the string it refers to
+	/// needs to be duplicated in order for it to be retained.
+	bool duplicateString = false;
 };
 
 }
