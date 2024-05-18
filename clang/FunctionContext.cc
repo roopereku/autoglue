@@ -9,14 +9,18 @@ namespace ag::clang
 FunctionContext::FunctionContext(::clang::FunctionDecl* decl)
 	: EntityContext(Type::Function)
 {
-	// Make getAsString output "bool" instead of "_Bool".
+	// Make getAsString output "bool" instead of "_Bool" and ignore "class".
 	::clang::PrintingPolicy pp(::clang::LangOptions{});
+	pp.SuppressTagKeyword = 1;
 	pp.Bool = 1;
 
 	// If the given function is a member function, initialize the self type.
 	if(auto* cxxFunctionNode = ::clang::dyn_cast <::clang::CXXMethodDecl> (decl))
 	{
-		selfType = cxxFunctionNode->getThisType()->getPointeeType().getAsString(pp);
+		auto type = cxxFunctionNode->getThisType()->getPointeeType();
+		type = type.getUnqualifiedType();
+
+		selfType = type.getAsString(pp);
 	}
 
 	originalName = decl->getNameAsString();

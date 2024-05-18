@@ -8,8 +8,9 @@ namespace ag::clang
 TyperefContext::TyperefContext(::clang::QualType type)
 	: EntityContext(Type::Typeref)
 {
-	// Make getAsString output "bool" instead of "_Bool".
+	// Make getAsString output "bool" instead of "_Bool" and ignore "class".
 	::clang::PrintingPolicy pp(::clang::LangOptions{});
+	pp.SuppressTagKeyword = 1;
 	pp.Bool = 1;
 
 	if(type->isPointerType())

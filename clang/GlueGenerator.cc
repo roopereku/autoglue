@@ -138,8 +138,10 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 		{
 			closeParenthesis = entity.generateReturnStatement(*this, false);
 			auto ctx = getClangContext(entity.getGroup());
+			auto selfType = getSelfType(entity);
 			
-			file << "static_cast <" << getSelfType(entity) << "*> (objectHandle)->" << ctx->getFunctionContext()->getOriginalName();
+			file << "static_cast <" << selfType << "*> (objectHandle)->" <<
+					selfType << "::" << ctx->getFunctionContext()->getOriginalName();
 			break;
 		}
 
