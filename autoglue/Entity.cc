@@ -123,16 +123,16 @@ bool Entity::isGenerated()
 
 void Entity::use()
 {
+	if(parent)
+	{
+		parent->use();
+	}
+
 	usages++;
 
 	if(usages == 1)
 	{
 		onFirstUse();
-	}
-
-	if(parent)
-	{
-		parent->use();
 	}
 }
 
