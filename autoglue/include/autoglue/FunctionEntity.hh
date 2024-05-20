@@ -190,6 +190,14 @@ public:
 	/// \return A new function representing an override of this interface or nullptr.
 	std::shared_ptr <FunctionEntity> createInterfaceOverride();
 
+	/// Makes this function overload protected.
+	void setProtected();
+
+	/// Checks whether this function overload is protected.
+	///
+	/// \return True if this function overload is protected.
+	bool isProtected();
+
 	const char* getTypeString() override;
 
 private:
@@ -208,6 +216,7 @@ private:
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
 	size_t overloadIndex = 0;
+	bool protectedFunction = false;
 };
 
 }

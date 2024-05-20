@@ -258,6 +258,16 @@ std::shared_ptr <FunctionEntity> FunctionEntity::createInterfaceOverride()
 	return nullptr;
 }
 
+void FunctionEntity::setProtected()
+{
+	protectedFunction = true;
+}
+
+bool FunctionEntity::isProtected()
+{
+	return protectedFunction;
+}
+
 const char* FunctionEntity::getTypeString()
 {
 	return "Function";
