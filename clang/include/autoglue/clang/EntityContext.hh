@@ -9,7 +9,7 @@
 namespace ag::clang
 {
 
-class IncludeContext;
+class TypeContext;
 class TyperefContext;
 class FunctionContext;
 class OverloadContext;
@@ -20,17 +20,17 @@ public:
 	enum class Type
 	{
 		Typeref,
-		Include,
+		Type,
 		Function,
 		Overload
 	};
 
 	EntityContext(Type type);
 
-	/// Gets this Clang entity context as an include context.
+	/// Gets this Clang entity context as a type context.
 	/// 
-	/// \return This context as an include context.
-	std::shared_ptr <IncludeContext> getIncludeContext();
+	/// \return This context as a type context.
+	std::shared_ptr <TypeContext> getTypeContext();
 
 	/// Gets this Clang entity context as a typeref context.
 	/// 

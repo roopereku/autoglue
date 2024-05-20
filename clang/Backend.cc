@@ -1,5 +1,5 @@
 #include <autoglue/clang/Backend.hh>
-#include <autoglue/clang/IncludeContext.hh>
+#include <autoglue/clang/TypeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
 #include <autoglue/clang/FunctionContext.hh>
 #include <autoglue/clang/OverloadContext.hh>
@@ -27,6 +27,14 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+
+std::string toString(const llvm::APSInt& value)
+{
+	llvm::SmallVector<char, 20> valueStr;
+	value.toString(valueStr);
+
+	return std::string(valueStr.begin(), valueStr.end());
+}
 
 ag::FunctionEntity::Type getFunctionType(clang::FunctionDecl* decl)
 {
@@ -157,6 +165,71 @@ public:
 	}
 
 private:
+	void appendTemplateArgs(std::string& name, clang::NamedDecl* named, bool abstract)
+	{
+		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
+		{
+			// Make getAsString output "bool" instead of "_Bool" and ignore "class".
+			::clang::PrintingPolicy pp(::clang::LangOptions{});
+			pp.SuppressTagKeyword = 1;
+			pp.Bool = 1;
+
+			if(!abstract)
+			{
+				name += '<';
+			}
+
+			// Append all of the template arguments after the name.
+			const auto& args = templateDecl->getTemplateArgs();
+			for(size_t i = 0; i < args.size(); i++)
+			{
+				// Add a delimiter before any argument but the first.
+				if(i > 0)
+				{
+					name += (abstract ? '_' : ',');
+				}
+
+				switch(args[i].getKind())
+				{
+					case clang::TemplateArgument::ArgKind::Type:
+					{
+						auto type = args[i].getAsType();
+
+						if(abstract)
+						{
+							// TODO: Save other qualifiers like references and pointers to the abstract template name.
+							auto argType = resolveType(type);
+							name += argType ? argType->getName() : "invalidType";
+						}
+
+						else
+						{
+							name += type.getAsString(pp);
+						}
+
+						break;
+					}
+
+					case clang::TemplateArgument::ArgKind::Integral:
+					{
+						auto value = toString(args[i].getAsIntegral());
+						name += value;
+
+						break;
+					}
+
+					// TODO: Implement the rest.
+					default: {}
+				}
+			}
+
+			if(!abstract)
+			{
+				name += '>';
+			}
+		}
+	}
+
 	std::string getEntityName(clang::NamedDecl* named)
 	{
 		std::string name = named->getNameAsString();
@@ -180,31 +253,7 @@ private:
 			}
 		}
 
-		// If the node represents a template instantiation, it will have a different name.
-		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
-		{
-			// Append all of the template arguments after the name.
-			const auto& args = templateDecl->getTemplateArgs();
-			for(size_t i = 0; i < args.size(); i++)
-			{
-				if(args[i].getKind() == clang::TemplateArgument::ArgKind::Type)
-				{
-					// TODO: Save other qualifiers like references and pointers to the template name.
-					auto type = args[i].getAsType();
-					auto argType = resolveType(type);
-					if(argType)
-					{
-						name += '_' + argType->getName();
-					}
-
-					else
-					{
-						name += "_invalid";
-					}
-				}
-			}
-		}
-
+		appendTemplateArgs(name, named, true);
 		return name;
 	}
 
@@ -304,7 +353,7 @@ private:
 
 		if(!result)
 		{
-			bool shouldGetInclude = true;
+			bool shouldGetTypeInfo = true;
 
 			// Check if the declaration is a typedef.
 			if(auto* typedefNode = clang::dyn_cast <clang::TypedefNameDecl> (named))
@@ -324,14 +373,14 @@ private:
 			else if(auto* recordNode = clang::dyn_cast <clang::RecordDecl> (named))
 			{
 				parentEntity->addChild(std::make_shared <ag::ClassEntity> (name));
-				shouldGetInclude = false;
+				shouldGetTypeInfo = false;
 			}
 
 			// Check if the declaration is a namespace.
 			else if(auto* namespaceNode = clang::dyn_cast <clang::NamespaceDecl> (named))
 			{
 				parentEntity->addChild(std::make_shared <ag::ScopeEntity> (name));
-				shouldGetInclude = false;
+				shouldGetTypeInfo = false;
 			}
 
 			// Check if the declaration is a function.
@@ -343,7 +392,7 @@ private:
 				// When a function is handled by this function, a function group is added instead.
 				// Separate overloads will be added by ensureFunctionExists.
 				parentEntity->addChild(group);
-				shouldGetInclude = false;
+				shouldGetTypeInfo = false;
 			}
 
 			// Check if the declaration is an enum.
@@ -354,13 +403,9 @@ private:
 
 				for(auto value : enumNode->enumerators())
 				{
-					// Save the enum constant value to a string.
-					llvm::SmallVector<char, 20> valueStr;
-					value->getInitVal().toString(valueStr);
-
 					enumEntity->addEntry(std::make_shared <ag::EnumEntryEntity> (
 						value->getNameAsString(),
-						std::string(valueStr.begin(), valueStr.end())
+						toString(value->getInitVal())
 					));
 				}
 
@@ -377,9 +422,14 @@ private:
 			created = true;
 			result = parentEntity->resolve(name);
 
-			if(shouldGetInclude && result && isIncluded(named))
+			if(shouldGetTypeInfo && result && isIncluded(named))
 			{
-				result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(named)));
+				auto realName = named->getQualifiedNameAsString();
+				appendTemplateArgs(realName, named, false);
+
+				result->initializeContext(std::make_shared <ag::clang::TypeContext> (
+					getDeclInclusion(named), std::move(realName)
+				));
 			}
 		}
 
@@ -393,7 +443,13 @@ private:
 
 				if(def)
 				{
-					result->initializeContext(std::make_shared <ag::clang::IncludeContext> (getDeclInclusion(def)));
+					std::string className = def->getQualifiedNameAsString();
+					appendTemplateArgs(className, def, false);
+
+					result->initializeContext(std::make_shared <ag::clang::TypeContext> (
+						getDeclInclusion(def),
+						std::move(className)
+					));
 
 					if(auto* cxxDef = clang::dyn_cast <clang::CXXRecordDecl> (def))
 					{

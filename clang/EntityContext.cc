@@ -1,5 +1,5 @@
 #include <autoglue/clang/EntityContext.hh>
-#include <autoglue/clang/IncludeContext.hh>
+#include <autoglue/clang/TypeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
 #include <autoglue/clang/FunctionContext.hh>
 #include <autoglue/clang/OverloadContext.hh>
@@ -14,10 +14,10 @@ EntityContext::EntityContext(EntityContext::Type type)
 {
 }
 
-std::shared_ptr <IncludeContext> EntityContext::getIncludeContext()
+std::shared_ptr <TypeContext> EntityContext::getTypeContext()
 {
-	assert(type == Type::Include);
-	return std::static_pointer_cast <IncludeContext> (shared_from_this());
+	assert(type == Type::Type);
+	return std::static_pointer_cast <TypeContext> (shared_from_this());
 }
 
 std::shared_ptr <TyperefContext> EntityContext::getTyperefContext()
