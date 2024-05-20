@@ -2,6 +2,7 @@
 #include <autoglue/clang/IncludeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
 #include <autoglue/clang/FunctionContext.hh>
+#include <autoglue/clang/OverloadContext.hh>
 
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
@@ -465,11 +466,14 @@ private:
 			return;
 		}
 
-		// Only export public member functions.
-		// TODO: Export protected member functions for type extension.
-		if(clang::dyn_cast <clang::CXXMethodDecl> (decl) && decl->getAccess() != clang::AccessSpecifier::AS_public)
+		// Only export public and protected member functions.
+		if(auto* cxxDecl = clang::dyn_cast <clang::CXXMethodDecl> (decl))
 		{
-			return;
+			if(decl->getAccess() != clang::AccessSpecifier::AS_public &&
+				decl->getAccess() != clang::AccessSpecifier::AS_protected)
+			{
+				return;
+			}
 		}
 
 		// Don't export deleted functions as they cannot be called.
@@ -513,14 +517,25 @@ private:
 
 		// If this is a method in a C++ class, check if it overrides a base class method.
 		bool isOverride = false;
-		if(auto* cxxRecordNode = clang::dyn_cast <clang::CXXMethodDecl> (decl))
+
+		bool isProtected = false;
+
+		if(auto* cxxDecl = clang::dyn_cast <clang::CXXMethodDecl> (decl))
 		{
-			isOverride = cxxRecordNode->size_overridden_methods() > 0;
+			isOverride = cxxDecl->size_overridden_methods() > 0;
+			isProtected = cxxDecl->getAccess() == clang::AccessSpecifier::AS_protected;
 		}
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
 			std::move(returnEntity), decl->isVirtualAsWritten(), isOverride, decl->isPure()
 		);
+
+		entity->initializeContext(std::make_shared <ag::clang::OverloadContext> (decl));
+
+		if(isProtected)
+		{
+			entity->setProtected();
+		}
 
 		// If the function is an operator overload, check which one it is.
 		if(decl->isOverloadedOperator())

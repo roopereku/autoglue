@@ -2,6 +2,7 @@
 #include <autoglue/clang/IncludeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
 #include <autoglue/clang/FunctionContext.hh>
+#include <autoglue/clang/OverloadContext.hh>
 
 #include <cassert>
 
@@ -29,6 +30,12 @@ std::shared_ptr <FunctionContext> EntityContext::getFunctionContext()
 {
 	assert(type == Type::Function);
 	return std::static_pointer_cast <FunctionContext> (shared_from_this());
+}
+
+std::shared_ptr <OverloadContext> EntityContext::getOverloadContext()
+{
+	assert(type == Type::Overload);
+	return std::static_pointer_cast <OverloadContext> (shared_from_this());
 }
 
 }

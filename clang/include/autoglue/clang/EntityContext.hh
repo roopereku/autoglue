@@ -12,6 +12,7 @@ namespace ag::clang
 class IncludeContext;
 class TyperefContext;
 class FunctionContext;
+class OverloadContext;
 
 class EntityContext : public ag::EntityContext, public std::enable_shared_from_this <EntityContext>
 {
@@ -20,7 +21,8 @@ public:
 	{
 		Typeref,
 		Include,
-		Function
+		Function,
+		Overload
 	};
 
 	EntityContext(Type type);
@@ -39,6 +41,11 @@ public:
 	/// 
 	/// \return This context as a function context.
 	std::shared_ptr <FunctionContext> getFunctionContext();
+
+	/// Gets this Clang entity context as an overload context.
+	/// 
+	/// \return This context as an overload context.
+	std::shared_ptr <OverloadContext> getOverloadContext();
 
 private:
 	Type type;
