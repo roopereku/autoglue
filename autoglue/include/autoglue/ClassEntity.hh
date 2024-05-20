@@ -61,6 +61,13 @@ public:
 	/// Sets this class as abstract.
 	void setAbstract();
 
+	/// Generates a concrete type for this class if it is abstract.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateConcreteType(BindingGenerator& generator);
+
+	std::shared_ptr <ClassEntity> getConcreteType();
+
 	const char* getTypeString() override;
 
 private:
@@ -72,6 +79,8 @@ private:
 
 	bool abstract = false;
 	std::vector <std::weak_ptr <TypeEntity>> baseTypes;
+
+	std::shared_ptr <ClassEntity> concreteType;
 };
 
 }

@@ -1,6 +1,8 @@
 #include <autoglue/FunctionGroupEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
 
+#include <cassert>
+
 namespace ag
 {
 
@@ -13,6 +15,11 @@ void FunctionGroupEntity::addOverload(std::shared_ptr <FunctionEntity>&& overloa
 {
 	if(!findMatchingParameters(*overload))
 	{
+		if(overload->isInterface())
+		{
+			interfaces++;
+		}
+
 		overload->setOverloadIndex(children.size());
 		addChild(std::move(overload));
 	}
@@ -55,12 +62,38 @@ size_t FunctionGroupEntity::getOverloadCount()
 
 FunctionEntity& FunctionGroupEntity::getOverload(size_t index)
 {
+	assert(children[index]->getType() == Entity::Type::Function);
 	return static_cast <FunctionEntity&> (*children[index]);
 }
 
 FunctionEntity::Type FunctionGroupEntity::getType()
 {
 	return type;
+}
+
+std::shared_ptr <FunctionGroupEntity> FunctionGroupEntity::createInterfaceOverrides()
+{
+	if(!interfaces)
+	{
+		return nullptr;
+	}
+
+	auto group = std::make_shared <FunctionGroupEntity> (getName(), type);
+	group->initializeContext(getContext());
+
+	for(size_t i = 0; i < getOverloadCount(); i++)
+	{
+		auto& overload = getOverload(i);
+
+		if(overload.isInterface())
+		{
+			overload.use();
+			group->addChild(overload.createInterfaceOverride());
+		}
+	}
+	
+	group->use();
+	return group;
 }
 
 bool FunctionGroupEntity::hasName(std::string_view str)

@@ -121,6 +121,8 @@ protected:
 	/// This function is called when an entity is used for the first time.
 	virtual void onFirstUse();
 
+	void adoptEntity(Entity& entity);
+
 	const std::string name;
 	std::vector <std::shared_ptr <Entity>> children;
 

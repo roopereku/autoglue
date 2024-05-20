@@ -13,7 +13,9 @@ Entity::Entity(Type type, std::string_view name)
 
 void Entity::addChild(std::shared_ptr <Entity>&& child)
 {
-	child->parent = this;
+	assert(child);
+
+	adoptEntity(*child);
 	children.emplace_back(child);
 }
 
@@ -179,6 +181,11 @@ bool Entity::hasName(std::string_view str)
 
 void Entity::onFirstUse()
 {
+}
+
+void Entity::adoptEntity(Entity& entity)
+{
+	entity.parent = this;
 }
 
 }

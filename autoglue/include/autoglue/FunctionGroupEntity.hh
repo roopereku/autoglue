@@ -41,6 +41,13 @@ public:
 	/// \return The type of the contained functions.
 	FunctionEntity::Type getType();
 
+	/// Creates a new function group containing overrides for interface
+	/// functions found in this function group. This makes the interface
+	/// functions implicitly used.
+	///
+	/// \return A new function group containing the overrides or null if there are no interfaces.
+	std::shared_ptr <FunctionGroupEntity> createInterfaceOverrides();
+
 private:
 	/// Checks if this function group has the given name or
 	/// if it matches the given alias name.
@@ -53,6 +60,7 @@ private:
 	void onFirstUse() override;
 
 	FunctionEntity::Type type;
+	size_t interfaces = 0;
 };
 
 }

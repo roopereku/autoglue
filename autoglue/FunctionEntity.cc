@@ -43,14 +43,6 @@ std::string FunctionEntity::getHierarchy(const std::string& delimiter)
 
 void FunctionEntity::onGenerate(BindingGenerator& generator)
 {
-	// TODO: Until support code for type extensions are generated, don't generate
-	// constructors for abstract classes since they likely cannot be instantiated.
-	if(getType() == Type::Constructor &&
-		static_cast <ClassEntity&> (getParent()).isAbstract())
-	{
-		return;
-	}
-
 	generator.generateFunction(*this);
 }
 
@@ -247,6 +239,23 @@ bool FunctionEntity::overloadsCompoundOperator()
 void FunctionEntity::setOverloadIndex(size_t index)
 {
 	overloadIndex = index;
+}
+
+std::shared_ptr <FunctionEntity> FunctionEntity::createInterfaceOverride()
+{
+	if(interface)
+	{
+		auto ret = returnType;
+		auto functionOverride = std::make_shared <FunctionEntity> (*this);
+
+		functionOverride->overridable = false;
+		functionOverride->interface = false;
+		functionOverride->overrides = true;
+
+		return functionOverride;
+	}
+
+	return nullptr;
 }
 
 const char* FunctionEntity::getTypeString()

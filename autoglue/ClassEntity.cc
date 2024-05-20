@@ -1,5 +1,7 @@
 #include <autoglue/ClassEntity.hh>
 #include <autoglue/BindingGenerator.hh>
+#include <autoglue/FunctionGroupEntity.hh>
+#include <autoglue/TypeReferenceEntity.hh>
 
 #include <cassert>
 
@@ -120,6 +122,35 @@ void ClassEntity::onFirstUse()
 			baseTypes[i].lock()->use();
 		}
 	}
+
+	// If this class is abstract, create a new "concrete type".
+	// This is not stored in children in order for it to be generated
+	// only on demand.
+	if(abstract)
+	{
+		concreteType = std::make_shared <ClassEntity> ("ConcreteType");
+		adoptEntity(*concreteType);
+		
+		concreteType->addBaseType(shared_from_this());
+
+		// Collect new override function for any interface function that requires such.
+		// These will make the concrete type instantiable.
+		for(auto child : children)
+		{
+			if(child->getType() == Entity::Type::FunctionGroup)
+			{
+				auto& group = static_cast <FunctionGroupEntity&> (*child);
+				auto result = group.createInterfaceOverrides();
+
+				if(result)
+				{
+					concreteType->addNested(std::move(result));
+				}
+			}
+		}
+
+		concreteType->use();
+	}
 }
 
 bool ClassEntity::isAbstract()
@@ -130,6 +161,20 @@ bool ClassEntity::isAbstract()
 void ClassEntity::setAbstract()
 {
 	abstract = true;
+}
+
+void ClassEntity::generateConcreteType(BindingGenerator& generator)
+{
+	if(concreteType)
+	{
+		generator.generateClass(*concreteType);
+		concreteType->resetGenerated();
+	}
+}
+
+std::shared_ptr <ClassEntity> ClassEntity::getConcreteType()
+{
+	return concreteType;
 }
 
 const char* ClassEntity::getTypeString()
