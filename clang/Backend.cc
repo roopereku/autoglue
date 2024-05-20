@@ -213,8 +213,17 @@ private:
 					case clang::TemplateArgument::ArgKind::Integral:
 					{
 						auto value = toString(args[i].getAsIntegral());
-						name += value;
 
+						// In the case where a template literal is an enum type,
+						// cast it to the original format.
+						// TODO: It's also possible to find out the original enumeration name.
+						if(!abstract)
+						{
+							auto type = args[i].getIntegralType();
+							name += '(' + type.getAsString(pp) + ')';
+						}
+
+						name += value;
 						break;
 					}
 
