@@ -117,6 +117,7 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	file << "}\n";
 
 	entity.generateNested(*this);
+	entity.generateConcreteType(*this);
 
 	file << "}\n";
 
@@ -188,17 +189,20 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		return;
 	}
 
-	file << "[DllImport(\"" << libName << "\", CallingConvention = CallingConvention.Cdecl)]\n";
-	file << "private static extern ";
+	if(!entity.isInterface())
+	{
+		file << "[DllImport(\"" << libName << "\", CallingConvention = CallingConvention.Cdecl)]\n";
+		file << "private static extern ";
 
-	// Represent strings as IntPtr when returning from externed functions.
-	convertStringType = true;
-	entity.generateReturnType(*this, true);
-	convertStringType = false;
+		// Represent strings as IntPtr when returning from externed functions.
+		convertStringType = true;
+		entity.generateReturnType(*this, true);
+		convertStringType = false;
 
-	file << entity.getBridgeName() << '(';
-	entity.generateParameters(*this, true, true);
-	file << ");\n";
+		file << entity.getBridgeName() << '(';
+		entity.generateParameters(*this, true, true);
+		file << ");\n";
+	}
 
 	file << "public ";
 
@@ -208,14 +212,22 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		file << "new ";
 	}
 
-	if(entity.isOverridable())
+	if(entity.isInterface())
 	{
-		file << "virtual ";
+		file << "abstract ";
 	}
 
-	if(entity.isOverride())
+	else
 	{
-		file << "override ";
+		if(entity.isOverridable())
+		{
+			file << "virtual ";
+		}
+
+		if(entity.isOverride())
+		{
+			file << "override ";
+		}
 	}
 
 	if(entity.getType() == FunctionEntity::Type::Constructor)
@@ -231,6 +243,12 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	entity.generateParameters(*this, false, false);
 	file << ')';
+
+	if(entity.isInterface())
+	{
+		file << ";\n";
+		return;
+	}
 
 	if(entity.getType() != FunctionEntity::Type::Constructor)
 	{
@@ -428,15 +446,17 @@ bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, Func
 
 			case TypeEntity::Type::Class:
 			{
-				// TODO: Implement type extension.
 				if(entity.getClassType().isAbstract())
 				{
-					file << "return null;//";
-					return false;
+					file << "return new " << getTypeLocation(entity.getReferred()) << ".ConcreteType(";
+					return true;
 				}
 
-				file << "return new " << getTypeLocation(entity.getReferred()) << '(';
-				return true;
+				else
+				{
+					file << "return new " << getTypeLocation(entity.getReferred()) << '(';
+					return true;
+				}
 			}
 
 			case TypeEntity::Type::Enum:
