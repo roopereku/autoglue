@@ -2,7 +2,7 @@
 #define AUTOGLUE_CLANG_BACKEND_HH
 
 #include <autoglue/Backend.hh>
-#include <autoglue/TypeEntity.hh>
+#include <autoglue/ClassEntity.hh>
 #include <autoglue/ScopeEntity.hh>
 #include <autoglue/FunctionEntity.hh>
 
@@ -21,6 +21,8 @@ public:
 	std::string getInclusion(const std::string& path);
 
 private:
+	void disableUntrivialNew(ClassEntity& entity);
+
 	std::unique_ptr <::clang::tooling::JSONCompilationDatabase> database;
 	std::vector <std::string> includePaths;
 };

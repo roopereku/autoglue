@@ -27,6 +27,12 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <set>
+
+// Holds class entitites which have an untrivial new operator.
+// At the end of the hierarchy generation, the constructors and destructors
+// of these classes and classes deriving them will be disabled.
+static std::set <std::shared_ptr <ag::ClassEntity>> untrivialNew;
 
 std::string toString(const llvm::APSInt& value)
 {
@@ -524,6 +530,32 @@ private:
 
 	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
 	{
+		// If this function is an overload of the "new" operator which has more than 1 argument,
+		// the bridge functions will be unable to instantiate an object with new.
+		if(decl->getOverloadedOperator() == clang::OverloadedOperatorKind::OO_New &&
+			decl->getNumParams() > 1)
+		{
+			auto group = ensureEntityExists(decl);
+
+			if(group)
+			{
+				// TODO: If an overload of operator "new" with a single argument is found, it's probably
+				// fine to remove the containing class from untrivialNew because that class and its
+				// derivatives would become trivially instantiable with "new".
+
+				// Only if the overload happens inside a class, remember the class for later.
+				if(group->getParent().getType() == ag::Entity::Type::Type &&
+					static_cast <ag::TypeEntity&> (group->getParent()).getType() == ag::TypeEntity::Type::Class)
+				{
+					untrivialNew.emplace(static_cast <ag::ClassEntity&> (group->getParent()).shared_from_this());
+				}
+
+			}
+
+			// Operator "new" shouldn't be exported anyways.
+			return;
+		}
+
 		// Only export functions that are included. This is done to only expose functions
 		// that users would gain access to through a header inclusion.
 		if(!isIncluded(decl))
@@ -872,7 +904,42 @@ bool Backend::generateHierarchy()
 	// TODO: Do this only when explicitly specified by user.
 	tool.appendArgumentsAdjuster(::clang::tooling::getInsertArgumentAdjuster("-I/lib/clang/17/include/"));
 
-	return tool.run(std::make_unique <HierarchyGeneratorFactory> (*this).get()) == 0;
+	bool result = tool.run(std::make_unique <HierarchyGeneratorFactory> (*this).get()) == 0;
+
+	if(result)
+	{
+		for(auto entity : untrivialNew)
+		{
+			disableUntrivialNew(*entity);
+		}
+	}
+
+	untrivialNew.clear();
+	return result;
+}
+
+void Backend::disableUntrivialNew(ClassEntity& entity)
+{
+	// Disable constructors for classes that can't be trivially constrcucted with new
+	auto constructors = entity.resolve("Constructor");
+	if(constructors)
+	{
+		constructors->disableNewUsages();
+	}
+
+	// Since constructors are disabled, disable constructors when there is nothing deallocate.
+	auto destructors = entity.resolve("Destructor");
+	if(destructors)
+	{
+		destructors->disableNewUsages();
+	}
+
+	// Do this for every derived class since they also inherit the untrivial "new" overload.
+	// TODO: In case some derived class reverts this, constructors and destructors can be generated for that.
+	for(size_t i = 0; i < entity.getDerivedCount(); i++)
+	{
+		disableUntrivialNew(entity.getDerived(i));
+	}
 }
 
 }
