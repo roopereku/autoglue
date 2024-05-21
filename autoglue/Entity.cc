@@ -125,6 +125,11 @@ bool Entity::isGenerated()
 
 void Entity::use()
 {
+	if(preventUsage)
+	{
+		return;
+	}
+
 	if(parent)
 	{
 		parent->use();
@@ -156,6 +161,11 @@ Entity::Type Entity::getType()
 unsigned Entity::getUsages()
 {
 	return usages;
+}
+
+void Entity::disableNewUsages()
+{
+	preventUsage = true;
 }
 
 void Entity::list(unsigned depth)

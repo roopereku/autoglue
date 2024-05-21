@@ -103,6 +103,9 @@ public:
 	/// \return The count of usages.
 	unsigned getUsages();
 
+	/// Disables any new usages.
+	void disableNewUsages();
+
 	virtual const char* getTypeString() = 0;
 
 	void list(unsigned depth = 1);
@@ -128,6 +131,8 @@ protected:
 
 private:
 	unsigned usages = 0;
+	bool preventUsage = false;
+
 	bool generated = false;
 	Entity* parent = nullptr;
 
