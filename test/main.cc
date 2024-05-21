@@ -6,6 +6,8 @@
 
 #include <autoglue/java/BindingGenerator.hh>
 
+#include <autoglue/csharp/BindingGenerator.hh>
+
 #include <cassert>
 
 int main(int argc, char** argv)
@@ -35,4 +37,8 @@ int main(int argc, char** argv)
 	// Export bindings for Java.
 	ag::java::BindingGenerator javaGen(clangBackend, "org");
 	javaGen.generateBindings();
+
+	// Export bindings for C#.
+	ag::csharp::BindingGenerator csGen(clangBackend, "libcppglue.so");
+	csGen.generateBindings();
 }
