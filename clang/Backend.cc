@@ -339,6 +339,11 @@ private:
 			return backend.getRootPtr();
 		}
 
+		if(!isIncluded(named))
+		{
+			return nullptr;
+		}
+
 		std::shared_ptr <ag::Entity> parentEntity = backend.getRootPtr();
 
 		// If the parent node of this declaration is another declaration, make sure that it exists.
