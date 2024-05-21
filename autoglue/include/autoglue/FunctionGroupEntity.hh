@@ -48,6 +48,11 @@ public:
 	/// \return A new function group containing the overrides or null if there are no interfaces.
 	std::shared_ptr <FunctionGroupEntity> createInterfaceOverrides();
 
+	/// Appends the overloads of the given function group to this group.
+	///
+	/// \param group The group to get overloads from.
+	void appendOverloads(std::shared_ptr <FunctionGroupEntity> group);
+
 private:
 	/// Checks if this function group has the given name or
 	/// if it matches the given alias name.

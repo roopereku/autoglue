@@ -96,6 +96,15 @@ std::shared_ptr <FunctionGroupEntity> FunctionGroupEntity::createInterfaceOverri
 	return group;
 }
 
+void FunctionGroupEntity::appendOverloads(std::shared_ptr <FunctionGroupEntity> group)
+{
+	for(auto& overload : group->children)
+	{
+		assert(overload->getType() == Entity::Type::Function);
+		addOverload(std::static_pointer_cast <FunctionEntity> (overload));
+	}
+}
+
 bool FunctionGroupEntity::hasName(std::string_view str)
 {
 	// If this function group contains constructors, add an alias for

@@ -154,22 +154,7 @@ void ClassEntity::onFirstUse()
 		
 		concreteType->addBaseType(shared_from_this());
 
-		// Collect new override function for any interface function that requires such.
-		// These will make the concrete type instantiable.
-		for(auto child : children)
-		{
-			if(child->getType() == Entity::Type::FunctionGroup)
-			{
-				auto& group = static_cast <FunctionGroupEntity&> (*child);
-				auto result = group.createInterfaceOverrides();
-
-				if(result)
-				{
-					concreteType->addNested(std::move(result));
-				}
-			}
-		}
-
+		addInterfaceOverridesToConcrete(concreteType);
 		concreteType->use();
 	}
 }
@@ -201,6 +186,63 @@ std::shared_ptr <ClassEntity> ClassEntity::getConcreteType()
 const char* ClassEntity::getTypeString()
 {
 	return "Class";
+}
+
+void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
+{
+	// Collect new override function for any interface function that requires such.
+	// These will make the concrete type instantiable.
+	for(auto child : children)
+	{
+		if(child->getType() == Entity::Type::FunctionGroup)
+		{
+			auto& group = static_cast <FunctionGroupEntity&> (*child);
+			auto result = group.createInterfaceOverrides();
+
+			if(result)
+			{
+				auto overrideGroup = concrete->resolve(group.getName());
+
+				// If there already was a function group for the overrides,
+				// append the result to it.
+				if(overrideGroup)
+				{
+					assert(overrideGroup->getType() == Entity::Type::FunctionGroup);
+					std::static_pointer_cast <FunctionGroupEntity> (overrideGroup)->appendOverloads(result);
+				}
+
+				// Add a new group if there wasn't one yet.
+				else
+				{
+					concrete->addNested(std::move(result));
+				}
+			}
+		}
+	}
+
+	// In case a derived class doesn't implement an interface, collect
+	// overrides for interfaces found in base classes.
+	for(auto weakBase : baseTypes)
+	{
+		if(!weakBase.expired())
+		{
+			auto base = weakBase.lock();
+
+			// If the base type is an alias, use the underlying type instead.
+			if(base->getType() == Type::Alias)
+			{
+				base = std::static_pointer_cast <TypeAliasEntity> (base)->getUnderlying(true);
+				assert(base);
+			}
+
+			// Only if the base type is a class, add overrides for its interfaces
+			// to the given concrete type.
+			if(base->getType() == Type::Class)
+			{
+				std::static_pointer_cast <ClassEntity> (base)->addInterfaceOverridesToConcrete(concrete);
+			}
+		}
+	}
 }
 
 }
