@@ -48,6 +48,17 @@ public:
 	/// \return The base type at the given index.
 	TypeEntity& getBaseType(size_t index);
 
+	/// Gets the amount of classes that derive from this class.
+	///
+	/// \return The amount of classes that derive from this class.
+	size_t getDerivedCount();
+
+	/// Gets the nth derived class.
+	///
+	/// \param The index of the desired derived class.
+	/// \return The derived class at the given index.
+	ClassEntity& getDerived(size_t index);
+
 	/// Generates the nested entities within this class.
 	///
 	/// \param generator The BindingGenerator to call functions from.
@@ -79,6 +90,7 @@ private:
 
 	bool abstract = false;
 	std::vector <std::weak_ptr <TypeEntity>> baseTypes;
+	std::vector <std::weak_ptr <ClassEntity>> derivedClasses;
 
 	std::shared_ptr <ClassEntity> concreteType;
 };

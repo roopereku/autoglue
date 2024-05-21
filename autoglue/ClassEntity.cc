@@ -35,6 +35,14 @@ void ClassEntity::addBaseType(std::shared_ptr <TypeEntity> base)
 	}
 
 	baseTypes.emplace_back(base);
+
+	// If the base type is a class, tell it that this class derives it.
+	if(base->getType() == Type::Class)
+	{
+		std::static_pointer_cast <ClassEntity> (base)->derivedClasses.emplace_back(
+			shared_from_this()
+		);
+	}
 }
 
 void ClassEntity::generateBaseTypes(BindingGenerator& generator)
@@ -79,6 +87,19 @@ TypeEntity& ClassEntity::getBaseType(size_t index)
 	assert(!weak.expired());
 
 	return *weak.lock();
+}
+
+size_t ClassEntity::getDerivedCount()
+{
+	return derivedClasses.size();
+}
+
+ClassEntity& ClassEntity::getDerived(size_t index)
+{
+	assert(index < derivedClasses.size());
+	assert(!derivedClasses[index].expired());
+
+	return *derivedClasses[index].lock();
 }
 
 void ClassEntity::generateNested(BindingGenerator& generator)
