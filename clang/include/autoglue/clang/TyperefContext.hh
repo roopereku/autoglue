@@ -20,9 +20,11 @@ public:
 	bool isConst();
 
 	const std::string& getWrittenType();
+	const std::string& getOriginalType();
 
 private:
 	std::string writtenType;
+	std::string originalType;
 
 	bool rvalueReference;
 	bool pointer;

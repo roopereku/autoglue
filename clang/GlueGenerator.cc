@@ -1,9 +1,10 @@
 #include <autoglue/clang/GlueGenerator.hh>
 #include <autoglue/clang/Backend.hh>
 #include <autoglue/clang/EntityContext.hh>
-#include <autoglue/clang/IncludeContext.hh>
+#include <autoglue/clang/TypeContext.hh>
 #include <autoglue/clang/TyperefContext.hh>
 #include <autoglue/clang/FunctionContext.hh>
+#include <autoglue/clang/OverloadContext.hh>
 
 #include <autoglue/TypeReferenceEntity.hh>
 #include <autoglue/FunctionGroupEntity.hh>
@@ -25,6 +26,51 @@ static std::shared_ptr <EntityContext> getClangContext(const Entity& entity)
 	return nullptr;
 }
 
+static bool stringNeedsDuplication(FunctionEntity& entity)
+{
+	// If this function is a constructor for std::string_view, the passed in strings
+	// should be duplicated in order for the string_view to be able to reference them.
+	// This has to be done because things like C#, Java and Python will destroy
+	// a passed in c-string as soon as they don't need it.
+	//
+	// This is a bit hacky because std::string_view is supposed to be a
+	// non-owning type, but what can you really do?
+	//
+	// TODO: Similiar things may need to be done for other referencing types?
+	assert(entity.getType() == FunctionEntity::Type::Constructor ||
+			entity.getType() == FunctionEntity::Type::Destructor);
+
+	auto ctx = getClangContext(entity.getParent());
+	return ctx && ctx->getTypeContext()->getRealName() == "std::basic_string_view<char,std::char_traits<char>>";
+}
+
+static std::string getSelfType(FunctionEntity& entity)
+{
+	// If this function was originally a C++ function, the backend should've initialized
+	// a typeref context for the function group. This context would contain the full
+	// type (including templates) of the "this type" for the function.
+	//
+	// If the context isn't present, just use the location provided by the hierarchy.
+	auto ctx = getClangContext(entity.getGroup());
+	return ctx ? std::string(ctx->getFunctionContext()->getSelfType()) : entity.getParent().getHierarchy("::");
+
+}
+
+void generateTypePOD(std::ofstream& file, TypeReferenceEntity& entity)
+{
+	switch(entity.getPrimitiveType().getType())
+	{
+		case PrimitiveEntity::Type::String: file << "const char *"; break;
+		case PrimitiveEntity::Type::ObjectHandle: file << "void*"; break;
+		case PrimitiveEntity::Type::Character: file << "char"; break;
+		case PrimitiveEntity::Type::Double: file << "double"; break;
+		case PrimitiveEntity::Type::Boolean: file << "bool"; break;
+		case PrimitiveEntity::Type::Float: file << "float"; break;
+		case PrimitiveEntity::Type::Integer: file << "int"; break;
+		case PrimitiveEntity::Type::Void: file << "void"; break;
+	}
+}
+
 class IncludeCollector : public BindingGenerator
 {
 public:
@@ -43,7 +89,7 @@ public:
 		auto ctx = getClangContext(entity);
 		if(ctx)
 		{
-			addInclude(ctx->getIncludeContext()->getInclude());
+			addInclude(ctx->getTypeContext()->getInclude());
 		}
 
 		entity.generateNested(*this);
@@ -62,7 +108,7 @@ public:
 			auto ctx = getClangContext(entity.getReferred());
 			if(ctx)
 			{
-				includes.emplace("#include <" + ctx->getIncludeContext()->getInclude() + ">");
+				includes.emplace("#include <" + ctx->getTypeContext()->getInclude() + ">");
 			}
 		}
 	}
@@ -78,6 +124,401 @@ public:
 	std::set <std::string> includes;
 };
 
+class ClassGenerator : public ag::BindingGenerator
+{
+public:
+	ClassGenerator(Backend& backend, std::ofstream& file)
+		: BindingGenerator(backend), file(file)
+	{
+	}
+
+	void generateNamedScope(ScopeEntity& entity) override
+	{
+		file << "namespace AG_" << entity.getName() << "\n{\n";
+		entity.generateNested(*this);
+		file << "}\n";
+	}
+
+	void generateClass(ClassEntity& entity) override
+	{
+		if(!inOverride)
+		{
+			file << "struct " << "AG_" << entity.getName();
+
+			auto ctx = getClangContext(entity);
+			if(ctx)
+			{
+				file << " : public " << ctx->getTypeContext()->getRealName();
+			}
+
+			file << "\n{\n";
+		}
+
+		auto constructors = entity.resolve("Constructor");
+		if(constructors)
+		{
+			inOverride = true;
+			constructors->generate(*this);
+			constructors->resetGenerated();
+			inOverride = false;
+		}
+
+		if(!inOverride)
+		{
+			inOverride = true;
+			entity.generateConcreteType(*this);
+			inOverride = false;
+		}
+
+		inBridge = true;
+		entity.generateNested(*this);
+		inBridge = false;
+
+		if(!inOverride)
+		{
+			file << "};\n\n";
+		}
+	}
+
+	void generateFunction(FunctionEntity& entity) override
+	{
+		if(entity.isInterface())
+		{
+			return;
+		}
+
+		if(inOverride)
+		{
+			if(entity.getType() == FunctionEntity::Type::Constructor)
+			{
+				file << "AG_" + entity.getParent().getName() << '(';
+				entity.generateParameters(*this, false, false);
+				file << ')';
+
+				auto baseCtx = getClangContext(entity.getParent());
+				if(baseCtx)
+				{
+					file << " : " << baseCtx->getTypeContext()->getRealName() << '(';
+
+					onlyParameterNames = true;
+					entity.generateParameters(*this, false, false);
+					onlyParameterNames = false;
+
+					file << ')';
+				}
+
+				file << "\n{\n";
+				file << "}\n";
+			}
+
+			else if(entity.getType() == FunctionEntity::Type::MemberFunction)
+			{
+				auto ctx = getClangContext(entity);
+
+				entity.generateReturnType(*this, false);
+				file << entity.getName() << '(';
+				entity.generateParameters(*this, false, false);
+				file << ") " << ctx->getOverloadContext()->getEastQualifiers() << "override\n{\n";
+
+				file << "}\n";
+			}
+		}
+
+		else if(inBridge)
+		{
+			file << "static ";
+			entity.generateReturnType(*this, true);
+			file << entity.getBridgeName(true) << '(';
+			entity.generateParameters(*this, true, true);
+			file << ")\n{\n    ";
+
+			bool closeParenthesis = entity.generateReturnStatement(*this, false);
+
+			entity.generateBridgeCall(*this);
+
+			if(closeParenthesis)
+			{
+				file << ')';
+			}
+
+			file << ";\n}\n";
+		}
+	}
+
+	void generateBridgeCall(FunctionEntity& entity) override
+	{
+		switch(entity.getType())
+		{
+			case FunctionEntity::Type::MemberFunction:
+			{
+				file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
+						getObjectHandleName() << ")->" << getSelfType(entity) <<
+						"::" << entity.getName() << '(';
+
+				onlyParameterNames = true;
+				entity.generateParameters(*this, false, false);
+				onlyParameterNames = false;
+
+				file << ')';
+				break;
+			}
+
+			case FunctionEntity::Type::Constructor:
+			{
+				file <<  "AG_" + entity.getParent().getHierarchy("::AG_") << '(';
+
+				duplicateString = stringNeedsDuplication(entity);
+
+				onlyParameterNames = true;
+				castPrimitives = true;
+				entity.generateParameters(*this, false, false);
+				onlyParameterNames = false;
+				castPrimitives = false;
+
+				duplicateString = false;
+
+				file << ')';
+				break;
+			}
+
+			case FunctionEntity::Type::Destructor:
+			{
+				// If strdup was called for a std::string_view parameter, delete the duplicated string.
+				if(stringNeedsDuplication(entity))
+				{
+					file << "free(const_cast <char*> (static_cast <AG_" << entity.getParent().getHierarchy("::AG_") <<
+							"*> (" << getObjectHandleName() << ")->data()));\n";
+				}
+
+				file << "delete static_cast <AG_" << entity.getParent().getHierarchy("::AG_") <<
+						"*> (" << getObjectHandleName() << ')';
+
+				break;
+			}
+
+			case FunctionEntity::Type::Function:
+			{
+				// Nothing is generated in-class for a non-class method.
+				break;
+			}
+		}
+	}
+
+	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override
+	{
+		if(inBridge)
+		{
+			switch(entity.getType())
+			{
+				case TypeEntity::Type::Class:
+				{
+					// Allocate nothing when returning references.
+					if(entity.isReference())
+					{
+						auto ctx = getClangContext(entity);
+						assert(ctx);
+
+						// If the returned reference object is not a pointer, take its address.
+						if(!ctx->getTyperefContext()->isPointer())
+						{
+							file << '&';
+						}
+
+						return false;
+					}
+
+					// TODO: What if the "operator new" is protected and new is invoked
+					// and this class has no access to it (Class of different type).
+					file << "return new ";
+
+					if(target.getType() != FunctionEntity::Type::Constructor)
+					{
+						auto ctx = getClangContext(entity);
+						assert(ctx);
+
+						// If a non-constructor function is returning a non-reference object,
+						// allocate and return a new copy of it.
+						file << ctx->getTyperefContext()->getWrittenType() << '(';
+						return true;
+					}
+
+					return false;
+				}
+
+				case TypeEntity::Type::Enum:
+				{
+					// TODO: Use whatever integral format the enum has specified.
+					file << "return static_cast <int> (";
+					return true;
+				}
+
+				case TypeEntity::Type::Primitive:
+				{
+					file << "return ";
+					return false;
+				}
+
+				case TypeEntity::Type::Alias:
+				{
+					TypeReferenceEntity underlying("", entity.getAliasType().getUnderlying(true), entity.isReference());
+					underlying.initializeContext(entity.getContext());
+					return generateReturnStatement(underlying, target);
+				}
+			}
+		}
+
+		return false;
+	}
+
+	void generateTypeReference(TypeReferenceEntity& entity) override
+	{
+		// Type names and reference names.
+		if(!onlyParameterNames)
+		{
+			if(inOverride)
+			{
+				auto ctx = getClangContext(entity);
+				assert(ctx);
+
+				file << ctx->getTyperefContext()->getOriginalType();
+			}
+
+			else if(inBridge)
+			{
+				assert(entity.isPrimitive());
+				generateTypePOD(file, entity);
+			}
+
+			file << ' ' << entity.getName();
+		}
+
+		// Parameters passed in override functions.
+		else if(inOverride)
+		{
+			auto ctx = getClangContext(entity);
+			assert(ctx);
+
+			if(ctx->getTyperefContext()->isRValueReference())
+			{
+				file << "std::move(" << entity.getName() << ')';
+			}	
+
+			else
+			{
+				file << entity.getName();
+			}
+		}
+
+		// Parameters passed in bridge functions.
+		else if(inBridge)
+		{
+			switch(entity.getType())
+			{
+				case TypeEntity::Type::Class:
+				{
+					auto ctx = getClangContext(entity);
+					assert(ctx);
+
+					bool closeParenthesis = false;
+					if(ctx->getTyperefContext()->isRValueReference())
+					{
+						file << "std::move(";
+						closeParenthesis = true;
+					}
+
+					// If the class type parameter isn't a reference or a pointer, dereference it.
+					if(!entity.isReference() || !ctx->getTyperefContext()->isPointer())
+					{
+						file << '*';
+					}
+
+					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
+							"*> (" << entity.getName() << ')';
+
+					if(closeParenthesis)
+					{
+						file << ')';
+					}
+
+					break;
+				}
+
+				case TypeEntity::Type::Enum:
+				{
+					auto ctx = getClangContext(entity);
+					assert(ctx);
+
+					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
+							"> (" << entity.getName() << ')';
+
+					break;
+				}
+
+				case TypeEntity::Type::Primitive:
+				{
+					bool closeParenthesis = false;
+
+					// If a string should be duplicated, pass it into stdup.
+					if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
+					{
+						file << "strdup(";
+						closeParenthesis = true;
+					}
+
+					if(castPrimitives)
+					{
+						auto ctx = getClangContext(entity);
+						assert(ctx);
+
+						file << "static_cast <" << ctx->getTyperefContext()->getOriginalType() <<
+								"> (" << entity.getName() << ')';
+					}
+
+					else
+					{
+						file << entity.getName();
+					}
+
+					if(closeParenthesis)
+					{
+						file << ')';
+					}
+
+					break;
+				}
+
+				case TypeEntity::Type::Alias:
+				{
+					TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
+					underlying.initializeContext(entity.getContext());
+					generateTypeReference(underlying);
+
+					break;
+				}
+			}
+		}
+	}
+
+	void generateArgumentSeparator() override
+	{
+		file << ", ";
+	}
+
+	std::string_view getObjectHandleName() override
+	{
+		return "objectHandle";
+	}
+
+private:
+	std::ofstream& file;
+
+	bool inBridge = false;
+	bool inOverride = false;
+	bool onlyParameterNames = false;
+	bool castPrimitives = false;
+	bool duplicateString = false;
+};
+
 GlueGenerator::GlueGenerator(Backend& backend)
 	: BindingGenerator(backend), file("glue.cpp")
 {
@@ -88,20 +529,21 @@ GlueGenerator::GlueGenerator(Backend& backend)
 	{
 		file << include << '\n';
 	}
+
+	ClassGenerator classGen(backend, file);
+	classGen.generateBindings();
 }
 
 void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
+	if(entity.isInterface())
+	{
+		return;
+	}
+
 	file << "extern \"C\"\n";
 	auto returnType = entity.getReturnType();
 	auto returnCtx = getClangContext(returnType);
-
-	// In case the return type of a function is const, mark the bridge function
-	// const to make C++ happy. This shouldn't affect foreign languages in any way.
-	if(returnCtx && returnCtx->getTyperefContext()->isConst())
-	{
-		file << "const ";
-	}
 
 	entity.generateReturnType(*this, true);
 	file << entity.getBridgeName() << "(";
@@ -109,75 +551,9 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 	entity.generateParameters(*this, true, true);
 	file << ")\n{\n";
 
-	bool closeParenthesis = false;
+	entity.generateReturnStatement(*this, true);
+	entity.generateBridgeCall(*this);
 
-	switch(entity.getType())
-	{
-		case FunctionEntity::Type::Constructor:
-		{
-			file << "return new " << getSelfType(entity);
-			break;
-		}
-
-		case FunctionEntity::Type::Destructor:
-		{
-			// If this is a destructor for std::string_view, explicitly delete its data.
-			// This is because the string parameters for std::string_view are duplicated as described below.
-			if(entity.getParent().getHierarchy(".") == "std.basic_string_view_Character_char_traits_Character")
-			{
-				file << "delete static_cast <" << getSelfType(entity) << "*> (objectHandle)->data();\n";
-			}
-
-			file << "delete static_cast <" << getSelfType(entity) << "*> (objectHandle);\n}\n";
-
-			// Parameters aren't used for destructors.
-			return;
-		}
-
-		case FunctionEntity::Type::MemberFunction:
-		{
-			closeParenthesis = entity.generateReturnStatement(*this, false);
-			auto ctx = getClangContext(entity.getGroup());
-			auto selfType = getSelfType(entity);
-			
-			file << "static_cast <" << selfType << "*> (objectHandle)->" <<
-					selfType << "::" << ctx->getFunctionContext()->getOriginalName();
-			break;
-		}
-
-		case FunctionEntity::Type::Function:
-		{
-			break;
-		}
-	}
-
-	// If this function is a constructor for std::string_view, the passed in strings
-	// should be duplicated in order for the string_view to be able to reference them.
-	// This has to be done because things like C#, Java and Python will destroy
-	// a passed in c-string as soon as they don't need it.
-	//
-	// This is a bit hacky because std::string_view is supposed to be a
-	// non-owning type, but what can you really do?
-	//
-	// TODO: Similiar things may need to be done for other referencing types?
-	if(entity.getType() == FunctionEntity::Type::Constructor &&
-		entity.getParent().getHierarchy(".") == "std.basic_string_view_Character_char_traits_Character")
-	{
-		duplicateString = true;
-	}
-
-	file << '(';
-	onlyParameterNames = true;
-	entity.generateParameters(*this, false, false);
-	onlyParameterNames = false;
-	file << ")";
-
-	if(closeParenthesis)
-	{
-		file << ')';
-	}
-
-	duplicateString = false;
 	file << ";\n}\n\n";
 }
 
@@ -188,7 +564,7 @@ void GlueGenerator::generateNamedScope(ScopeEntity& entity)
 
 void GlueGenerator::generateClass(ClassEntity& entity)
 {
-	file << "// ---------- Class " << entity.getHierarchy("::") << " ----------\n\n";
+	file << "// ---------- Class " << entity.getHierarchy("::") << " : " << " ----------\n\n";
 	entity.generateNested(*this);
 }
 
@@ -196,126 +572,13 @@ void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
-		//std::cerr << "Passing param " << entity.getName() << ": " << entity.getReferred().getHierarchy() << " -> " << entity.getReferred().getTypeString() << '\n';
-
-		auto ctx = getClangContext(entity);
-		bool closeParenthesis = false;
-
-		if(ctx && ctx->getTyperefContext()->isRValueReference())
-		{
-			// TODO: Include <utility> in IncludeCollector.
-			file << "std::move(";
-			closeParenthesis = true;
-		}
-
-		switch(entity.getType())
-		{
-			case TypeEntity::Type::Alias:
-			{
-				assert(ctx);
-
-				// Because a type alias can point to any sort of type, call this function
-				// recursively with the underlying type. Doing so will write the underlying type
-				// in the appropriate way depending on what the type is.
-				// In case the context is needed, copy it to the new type reference.
-				TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
-				underlying.initializeContext(std::move(ctx));
-				generateTypeReference(underlying);
-
-				break;
-			}
-
-			case TypeEntity::Type::Class:
-			{
-				assert(ctx);
-
-				if(!ctx->getTyperefContext()->isPointer())
-				{
-					file << '*';
-				}
-
-				// Since class instances are void*, cast them to the appropriate pointer
-				// type and dereference them to get an lvalue reference.
-				file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
-						 "*> (" << entity.getName() << ')';
-				break;
-			}
-
-			case TypeEntity::Type::Enum:
-			{
-				// Cast enum types from integers to the appropriate enum type.
-				file << "static_cast <" << entity.getReferred().getHierarchy("::") <<
-						 "> (" << entity.getName() << ')';
-				break;
-			}
-			
-			case TypeEntity::Type::Primitive:
-			{
-				if(entity.isReference())
-				{
-					if(!ctx->getTyperefContext()->isPointer())
-					{
-						file << '*';
-					}
-
-					// If a string should be duplicated, pass it into stdup.
-					// NOTE: Since strings are pointers, they should be caught here.
-					if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
-					{
-						file << "strdup(";
-					}
-
-					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
-							 "*> (" << entity.getName() << ')';
-
-					// If strdup was called, close the function call.
-					if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
-					{
-						file << ")";
-					}
-				}
-
-				else
-				{
-					file << entity.getName();
-				}
-
-				break;
-			}
-		}
-
-		if(closeParenthesis)
-		{
-			file << ')';
-		}
+		file << entity.getName();
 	}
 
 	else
 	{
-
-		const char* typeName = "";
-
-		if(entity.isReference())
-		{
-			typeName = "void*";
-		}
-
-		else
-		{
-			switch(entity.getPrimitiveType().getType())
-			{
-				case PrimitiveEntity::Type::String: typeName = "const char *"; break;
-				case PrimitiveEntity::Type::ObjectHandle: typeName = "void*"; break;
-				case PrimitiveEntity::Type::Character: typeName = "char"; break;
-				case PrimitiveEntity::Type::Double: typeName = "double"; break;
-				case PrimitiveEntity::Type::Boolean: typeName = "bool"; break;
-				case PrimitiveEntity::Type::Float: typeName = "float"; break;
-				case PrimitiveEntity::Type::Integer: typeName = "int"; break;
-				case PrimitiveEntity::Type::Void: typeName = "void"; break;
-			}
-		}
-
-		file << typeName << ' ' << entity.getName();
+		generateTypePOD(file, entity);
+		file << ' ' << entity.getName();
 	}
 }
 
@@ -331,72 +594,35 @@ std::string_view GlueGenerator::getObjectHandleName()
 
 bool GlueGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
 {
-	if(entity.isReference())
-	{
-		auto ctx = getClangContext(entity);
-		assert(ctx);
-
-		file << "return ";
-
-		// If the reference return value isn't a pointer (Should be a C++ reference),
-		// take its memory address.
-		if(!ctx->getTyperefContext()->isPointer())
-		{
-			file << "&";
-		}
-
-		return false;
-	}
-
-	// Primitive types don't need to be casted.
-	if(entity.isPrimitive())
-	{
-		file << "return ";
-		return false;
-	}
-
-	// Cast enum return values to an int. Especially in C++ this is important
-	// because scoped enums cannot be implicitly casted to a primitive.
-	if(entity.isEnum())
-	{
-		// TODO: Use the appropriate type as specified by the enum.
-		file << "return static_cast <int> (";
-	}
-
-	else if(entity.isClass())
-	{
-		assert(entity.getContext());
-
-		// When a C++ function return a copy of a class object, in order to retain
-		// the object it has to be allocated on the heap. Any given foreign language
-		// should manage this object as they are the ones requesting it.
-		auto ctx = getClangContext(entity);
-		file << "return new " << ctx->getTyperefContext()->getWrittenType() << '(';
-	}
-
-	else if(entity.isAlias())
-	{
-		// Because a type alias can point to whatever type, call this function recursively
-		// with a temporary type reference pointing to the underlying type.
-		TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
-		underlying.initializeContext(entity.getContext());
-
-		assert(underlying.getContext());
-		return generateReturnStatement(underlying, target);
-	}
-
-	return true;
+	file << "return ";
+	return false;
 }
 
-std::string GlueGenerator::getSelfType(FunctionEntity& entity)
+void GlueGenerator::generateBridgeCall(FunctionEntity& target)
 {
-	// If this function was originally a C++ function, the backend should've initialized
-	// a typeref context for the function group. This context would contain the full
-	// type (including templates) of the "this type" for the function.
-	//
-	// If the context isn't present, just use the location provided by the hierarchy.
-	auto ctx = getClangContext(entity.getGroup());
-	return ctx ? std::string(ctx->getFunctionContext()->getSelfType()) : entity.getParent().getHierarchy("::");
+	switch(target.getType())
+	{
+		case FunctionEntity::Type::MemberFunction:
+		case FunctionEntity::Type::Constructor:
+		case FunctionEntity::Type::Destructor:
+		{
+			file << "AG_" << target.getParent().getHierarchy("::AG_") << "::" <<
+					target.getBridgeName(true) << '(';
+
+			onlyParameterNames = true;
+			target.generateParameters(*this, true, true);
+			onlyParameterNames = false;
+
+			file << ')';
+			break;
+		}
+
+		case FunctionEntity::Type::Function:
+		{
+			// TODO: Implement non-class methods.
+			break;
+		}
+	}
 }
 
 }

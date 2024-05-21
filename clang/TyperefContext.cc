@@ -13,6 +13,8 @@ TyperefContext::TyperefContext(::clang::QualType type)
 	pp.SuppressTagKeyword = 1;
 	pp.Bool = 1;
 
+	originalType = type.getCanonicalType().getAsString(pp);
+
 	if(type->isPointerType())
 	{
 		pointer = true;
@@ -44,6 +46,11 @@ bool TyperefContext::isConst()
 const std::string& TyperefContext::getWrittenType()
 {
 	return writtenType;
+}
+
+const std::string& TyperefContext::getOriginalType()
+{
+	return originalType;
 }
 
 }

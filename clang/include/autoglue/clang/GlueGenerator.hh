@@ -23,15 +23,10 @@ private:
 	void generateArgumentSeparator() override;
 	std::string_view getObjectHandleName() override;
 	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override;
-
-	std::string getSelfType(FunctionEntity& entity);
+	void generateBridgeCall(FunctionEntity& target) override;
 
 	std::ofstream file;
 	bool onlyParameterNames = false;
-
-	/// When a parameter is std::string_view, the string it refers to
-	/// needs to be duplicated in order for it to be retained.
-	bool duplicateString = false;
 };
 
 }
