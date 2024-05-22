@@ -204,7 +204,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		file << ");\n";
 	}
 
-	file << "public ";
+	file << (entity.isProtected() ? "protected " : "public ");
 
 	// If this function hides another defined in a base class, mark it as new.
 	if(hidesEntity(entity, entity.getParent()))
@@ -222,6 +222,12 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		if(entity.isOverridable())
 		{
 			file << "virtual ";
+		}
+
+		// If this function isn't overridable but is an override, make it sealed.
+		else if(entity.isOverride())
+		{
+			file << "sealed ";
 		}
 
 		if(entity.isOverride())
