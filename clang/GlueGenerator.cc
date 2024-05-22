@@ -182,11 +182,6 @@ public:
 
 	void generateFunction(FunctionEntity& entity) override
 	{
-		if(entity.isInterface())
-		{
-			return;
-		}
-
 		if(inOverride)
 		{
 			if(entity.getType() == FunctionEntity::Type::Constructor)
@@ -214,6 +209,7 @@ public:
 			else if(entity.getType() == FunctionEntity::Type::MemberFunction)
 			{
 				auto ctx = getClangContext(entity);
+				assert(ctx);
 
 				entity.generateReturnType(*this, false);
 				file << entity.getName() << '(';
@@ -226,14 +222,29 @@ public:
 
 		else if(inBridge)
 		{
+			auto ctx = getClangContext(entity);
+			assert(ctx);
+
+			// Don't generate in-class bridges for private interface overrides
+			// as they simply call a virtual bridge function and don't need data access.
+			if(ctx->getOverloadContext()->isPrivateOverride())
+			{
+				return;
+			}
+
 			file << "static ";
 			entity.generateReturnType(*this, true);
+
+			if(entity.isInterface())
+			{
+				file << "virtual_";
+			}
+
 			file << entity.getBridgeName(true) << '(';
 			entity.generateParameters(*this, true, true);
 			file << ")\n{\n    ";
 
 			bool closeParenthesis = entity.generateReturnStatement(*this, false);
-
 			entity.generateBridgeCall(*this);
 
 			if(closeParenthesis)
@@ -252,8 +263,16 @@ public:
 			case FunctionEntity::Type::MemberFunction:
 			{
 				file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
-						getObjectHandleName() << ")->" << getSelfType(entity) <<
-						"::" << entity.getName() << '(';
+						getObjectHandleName() << ")->";
+
+				// If the function doesn't represent an interface, call the specific
+				// function implementation of the current class to prevent virtual calls.
+				if(!entity.isInterface())
+				{
+					file << getSelfType(entity) << "::";
+				}
+
+				file << entity.getName() << '(';
 
 				onlyParameterNames = true;
 				entity.generateParameters(*this, false, false);
@@ -317,6 +336,8 @@ public:
 					{
 						auto ctx = getClangContext(entity);
 						assert(ctx);
+
+						file << "return ";
 
 						// If the returned reference object is not a pointer, take its address.
 						if(!ctx->getTyperefContext()->isPointer())
@@ -542,9 +563,6 @@ void GlueGenerator::generateFunction(FunctionEntity& entity)
 	}
 
 	file << "extern \"C\"\n";
-	auto returnType = entity.getReturnType();
-	auto returnCtx = getClangContext(returnType);
-
 	entity.generateReturnType(*this, true);
 	file << entity.getBridgeName() << "(";
 
@@ -606,8 +624,28 @@ void GlueGenerator::generateBridgeCall(FunctionEntity& target)
 		case FunctionEntity::Type::Constructor:
 		case FunctionEntity::Type::Destructor:
 		{
-			file << "AG_" << target.getParent().getHierarchy("::AG_") << "::" <<
-					target.getBridgeName(true) << '(';
+			auto ctx = getClangContext(target);
+			assert(ctx);
+
+			// If the function is a private override of an interface, it cannot be called
+			// without a virtual function call. Call the virtual function for interface instead.
+			if(ctx->getOverloadContext()->isPrivateOverride())
+			{
+				auto& containing = ctx->getOverloadContext()->getOverriddenInterface()->getParent();
+				file << "AG_" << containing.getHierarchy("::AG_") << "::virtual_" <<
+						target.getBridgeName(true) << '(';
+			}
+
+			// Call the corresponding function from the appropriate class.
+			// While some functions could directly be called in these bridge functions,
+			// stuff like protected functions cannot be invoked here directly. This
+			// is why we are invoking a method from a generated class
+			// impersonating the original class.
+			else
+			{
+				file << "AG_" << target.getParent().getHierarchy("::AG_") << "::" <<
+						target.getBridgeName(true) << '(';
+			}
 
 			onlyParameterNames = true;
 			target.generateParameters(*this, true, true);

@@ -42,7 +42,7 @@ std::string toString(const llvm::APSInt& value)
 	return std::string(valueStr.begin(), valueStr.end());
 }
 
-ag::FunctionEntity::Type getFunctionType(clang::FunctionDecl* decl)
+ag::FunctionEntity::Type getFunctionType(const clang::FunctionDecl* decl)
 {
 	switch(decl->getKind())
 	{
@@ -171,7 +171,7 @@ public:
 	}
 
 private:
-	void appendTemplateArgs(std::string& name, clang::NamedDecl* named, bool abstract)
+	void appendTemplateArgs(std::string& name, const clang::NamedDecl* named, bool abstract)
 	{
 		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
 		{
@@ -245,7 +245,7 @@ private:
 		}
 	}
 
-	std::string getEntityName(clang::NamedDecl* named)
+	std::string getEntityName(const clang::NamedDecl* named)
 	{
 		std::string name = named->getNameAsString();
 
@@ -330,7 +330,7 @@ private:
 		return nullptr;
 	}
 
-	std::shared_ptr <ag::Entity> ensureEntityExists(clang::Decl* decl, bool& created)
+	std::shared_ptr <ag::Entity> ensureEntityExists(const clang::Decl* decl, bool& created)
 	{
 		// If the declaration has no name, return the global scope entity.
 		auto named = clang::dyn_cast <clang::NamedDecl> (decl);
@@ -527,7 +527,7 @@ private:
 		return result;
 	}
 
-	std::shared_ptr <ag::Entity> ensureEntityExists(clang::Decl* decl)
+	std::shared_ptr <ag::Entity> ensureEntityExists(const clang::Decl* decl)
 	{
 		bool created;
 		return ensureEntityExists(decl, created);
@@ -568,13 +568,43 @@ private:
 			return;
 		}
 
+		bool isProtected = false;
+		std::weak_ptr <ag::FunctionGroupEntity> privateOverrides;
+
 		// Only export public and protected member functions.
 		if(auto* cxxDecl = clang::dyn_cast <clang::CXXMethodDecl> (decl))
 		{
 			if(decl->getAccess() != clang::AccessSpecifier::AS_public &&
 				decl->getAccess() != clang::AccessSpecifier::AS_protected)
 			{
-				return;
+				bool overridesPure = false;
+
+				// If this private method doesn't override a pure method, don't export it.
+				for(auto overridden : cxxDecl->overridden_methods())
+				{
+					if(overridden->isPure())
+					{
+						// If the overridden method is protected, treat this private override as
+						// protected. TODO: This should probably be done in the abstraction.
+						isProtected = overridden->getAccess() == clang::AccessSpecifier::AS_protected;
+						overridesPure = true;
+
+						// If a function group can be created for the overriden method, save the
+						// group entity for OverloadContext to store later.
+						auto group = ensureEntityExists(overridden);
+						if(group && group->getType() == ag::Entity::Type::FunctionGroup)
+						{
+							privateOverrides = std::static_pointer_cast <ag::FunctionGroupEntity> (group);
+						}
+
+						break;
+					}
+				}
+
+				if(!overridesPure)
+				{
+					return;
+				}
 			}
 		}
 
@@ -620,19 +650,17 @@ private:
 		// If this is a method in a C++ class, check if it overrides a base class method.
 		bool isOverride = false;
 
-		bool isProtected = false;
-
 		if(auto* cxxDecl = clang::dyn_cast <clang::CXXMethodDecl> (decl))
 		{
 			isOverride = cxxDecl->size_overridden_methods() > 0;
-			isProtected = cxxDecl->getAccess() == clang::AccessSpecifier::AS_protected;
+			isProtected = isProtected || cxxDecl->getAccess() == clang::AccessSpecifier::AS_protected;
 		}
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
 			std::move(returnEntity), decl->isVirtualAsWritten(), isOverride, decl->isPure()
 		);
 
-		entity->initializeContext(std::make_shared <ag::clang::OverloadContext> (decl));
+		entity->initializeContext(std::make_shared <ag::clang::OverloadContext> (decl, privateOverrides));
 
 		if(isProtected)
 		{
@@ -699,7 +727,7 @@ private:
 		std::static_pointer_cast <ag::FunctionGroupEntity> (group)->addOverload(std::move(entity));
 	}
 
-	std::string getDeclInclusion(clang::NamedDecl* decl)
+	std::string getDeclInclusion(const clang::NamedDecl* decl)
 	{
 		auto loc = decl->getLocation();
 
@@ -736,7 +764,7 @@ private:
 		return backend.getInclusion(std::filesystem::canonical(sourceManager.getBufferName(loc).str()));
 	}
 
-	bool isIncluded(clang::Decl* decl)
+	bool isIncluded(const clang::Decl* decl)
 	{
 		return sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation())).isValid();
 	}

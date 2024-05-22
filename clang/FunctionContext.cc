@@ -6,7 +6,7 @@
 namespace ag::clang
 {
 
-FunctionContext::FunctionContext(::clang::FunctionDecl* decl)
+FunctionContext::FunctionContext(const ::clang::FunctionDecl* decl)
 	: EntityContext(Type::Function)
 {
 	// Make getAsString output "bool" instead of "_Bool" and ignore "class".

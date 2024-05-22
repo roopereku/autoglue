@@ -13,7 +13,7 @@ namespace ag::clang
 class FunctionContext : public ag::clang::EntityContext
 {
 public:
-	FunctionContext(::clang::FunctionDecl* decl);
+	FunctionContext(const ::clang::FunctionDecl* decl);
 
 	std::string_view getSelfType();
 	std::string_view getOriginalName();
