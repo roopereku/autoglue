@@ -24,6 +24,8 @@ private:
 	std::string_view getObjectHandleName() override;
 	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override;
 	void generateBridgeCall(FunctionEntity& target) override;
+	void generateInterceptionFunction(FunctionEntity& target, ClassEntity& parentClass) override;
+	void generateInterceptionContext(ClassEntity& entity) override;
 
 	std::ofstream file;
 	bool onlyParameterNames = false;

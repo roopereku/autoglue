@@ -141,18 +141,15 @@ public:
 
 	void generateClass(ClassEntity& entity) override
 	{
-		if(!inOverride)
+		file << "struct " << "AG_" << entity.getName();
+
+		auto ctx = getClangContext(entity);
+		if(ctx)
 		{
-			file << "struct " << "AG_" << entity.getName();
-
-			auto ctx = getClangContext(entity);
-			if(ctx)
-			{
-				file << " : public " << ctx->getTypeContext()->getRealName();
-			}
-
-			file << "\n{\n";
+			file << " : public " << ctx->getTypeContext()->getRealName();
 		}
+
+		file << "\n{\n";
 
 		auto constructors = entity.resolve("Constructor");
 		if(constructors)
@@ -163,61 +160,40 @@ public:
 			inOverride = false;
 		}
 
-		if(!inOverride)
-		{
-			inOverride = true;
-			entity.generateConcreteType(*this);
-			inOverride = false;
-		}
+		entity.generateInterceptionContext(*this);
+		entity.generateInterceptionFunctions(*this);
 
 		inBridge = true;
 		entity.generateNested(*this);
 		inBridge = false;
 
-		if(!inOverride)
-		{
-			file << "};\n\n";
-		}
+		file << "};\n\n";
 	}
 
 	void generateFunction(FunctionEntity& entity) override
 	{
 		if(inOverride)
 		{
-			if(entity.getType() == FunctionEntity::Type::Constructor)
+			assert(entity.getType() == FunctionEntity::Type::Constructor);
+
+			file << "AG_" + entity.getParent().getName() << '(';
+			entity.generateParameters(*this, false, false);
+			file << ')';
+
+			auto baseCtx = getClangContext(entity.getParent());
+			if(baseCtx)
 			{
-				file << "AG_" + entity.getParent().getName() << '(';
+				file << " : " << baseCtx->getTypeContext()->getRealName() << '(';
+
+				onlyParameterNames = true;
 				entity.generateParameters(*this, false, false);
+				onlyParameterNames = false;
+
 				file << ')';
-
-				auto baseCtx = getClangContext(entity.getParent());
-				if(baseCtx)
-				{
-					file << " : " << baseCtx->getTypeContext()->getRealName() << '(';
-
-					onlyParameterNames = true;
-					entity.generateParameters(*this, false, false);
-					onlyParameterNames = false;
-
-					file << ')';
-				}
-
-				file << "\n{\n";
-				file << "}\n";
 			}
 
-			else if(entity.getType() == FunctionEntity::Type::MemberFunction)
-			{
-				auto ctx = getClangContext(entity);
-				assert(ctx);
-
-				entity.generateReturnType(*this, false);
-				file << entity.getName() << '(';
-				entity.generateParameters(*this, false, false);
-				file << ") " << ctx->getOverloadContext()->getEastQualifiers() << "override\n{\n";
-
-				file << "}\n";
-			}
+			file << "\n{\n";
+			file << "}\n";
 		}
 
 		else if(inBridge)
@@ -258,6 +234,21 @@ public:
 
 	void generateBridgeCall(FunctionEntity& entity) override
 	{
+		if(inIntercept)
+		{
+			file << "AG_intercept_" << entity.getBridgeName(true) << "(AG_foreignObject";
+			if(entity.getParameterCount() > 0)
+			{
+				file << ',';
+			}
+
+			onlyParameterNames = true;
+			entity.generateParameters(*this, false, false);
+			onlyParameterNames = false;
+
+			return;
+		}
+
 		switch(entity.getType())
 		{
 			case FunctionEntity::Type::MemberFunction:
@@ -325,67 +316,64 @@ public:
 
 	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override
 	{
-		if(inBridge)
+		if(entity.isAlias())
 		{
-			switch(entity.getType())
+			TypeReferenceEntity underlying("", entity.getAliasType().getUnderlying(true), entity.isReference());
+			underlying.initializeContext(entity.getContext());
+			return generateReturnStatement(underlying, target);
+		}
+
+		if(inIntercept)
+		{
+			int toClose = 0;
+			file << "return ";
+
+			// If the type to return isn't trivially copyable, let's move it instead and
+			// return the object that way.
+			// TODO: What if the type isn't moveable?
+			auto ctx = getClangContext(entity);
+			if(ctx && !ctx->getTyperefContext()->isTypeTriviallyCopyable())
 			{
-				case TypeEntity::Type::Class:
+				file << "std::move(";
+				toClose++;
+			}
+
+			toClose += generateForeignToGlue(entity);
+
+			target.generateBridgeCall(*this);
+
+			while(toClose > 0)
+			{
+				file << ')';
+				toClose--;
+			}
+		}
+
+		else if(inBridge)
+		{
+			bool closeParenthesis = false;
+			file << "return ";
+
+			// If a non-reference class type is returned, return a heap allocated copy of it.
+			if(!entity.isReference() && entity.getType() == TypeEntity::Type::Class)
+			{
+				// TODO: What if the "operator new" is protected and new is invoked
+				// and this class has no access to it (Class of different type).
+				file << "new ";
+
+				// If this is not a constructor call, specify the type.
+				if(target.getType() != FunctionEntity::Type::Constructor)
 				{
-					// Allocate nothing when returning references.
-					if(entity.isReference())
-					{
-						auto ctx = getClangContext(entity);
-						assert(ctx);
+					auto ctx = getClangContext(entity);
+					assert(ctx);
 
-						file << "return ";
-
-						// If the returned reference object is not a pointer, take its address.
-						if(!ctx->getTyperefContext()->isPointer())
-						{
-							file << '&';
-						}
-
-						return false;
-					}
-
-					// TODO: What if the "operator new" is protected and new is invoked
-					// and this class has no access to it (Class of different type).
-					file << "return new ";
-
-					if(target.getType() != FunctionEntity::Type::Constructor)
-					{
-						auto ctx = getClangContext(entity);
-						assert(ctx);
-
-						// If a non-constructor function is returning a non-reference object,
-						// allocate and return a new copy of it.
-						file << ctx->getTyperefContext()->getWrittenType() << '(';
-						return true;
-					}
-
-					return false;
-				}
-
-				case TypeEntity::Type::Enum:
-				{
-					// TODO: Use whatever integral format the enum has specified.
-					file << "return static_cast <int> (";
-					return true;
-				}
-
-				case TypeEntity::Type::Primitive:
-				{
-					file << "return ";
-					return false;
-				}
-
-				case TypeEntity::Type::Alias:
-				{
-					TypeReferenceEntity underlying("", entity.getAliasType().getUnderlying(true), entity.isReference());
-					underlying.initializeContext(entity.getContext());
-					return generateReturnStatement(underlying, target);
+					// TODO: What if a protected constructor is used?
+					file << ctx->getTyperefContext()->getWrittenType() << '(';
+					closeParenthesis = true;
 				}
 			}
+
+			return generateGlueToForeign(entity) + closeParenthesis;
 		}
 
 		return false;
@@ -413,6 +401,19 @@ public:
 			file << ' ' << entity.getName();
 		}
 
+		// Parameters passed to interception functions.
+		else if(inIntercept)
+		{
+			int toClose = generateGlueToForeign(entity);
+			file << entity.getName();
+
+			while(toClose > 0)
+			{
+				file << ')';
+				toClose--;
+			}
+		}
+
 		// Parameters passed in override functions.
 		else if(inOverride)
 		{
@@ -430,94 +431,61 @@ public:
 			}
 		}
 
-		// Parameters passed in bridge functions.
+		// Parameters passed in class bridge functions.
 		else if(inBridge)
 		{
-			switch(entity.getType())
+			int toClose = generateForeignToGlue(entity);
+			file << entity.getName();
+
+			while(toClose > 0)
 			{
-				case TypeEntity::Type::Class:
-				{
-					auto ctx = getClangContext(entity);
-					assert(ctx);
-
-					bool closeParenthesis = false;
-					if(ctx->getTyperefContext()->isRValueReference())
-					{
-						file << "std::move(";
-						closeParenthesis = true;
-					}
-
-					// If the class type parameter isn't a reference or a pointer, dereference it.
-					if(!entity.isReference() || !ctx->getTyperefContext()->isPointer())
-					{
-						file << '*';
-					}
-
-					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
-							"*> (" << entity.getName() << ')';
-
-					if(closeParenthesis)
-					{
-						file << ')';
-					}
-
-					break;
-				}
-
-				case TypeEntity::Type::Enum:
-				{
-					auto ctx = getClangContext(entity);
-					assert(ctx);
-
-					file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() <<
-							"> (" << entity.getName() << ')';
-
-					break;
-				}
-
-				case TypeEntity::Type::Primitive:
-				{
-					bool closeParenthesis = false;
-
-					// If a string should be duplicated, pass it into stdup.
-					if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
-					{
-						file << "strdup(";
-						closeParenthesis = true;
-					}
-
-					if(castPrimitives)
-					{
-						auto ctx = getClangContext(entity);
-						assert(ctx);
-
-						file << "static_cast <" << ctx->getTyperefContext()->getOriginalType() <<
-								"> (" << entity.getName() << ')';
-					}
-
-					else
-					{
-						file << entity.getName();
-					}
-
-					if(closeParenthesis)
-					{
-						file << ')';
-					}
-
-					break;
-				}
-
-				case TypeEntity::Type::Alias:
-				{
-					TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
-					underlying.initializeContext(entity.getContext());
-					generateTypeReference(underlying);
-
-					break;
-				}
+				file << ')';
+				toClose--;
 			}
 		}
+	}
+
+	void generateInterceptionFunction(FunctionEntity& entity, ClassEntity&) override
+	{
+		if(entity.getType() == FunctionEntity::Type::Destructor ||
+			entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
+		{
+			return;
+		}
+
+		inBridge = true;
+		entity.generateReturnType(*this, true);
+		file << "(*AG_intercept_" << entity.getBridgeName(true) << ")(";
+		entity.generateParameters(*this, true, true);
+		file << ");\n";
+		inBridge = false;
+
+		inOverride = true;
+		entity.generateReturnType(*this, false);
+		file << entity.getName() << '(';
+		entity.generateParameters(*this, false, false);
+		inOverride = false;
+
+		file << ") " << getClangContext(entity)->getOverloadContext()->getEastQualifiers() << "override\n{\n";
+		inIntercept = true;
+
+		if(entity.returnsValue())
+		{
+			entity.generateReturnStatement(*this, false);
+		}
+
+		else
+		{
+			entity.generateBridgeCall(*this);
+		}
+
+		inIntercept = false;
+		file << ");\n}\n";
+	}
+
+	void generateInterceptionContext(ClassEntity& entity) override
+	{
+		file << "void* AG_foreignObject;\n";
 	}
 
 	void generateArgumentSeparator() override
@@ -530,11 +498,133 @@ public:
 		return "objectHandle";
 	}
 
+	bool generateGlueToForeign(TypeReferenceEntity& entity)
+	{
+		switch(entity.getType())
+		{
+			case TypeEntity::Type::Class:
+			{
+				if(inIntercept || entity.isReference())
+				{
+					auto ctx = getClangContext(entity);
+					assert(ctx);
+
+					// If the returned reference object is not a pointer, take its address.
+					if(!ctx->getTyperefContext()->isPointer())
+					{
+						// Take away the constness from const types.
+						// TODO: Use something like const_cast instead?
+						if(ctx->getTyperefContext()->isConst())
+						{
+							file << "(void*)";
+						}
+
+						file << '&';
+					}
+				}
+
+				return false;
+			}
+
+			case TypeEntity::Type::Enum:
+			{
+				// TODO: Use whatever integral format the enum has specified.
+				file << "static_cast <int> (";
+				return true;
+			}
+
+			case TypeEntity::Type::Primitive:
+			{
+				return false;
+			}
+
+			case TypeEntity::Type::Alias:
+			{
+				TypeReferenceEntity underlying("", entity.getAliasType().getUnderlying(true), entity.isReference());
+				underlying.initializeContext(entity.getContext());
+				return generateGlueToForeign(underlying);
+			}
+		}
+	}
+
+	int generateForeignToGlue(TypeReferenceEntity& entity)
+	{
+		int toClose = 0;
+
+		switch(entity.getType())
+		{
+			case TypeEntity::Type::Class:
+			{
+				auto ctx = getClangContext(entity);
+				assert(ctx);
+
+				if(ctx->getTyperefContext()->isRValueReference())
+				{
+					file << "std::move(";
+					toClose++;
+				}
+
+				// If the class type parameter isn't a reference or a pointer,
+				// dereference the casted pointer type.
+				if(!entity.isReference() || !ctx->getTyperefContext()->isPointer())
+				{
+					file << '*';
+				}
+
+				file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() << "*> (";
+				toClose++;
+				break;
+			}
+
+			case TypeEntity::Type::Enum:
+			{
+				auto ctx = getClangContext(entity);
+				assert(ctx);
+
+				file << "static_cast <" << ctx->getTyperefContext()->getWrittenType() << "> (";
+				toClose++;
+
+				break;
+			}
+
+			case TypeEntity::Type::Primitive:
+			{
+				// If a string should be duplicated, pass it into stdup.
+				if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String && duplicateString)
+				{
+					file << "strdup(";
+					toClose++;
+				}
+
+				if(castPrimitives)
+				{
+					auto ctx = getClangContext(entity);
+					assert(ctx);
+
+					file << "static_cast <" << ctx->getTyperefContext()->getOriginalType() << "> (";
+					toClose++;
+				}
+
+				break;
+			}
+
+			case TypeEntity::Type::Alias:
+			{
+				TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
+				underlying.initializeContext(entity.getContext());
+				return generateForeignToGlue(underlying);
+			}
+		}
+
+		return toClose;
+	}
+
 private:
 	std::ofstream& file;
 
 	bool inBridge = false;
 	bool inOverride = false;
+	bool inIntercept = false;
 	bool onlyParameterNames = false;
 	bool castPrimitives = false;
 	bool duplicateString = false;
@@ -583,6 +673,8 @@ void GlueGenerator::generateNamedScope(ScopeEntity& entity)
 void GlueGenerator::generateClass(ClassEntity& entity)
 {
 	file << "// ---------- Class " << entity.getHierarchy("::") << " : " << " ----------\n\n";
+
+	entity.generateInterceptionContext(*this);
 	entity.generateNested(*this);
 }
 
@@ -661,6 +753,45 @@ void GlueGenerator::generateBridgeCall(FunctionEntity& target)
 			break;
 		}
 	}
+}
+
+void GlueGenerator::generateInterceptionFunction(FunctionEntity& target, ClassEntity&)
+{
+	// Generate assignments for every interception function.
+	if(onlyParameterNames)
+	{
+		std::string funcName("AG_intercept_" + target.getBridgeName(true));
+		file << "obj->" << funcName << " = " << funcName << ";\n";
+	}
+
+	// Generate the function pointer parameters for the interception context
+	// initialization function.
+	else
+	{
+		file << ", ";
+
+		target.generateReturnType(*this, true);
+		file << "(*AG_intercept_" << target.getBridgeName(true) << ")(";
+		target.generateParameters(*this, true, true);
+		file << ')';
+	}
+}
+
+void GlueGenerator::generateInterceptionContext(ClassEntity& entity)
+{
+	file << "extern \"C\"\n";
+	file << "void " << entity.getHierarchy() << "_AG_initializeInterceptionContext(void* objectHandle, void* AG_foreignObject";
+	entity.generateInterceptionFunctions(*this);
+
+	file << ")\n{\n";
+	file << "auto* obj = static_cast <AG_" << entity.getHierarchy("::AG_") << "*> (objectHandle);\n";
+	file << "obj->AG_foreignObject = AG_foreignObject;";
+
+	onlyParameterNames = true;
+	entity.generateInterceptionFunctions(*this);
+	onlyParameterNames = false;
+
+	file << "}\n";
 }
 
 }

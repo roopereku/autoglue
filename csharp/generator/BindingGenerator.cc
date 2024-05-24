@@ -92,10 +92,10 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	// TODO: Don't do this for interfaces.
 	if(!entity.hasBaseTypes())
 	{
-		file << "protected IntPtr " << getObjectHandleName() << ";\n";
+		file << "protected IntPtr " << "mObjectHandle" << ";\n";
 
-		file << "public IntPtr ObjectHandle\n{\n";
-		file << "get { return " << getObjectHandleName() <<  "; }\n}\n";
+		file << "public static IntPtr AG_getObjectHandle(" << getTypeLocation(entity) << " obj)" <<
+				"\n{\nreturn obj.mObjectHandle;\n}\n";
 	}
 
 	// Define a constructor for object handle initialization.
@@ -111,10 +111,13 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	else
 	{
 		// If there are no base types, initialize the object handle.
-		file << "\n{\n" << getObjectHandleName() << " = objectHandle;\n";
+		file << "\n{\nmObjectHandle = objectHandle;\n";
 	}
 
 	file << "}\n";
+
+	entity.generateInterceptionFunctions(*this);
+	entity.generateInterceptionContext(*this);
 
 	entity.generateNested(*this);
 	entity.generateConcreteType(*this);
@@ -283,36 +286,29 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
-		switch(entity.getType())
+		// If a parameter pass is being generated for an interception function,
+		// follow the same logic as when returning values. This works because an
+		// interception function accepts POD types and converts them to C# types,
+		// much like when returning values.
+		if(inIntercept)
 		{
-			case TypeEntity::Type::Alias:
-			{
-				TypeReferenceEntity underlying(
-					entity.getName(),
-					entity.getAliasType().getUnderlying(true),
-					entity.isReference()
-				);
+			bool closeParenthesis = generateBridgeToCSharp(entity);
+			file << sanitizeName(entity);
 
-				generateTypeReference(underlying);
-				break;
+			if(closeParenthesis)
+			{
+				file << ')';
 			}
+		}
 
-			case TypeEntity::Type::Class:
-			{
-				file << sanitizeName(entity) << ".ObjectHandle";
-				break;
-			}
+		else
+		{
+			bool closeParenthesis = generateCSharpToBridge(entity);
+			file << sanitizeName(entity);
 
-			case TypeEntity::Type::Enum:
+			if(closeParenthesis)
 			{
-				file << "(int)" << sanitizeName(entity);
-				break;
-			}
-
-			case TypeEntity::Type::Primitive:
-			{
-				file << sanitizeName(entity);
-				break;
+				file << ')';
 			}
 		}
 	}
@@ -427,63 +423,117 @@ void BindingGenerator::generateArgumentSeparator()
 
 bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
 {
+	if(inIntercept)
+	{
+		file << "return ";
+		return generateCSharpToBridge(entity);
+	}
+
 	if(target.getType() == FunctionEntity::Type::Constructor)
 	{
 		file << " : this(";
 		target.generateBridgeCall(*this);
-		file << ")\n{";
+		file << ")\n{\n";
+
+		if(target.shouldPrepareClass())
+		{
+			file << "AG_initializeInterceptionContext();\n";
+		}
+
 		return false;
 	}
 
 	if(target.getType() == FunctionEntity::Type::MemberFunction)
 	{
-		switch(entity.getType())
+		file << "return ";
+		return generateBridgeToCSharp(entity);
+	}
+
+	return false;
+}
+
+bool BindingGenerator::generateBridgeToCSharp(TypeReferenceEntity& entity)
+{
+	switch(entity.getType())
+	{
+		case TypeEntity::Type::Alias:
 		{
-			case TypeEntity::Type::Alias:
-			{
-				TypeReferenceEntity underlying(
-					"",
-					entity.getAliasType().getUnderlying(true),
-					entity.isReference()
-				);
+			TypeReferenceEntity underlying(
+				"",
+				entity.getAliasType().getUnderlying(true),
+				entity.isReference()
+			);
 
-				return generateReturnStatement(underlying, target);
+			return generateBridgeToCSharp(underlying);
+		}
+
+		case TypeEntity::Type::Class:
+		{
+			if(entity.getClassType().isAbstract())
+			{
+				file << "new " << getTypeLocation(entity.getReferred()) << ".ConcreteType(";
+				return true;
 			}
 
-			case TypeEntity::Type::Class:
+			else
 			{
-				if(entity.getClassType().isAbstract())
-				{
-					file << "return new " << getTypeLocation(entity.getReferred()) << ".ConcreteType(";
-					return true;
-				}
+				file << "new " << getTypeLocation(entity.getReferred()) << '(';
+				return true;
+			}
+		}
 
-				else
-				{
-					file << "return new " << getTypeLocation(entity.getReferred()) << '(';
-					return true;
-				}
+		case TypeEntity::Type::Enum:
+		{
+			file << "(" << getTypeLocation(entity.getReferred()) << ")";
+			break;
+		}
+
+		case TypeEntity::Type::Primitive:
+		{
+			if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String)
+			{
+				// TODO: This doesn't support UTF-8?
+				file << "Marshal.PtrToStringAnsi(";
+				return true;
 			}
 
-			case TypeEntity::Type::Enum:
-			{
-				file << "return (" << getTypeLocation(entity.getReferred()) << ")";
-				break;
-			}
+			break;
+		}
+	}
 
-			case TypeEntity::Type::Primitive:
-			{
-				file << "return ";
+	return false;
+}
 
-				if(entity.getPrimitiveType().getType() == PrimitiveEntity::Type::String)
-				{
-					// TODO: This doesn't support UTF-8?
-					file << "Marshal.PtrToStringAnsi(";
-					return true;
-				}
+bool BindingGenerator::generateCSharpToBridge(TypeReferenceEntity& entity)
+{
+	switch(entity.getType())
+	{
+		case TypeEntity::Type::Alias:
+		{
+			TypeReferenceEntity underlying(
+				"",
+				entity.getAliasType().getUnderlying(true),
+				entity.isReference()
+			);
 
-				break;
-			}
+			return generateCSharpToBridge(underlying);
+		}
+
+		case TypeEntity::Type::Class:
+		{
+			file << getTypeLocation(entity.getReferred()) << ".AG_getObjectHandle(";
+			return true;
+		}
+
+		case TypeEntity::Type::Enum:
+		{
+			file << "(int)";
+			break;
+		}
+
+		case TypeEntity::Type::Primitive:
+		{
+			break;
 		}
 	}
 
@@ -497,6 +547,98 @@ void BindingGenerator::generateBridgeCall(FunctionEntity& entity)
 	entity.generateParameters(*this, false, true);
 	onlyParameterNames = false;
 	file << ')';
+}
+
+void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass)
+{
+	// Are we already in an interception context (The initialization function)?
+	if(inIntercept)
+	{
+		if(onlyParameterNames)
+		{
+            file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
+					entity.getBridgeName(true) << "(AG_intercept_" << entity.getBridgeName(true) << "))";
+		}
+
+		// The interception delegates are treated as pointers
+		else
+		{
+			file << ", IntPtr AG_intercept_" << entity.getName();
+		}
+
+		return;
+	}
+
+	// TODO: Implement overload interceptors.
+	if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
+	{
+		return;
+	}
+
+	// TODO: Implement destructor interceptors.
+	if(entity.getType() == FunctionEntity::Type::Destructor)
+	{
+		return;
+	}
+
+	inIntercept = true;
+
+	file << "[UnmanagedFunctionPointer(CallingConvention.Cdecl)]\n";
+    file << "private delegate ";
+	entity.generateReturnType(*this, true);
+	file << "AG_delegate_intercept_" << entity.getBridgeName(true) << '(';
+	entity.generateParameters(*this, true, true);
+	file << ");\n";
+
+	file << "private static ";
+	entity.generateReturnType(*this, true);
+	file << "AG_intercept_" << entity.getBridgeName(true) << '(';
+
+	entity.generateParameters(*this, true, true);
+	file << ")\n{\n";
+
+	bool closeParenthesis = entity.generateReturnStatement(*this, false);
+
+	file << "((((GCHandle)" << getObjectHandleName() << ").Target) as " <<
+			parentClass.getName() << ")." << entity.getName() << '(';
+
+	onlyParameterNames = true;
+	entity.generateParameters(*this, false, false);
+	onlyParameterNames = false;
+
+	if(closeParenthesis)
+	{
+		file << ')';
+	}
+
+	file << ");\n}\n";
+	inIntercept = false;
+}
+
+void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
+{
+	inIntercept = true;
+
+	file << "[DllImport(\"" << libName << "\", CallingConvention = CallingConvention.Cdecl)]\n";
+	file << "private static extern void " << entity.getHierarchy() << "_AG_initializeInterceptionContext(IntPtr objectHandle, IntPtr AG_foreignObject";
+	entity.generateInterceptionFunctions(*this);
+	file << ");\n";
+
+	file << "private void AG_initializeInterceptionContext()\n{\n";
+	file << entity.getHierarchy() << "_AG_initializeInterceptionContext(";
+	file << "mObjectHandle, (IntPtr)GCHandle.Alloc(this)";
+
+	onlyParameterNames = true;
+	entity.generateInterceptionFunctions(*this);
+	onlyParameterNames = false;
+
+	file << ");\n}\n";
+	inIntercept = false;
+}
+
+std::string_view BindingGenerator::getObjectHandleName()
+{
+	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
 }
 
 void BindingGenerator::openFile(TypeEntity& entity)

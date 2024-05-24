@@ -11,7 +11,7 @@ namespace ag
 FunctionEntity::FunctionEntity(std::shared_ptr <TypeReferenceEntity>&& returnType,
 								bool overridable, bool overrides, bool interface)
 	:	Entity(Entity::Type::Function, ""), returnType(std::move(returnType)),
-		overridable(overridable), overrides(overrides), interface(interface)
+		overridable(overridable || interface), overrides(overrides), interface(interface)
 {
 }
 
@@ -266,6 +266,22 @@ void FunctionEntity::setProtected()
 bool FunctionEntity::isProtected()
 {
 	return protectedFunction;
+}
+
+bool FunctionEntity::shouldPrepareClass()
+{
+	if(getType() == Type::Constructor)
+	{
+		auto& parent = getParent();
+		assert(parent.getType() == Entity::Type::Type);
+		assert(static_cast <TypeEntity&> (parent).getType() == TypeEntity::Type::Class);
+
+		// If a concrete type exists containing overridable methods, further class
+		// preparation should be done by this constructor function.
+		return static_cast <bool> (static_cast <ClassEntity&> (parent).getConcreteType());
+	}
+
+	return false;
 }
 
 const char* FunctionEntity::getTypeString()

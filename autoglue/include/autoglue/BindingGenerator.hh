@@ -86,6 +86,18 @@ public:
 	/// \param entity The function to generate the bridge function call for.
 	virtual void generateBridgeCall(FunctionEntity& entity);
 
+	/// Generates an interception function.
+	///
+	/// \param entity The function to generate an interception function for.
+	/// \param parentClass The class containing the original function.
+	virtual void generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass);
+
+	/// Generates the interception context. This generally should generate a function
+	/// that calls the initialization bridge function for interception functions.export
+	///
+	/// \param entity The class to generate the interception context for.
+	virtual void generateInterceptionContext(ClassEntity& entity);
+
 	/// Changes the class depth.
 	///
 	/// \param amount Positive or a negative number indicating which way the class depth should go.

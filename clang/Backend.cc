@@ -645,7 +645,9 @@ private:
 			isReferenceType(decl->getReturnType())
 		);
 
-		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (decl->getReturnType()));
+		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (
+			decl->getReturnType(), decl->getASTContext()
+		));
 
 		// If this is a method in a C++ class, check if it overrides a base class method.
 		bool isOverride = false;
@@ -703,9 +705,11 @@ private:
 				isReferenceType(param->getType())
 			);
 
-			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (param->getType()));
-			entity->addParameter(std::move(paramEntity));
+			paramEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (
+				param->getType(), decl->getASTContext()
+			));
 
+			entity->addParameter(std::move(paramEntity));
 			paramIndex++;
 		}
 

@@ -72,12 +72,25 @@ public:
 	/// Sets this class as abstract.
 	void setAbstract();
 
-	/// Generates a concrete type for this class if it is abstract.
+	/// Generates a concrete type for this class if it's present.
 	///
 	/// \param generator The BindingGenerator to call functions from.
 	void generateConcreteType(BindingGenerator& generator);
 
+	/// Gets the concrete type of this class.
+	///
+	/// \return The concrete type of this class or nullptr.
 	std::shared_ptr <ClassEntity> getConcreteType();
+
+	/// Generates the interception functions of this class.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateInterceptionFunctions(BindingGenerator& generator);
+
+	/// Generates an interception context for this class.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateInterceptionContext(BindingGenerator& generator);
 
 	const char* getTypeString() override;
 

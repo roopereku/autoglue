@@ -198,6 +198,12 @@ public:
 	/// \return True if this function overload is protected.
 	bool isProtected();
 
+	/// Checks whether this function should do further class preparation such as the
+	/// initialization of interception functions.
+	///
+	/// \return True if this function is a constructor that should do further initialization.
+	bool shouldPrepareClass();
+
 	const char* getTypeString() override;
 
 private:

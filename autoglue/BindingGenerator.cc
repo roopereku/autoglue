@@ -36,10 +36,12 @@ void BindingGenerator::generateNamedScope(ScopeEntity&) {}
 void BindingGenerator::generateArgumentSeparator() {}
 bool BindingGenerator::generateReturnStatement(TypeReferenceEntity&, FunctionEntity&) { return false; }
 void BindingGenerator::generateBridgeCall(FunctionEntity&) {}
+void BindingGenerator::generateInterceptionFunction(FunctionEntity&, ClassEntity&) {}
+void BindingGenerator::generateInterceptionContext(ClassEntity&) {}
 
 std::string_view BindingGenerator::getObjectHandleName()
 {
-	return "mObjectHandle";
+	return "objectHandle";
 }
 
 }

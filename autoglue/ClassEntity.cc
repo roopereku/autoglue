@@ -183,6 +183,33 @@ std::shared_ptr <ClassEntity> ClassEntity::getConcreteType()
 	return concreteType;
 }
 
+void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
+{
+	// If a concrete type exists, generate every overridable function from there.
+	if(concreteType)
+	{
+		for(auto child : concreteType->children)
+		{
+			assert(child->getType() == Entity::Type::FunctionGroup);
+			auto& group = static_cast <FunctionGroupEntity&> (*child);
+
+			for(size_t i = 0; i < group.getOverloadCount(); i++)
+			{
+				assert(group.getOverload(i).isOverridable());
+				generator.generateInterceptionFunction(group.getOverload(i), *this);
+			}
+		}
+	}
+}
+
+void ClassEntity::generateInterceptionContext(BindingGenerator& generator)
+{
+	if(concreteType)
+	{
+		generator.generateInterceptionContext(*this);
+	}
+}
+
 const char* ClassEntity::getTypeString()
 {
 	return "Class";

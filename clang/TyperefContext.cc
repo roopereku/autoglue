@@ -5,13 +5,15 @@
 namespace ag::clang
 {
 
-TyperefContext::TyperefContext(::clang::QualType type)
+TyperefContext::TyperefContext(::clang::QualType type, const ::clang::ASTContext& ctx)
 	: EntityContext(Type::Typeref)
 {
 	// Make getAsString output "bool" instead of "_Bool" and ignore "class".
 	::clang::PrintingPolicy pp(::clang::LangOptions{});
 	pp.SuppressTagKeyword = 1;
 	pp.Bool = 1;
+
+	triviallyCopyable = type.isTriviallyCopyableType(ctx);
 
 	originalType = type.getCanonicalType().getAsString(pp);
 
@@ -41,6 +43,11 @@ bool TyperefContext::isPointer()
 bool TyperefContext::isConst()
 {
 	return constType;
+}
+
+bool TyperefContext::isTypeTriviallyCopyable()
+{
+	return triviallyCopyable;
 }
 
 const std::string& TyperefContext::getWrittenType()

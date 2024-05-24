@@ -28,8 +28,13 @@ private:
 	void generateArgumentSeparator() override;
 	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override;
 	void generateBridgeCall(FunctionEntity& entity) override;
+	void generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass) override;
+	void generateInterceptionContext(ClassEntity& entity) override;
+	std::string_view getObjectHandleName() override;
 
 	bool hidesEntity(Entity& entity, Entity& containing);
+	bool generateBridgeToCSharp(TypeReferenceEntity& entity);
+	bool generateCSharpToBridge(TypeReferenceEntity& entity);
 
 	void openFile(TypeEntity& entity);
 
@@ -42,6 +47,7 @@ private:
 	bool onlyParameterNames = false;
 
 	bool convertStringType = false;
+	bool inIntercept = false;
 };
 
 }
