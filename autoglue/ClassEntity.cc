@@ -144,29 +144,25 @@ void ClassEntity::onFirstUse()
 		}
 	}
 
-	// If this class is abstract, create a new "concrete type".
-	// This is not stored in children in order for it to be generated
-	// only on demand.
-	if(abstract)
+	if(!concreteType)
 	{
-		concreteType = std::make_shared <ClassEntity> ("ConcreteType");
-		adoptEntity(*concreteType);
+		auto concrete = std::make_shared <ClassEntity> ("ConcreteType");
+		adoptEntity(*concrete);
 		
-		concreteType->addBaseType(shared_from_this());
+		concrete->addBaseType(shared_from_this());
+		addInterfaceOverridesToConcrete(concrete);
 
-		addInterfaceOverridesToConcrete(concreteType);
-		concreteType->use();
+		if(!concrete->children.empty())
+		{
+			concreteType = std::move(concrete);
+			concreteType->use();
+		}
 	}
 }
 
 bool ClassEntity::isAbstract()
 {
 	return abstract;
-}
-
-void ClassEntity::setAbstract()
-{
-	abstract = true;
 }
 
 void ClassEntity::generateConcreteType(BindingGenerator& generator)
@@ -223,24 +219,25 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 		if(child->getType() == Entity::Type::FunctionGroup)
 		{
 			auto& group = static_cast <FunctionGroupEntity&> (*child);
-			auto result = group.createInterfaceOverrides();
+			auto overrideGroup = std::make_shared <FunctionGroupEntity> (
+				group.getName(), group.getType()
+			);
 
-			if(result)
+			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
-				auto overrideGroup = concrete->resolve(group.getName());
+				auto overrideEntity = group.getOverload(i).createOverride();
 
-				// If there already was a function group for the overrides,
-				// append the result to it.
-				if(overrideGroup)
+				if(overrideEntity)
 				{
-					assert(overrideGroup->getType() == Entity::Type::FunctionGroup);
-					std::static_pointer_cast <FunctionGroupEntity> (overrideGroup)->appendOverloads(result);
-				}
+					if(overrideGroup->addOverload(std::move(overrideEntity)))
+					{
+						printf("['%s'] Add concrete override for '%s'\n", concrete->getParent().getHierarchy(".").c_str(), group.getOverload(i).getHierarchy(".").c_str());
 
-				// Add a new group if there wasn't one yet.
-				else
-				{
-					concrete->addNested(std::move(result));
+						if(group.getOverload(i).isInterface())
+						{
+							printf("Make class '%s' abstract because it doesn't override'%s'\n", concrete->getParent().getHierarchy(".").c_str(), group.getOverload(i).getHierarchy(".").c_str());
+						}
+					}
 				}
 			}
 		}

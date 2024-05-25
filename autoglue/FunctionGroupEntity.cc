@@ -11,7 +11,7 @@ FunctionGroupEntity::FunctionGroupEntity(std::string_view name, FunctionEntity::
 {
 }
 
-void FunctionGroupEntity::addOverload(std::shared_ptr <FunctionEntity>&& overload)
+bool FunctionGroupEntity::addOverload(std::shared_ptr <FunctionEntity>&& overload)
 {
 	if(!findMatchingParameters(*overload))
 	{
@@ -20,9 +20,18 @@ void FunctionGroupEntity::addOverload(std::shared_ptr <FunctionEntity>&& overloa
 			interfaces++;
 		}
 
+		if(overload->isOverridable())
+		{
+			overridables++;
+		}
+
 		overload->setOverloadIndex(children.size());
 		addChild(std::move(overload));
+
+		return true;
 	}
+
+	return false;
 }
 
 std::shared_ptr <FunctionEntity> FunctionGroupEntity::findMatchingParameters(FunctionEntity& entity)
@@ -71,38 +80,9 @@ FunctionEntity::Type FunctionGroupEntity::getType()
 	return type;
 }
 
-std::shared_ptr <FunctionGroupEntity> FunctionGroupEntity::createInterfaceOverrides()
+bool FunctionGroupEntity::hasOverridable()
 {
-	if(!interfaces)
-	{
-		return nullptr;
-	}
-
-	auto group = std::make_shared <FunctionGroupEntity> (getName(), type);
-	group->initializeContext(getContext());
-
-	for(size_t i = 0; i < getOverloadCount(); i++)
-	{
-		auto& overload = getOverload(i);
-
-		if(overload.isInterface())
-		{
-			overload.use();
-			group->addChild(overload.createInterfaceOverride());
-		}
-	}
-	
-	group->use();
-	return group;
-}
-
-void FunctionGroupEntity::appendOverloads(std::shared_ptr <FunctionGroupEntity> group)
-{
-	for(auto& overload : group->children)
-	{
-		assert(overload->getType() == Entity::Type::Function);
-		addOverload(std::static_pointer_cast <FunctionEntity> (overload));
-	}
+	return overridables > 0;
 }
 
 bool FunctionGroupEntity::hasName(std::string_view str)

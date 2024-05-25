@@ -241,9 +241,9 @@ void FunctionEntity::setOverloadIndex(size_t index)
 	overloadIndex = index;
 }
 
-std::shared_ptr <FunctionEntity> FunctionEntity::createInterfaceOverride()
+std::shared_ptr <FunctionEntity> FunctionEntity::createOverride()
 {
-	if(interface)
+	if(isOverridable())
 	{
 		auto ret = returnType;
 		auto functionOverride = std::make_shared <FunctionEntity> (*this);

@@ -69,9 +69,6 @@ public:
 	/// \return True if this class is abstract.
 	bool isAbstract();
 
-	/// Sets this class as abstract.
-	void setAbstract();
-
 	/// Generates a concrete type for this class if it's present.
 	///
 	/// \param generator The BindingGenerator to call functions from.
@@ -105,6 +102,7 @@ private:
 	void addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> concrete);
 
 	bool abstract = false;
+
 	std::vector <std::weak_ptr <TypeEntity>> baseTypes;
 	std::vector <std::weak_ptr <ClassEntity>> derivedClasses;
 

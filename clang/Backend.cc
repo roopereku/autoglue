@@ -475,13 +475,6 @@ private:
 					{
 						auto classEntity = std::static_pointer_cast <ag::ClassEntity> (result);
 
-						// Since a C++ class can be abstract without defining pure virtual
-						// functions of its own, perform an extra check for it.
-						if(cxxDef->isAbstract())
-						{
-							classEntity->setAbstract();
-						}
-
 						// Since the class definition is available here, collect its base classes.
 						for(auto base : cxxDef->bases())
 						{
@@ -605,6 +598,8 @@ private:
 				{
 					return;
 				}
+
+				printf("Private interface implementation '%s'\n", decl->getQualifiedNameAsString().c_str());
 			}
 		}
 
@@ -720,12 +715,6 @@ private:
 			//std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
 			//			": Failed to ensure that the function group exists\n";
 			return;
-		}
-
-		// If this function is a pure virtual member function, the class should become abstract.
-		if(entity->isInterface())
-		{
-			static_cast <ag::ClassEntity&> (group->getParent()).setAbstract();
 		}
 
 		std::static_pointer_cast <ag::FunctionGroupEntity> (group)->addOverload(std::move(entity));
