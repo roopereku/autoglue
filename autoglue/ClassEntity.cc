@@ -195,7 +195,6 @@ void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
-				assert(group.getOverload(i).isOverridable());
 				generator.generateInterceptionFunction(group.getOverload(i), *this);
 			}
 		}
