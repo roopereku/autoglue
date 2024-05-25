@@ -243,7 +243,7 @@ void FunctionEntity::setOverloadIndex(size_t index)
 
 std::shared_ptr <FunctionEntity> FunctionEntity::createOverride()
 {
-	if(isOverridable())
+	if(isOverridable() || isOverride())
 	{
 		auto ret = returnType;
 		auto functionOverride = std::make_shared <FunctionEntity> (*this);

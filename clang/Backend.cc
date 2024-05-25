@@ -598,8 +598,6 @@ private:
 				{
 					return;
 				}
-
-				printf("Private interface implementation '%s'\n", decl->getQualifiedNameAsString().c_str());
 			}
 		}
 

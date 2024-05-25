@@ -4,6 +4,7 @@
 #include <autoglue/TypeReferenceEntity.hh>
 
 #include <cassert>
+#include <memory>
 
 namespace ag
 {
@@ -219,9 +220,22 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 		if(child->getType() == Entity::Type::FunctionGroup)
 		{
 			auto& group = static_cast <FunctionGroupEntity&> (*child);
-			auto overrideGroup = std::make_shared <FunctionGroupEntity> (
-				group.getName(), group.getType()
-			);
+
+			std::shared_ptr <FunctionGroupEntity> overrideGroup;
+			auto resolved = concrete->resolve(group.getName());
+
+			if(!resolved)
+			{
+				overrideGroup = std::make_shared <FunctionGroupEntity> (
+					group.getName(), group.getType()
+				);
+			}
+
+			else
+			{
+				assert(resolved->getType() == Entity::Type::FunctionGroup);
+				overrideGroup = std::static_pointer_cast <FunctionGroupEntity> (resolved);
+			}
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
@@ -231,7 +245,7 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 				{
 					if(overrideGroup->addOverload(std::move(overrideEntity)))
 					{
-						printf("['%s'] Add concrete override for '%s'\n", concrete->getParent().getHierarchy(".").c_str(), group.getOverload(i).getHierarchy(".").c_str());
+						//printf("['%s'] Add concrete override for '%s'\n", concrete->getParent().getHierarchy(".").c_str(), group.getOverload(i).getHierarchy(".").c_str());
 
 						if(group.getOverload(i).isInterface())
 						{
@@ -239,6 +253,12 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 						}
 					}
 				}
+			}
+
+			// If the function group didn't exist previously, add it.
+			if(!resolved)
+			{
+				concrete->addNested(std::move(overrideGroup));
 			}
 		}
 	}
