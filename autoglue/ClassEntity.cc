@@ -121,6 +121,12 @@ void ClassEntity::onGenerate(BindingGenerator& generator)
 
 void ClassEntity::onFirstUse()
 {
+	// Only use the nested entities for concrete types.
+	if(isConcrete)
+	{
+		return;
+	}
+
 	// In order to make this class type instantiable, make sure
 	// that its constructors are used.
 	auto constructors = resolve("Constructor");
@@ -145,14 +151,17 @@ void ClassEntity::onFirstUse()
 		}
 	}
 
+	// If no concrete type exists, try to create one.
 	if(!concreteType)
 	{
 		auto concrete = std::make_shared <ClassEntity> ("ConcreteType");
+		concrete->isConcrete = true;
 		adoptEntity(*concrete);
 		
 		concrete->addBaseType(shared_from_this());
-		addInterfaceOverridesToConcrete(concrete);
+		addOverridesToConcrete(concrete);
 
+		// Only save the concrete type if overrides were added to it.
 		if(!concrete->children.empty())
 		{
 			concreteType = std::move(concrete);
@@ -211,10 +220,8 @@ const char* ClassEntity::getTypeString()
 	return "Class";
 }
 
-void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
+void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 {
-	// Collect new override function for any interface function that requires such.
-	// These will make the concrete type instantiable.
 	for(auto child : children)
 	{
 		if(child->getType() == Entity::Type::FunctionGroup)
@@ -239,18 +246,25 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
+				// If the current function is an override or an overridable, an override
+				// representing the function will be returned.
 				auto overrideEntity = group.getOverload(i).createOverride();
 
-				if(overrideEntity)
+				// If the override function can be added to the concrete type, it means that it
+				// previously didn't have a function of the given signature.
+				if(overrideEntity && overrideGroup->addOverload(std::move(overrideEntity)))
 				{
-					if(overrideGroup->addOverload(std::move(overrideEntity)))
+					// If the current function is an interface that doesn't have an override
+					// in the concrete type, the class should be made abstract as a
+					// foreign language has to implement the function.
+					if(group.getOverload(i).isInterface())
 					{
-						//printf("['%s'] Add concrete override for '%s'\n", concrete->getParent().getHierarchy(".").c_str(), group.getOverload(i).getHierarchy(".").c_str());
+						auto& parent = concrete->getParent();
 
-						if(group.getOverload(i).isInterface())
-						{
-							printf("Make class '%s' abstract because it doesn't override'%s'\n", concrete->getParent().getHierarchy(".").c_str(), group.getOverload(i).getHierarchy(".").c_str());
-						}
+						assert(parent.getType() == Entity::Type::Type);
+						assert(static_cast <TypeEntity&> (parent).getType() == TypeEntity::Type::Class);
+
+						static_cast <ClassEntity&> (parent).abstract = true;
 					}
 				}
 			}
@@ -263,8 +277,8 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 		}
 	}
 
-	// In case a derived class doesn't implement an interface, collect
-	// overrides for interfaces found in base classes.
+	// In case a base class has overridable functions, add them too to the concrete type.
+	// Doing so will also catch unimplemented interfaces which make a class abstract.
 	for(auto weakBase : baseTypes)
 	{
 		if(!weakBase.expired())
@@ -282,7 +296,7 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 			// to the given concrete type.
 			if(base->getType() == Type::Class)
 			{
-				std::static_pointer_cast <ClassEntity> (base)->addInterfaceOverridesToConcrete(concrete);
+				std::static_pointer_cast <ClassEntity> (base)->addOverridesToConcrete(concrete);
 			}
 		}
 	}

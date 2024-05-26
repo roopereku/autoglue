@@ -99,9 +99,10 @@ private:
 	void onFirstUse() override;
 
 	/// Adds interface overrides of this class to the given concrete type.
-	void addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> concrete);
+	void addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete);
 
 	bool abstract = false;
+	bool isConcrete = false;
 
 	std::vector <std::weak_ptr <TypeEntity>> baseTypes;
 	std::vector <std::weak_ptr <ClassEntity>> derivedClasses;
