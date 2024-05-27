@@ -24,20 +24,14 @@ int main(int argc, char** argv)
 	// If autoglue is given to clangBackend, this will resolve the namespace.
 	auto ns = clangBackend.getRoot().resolve("ag");
 
-	printf("Hierarchy done\n");
-
 	// If something was resolved, export it.
 	if(ns)
 	{
 		ns->useAll();
 	}
 
-	printf("Usages done\n");
-
 	clangBackend.getRoot().resolve("std.basic_string_viewCharacter_char_traitsCharacter.size")->use();
 	clangBackend.getRoot().resolve("std.basic_string_viewCharacter_char_traitsCharacter.data")->use();
-
-	//clangBackend.getRoot().resolve("ag.Entity")->list();
 
 	// Export glue code for C++.
 	ag::clang::GlueGenerator glueGen(clangBackend);

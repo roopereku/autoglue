@@ -98,6 +98,9 @@ private:
 	/// Makes sure that the base classes and constructors are used.
 	void onFirstUse() override;
 
+	/// Checks class abstractness and initializes the concrete type if necessary.
+	void onInitialize() override;
+
 	/// Adds interface overrides of this class to the given concrete type.
 	void addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete);
 

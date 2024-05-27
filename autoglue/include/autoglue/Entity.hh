@@ -115,6 +115,10 @@ protected:
 
 	virtual bool hasName(std::string_view str);
 
+	/// This function is called upon the first time that the generation
+	/// state for this entity is reset.
+	virtual void onInitialize();
+
 	/// This function is implemented by the given entity class.
 	/// It calls the appropriate functions from a binding generator.
 	///
@@ -124,6 +128,10 @@ protected:
 	/// This function is called when an entity is used for the first time.
 	virtual void onFirstUse();
 
+	/// Resets the usages of this entity.
+	void resetUsages();
+
+	/// Sets this entity as the parent of the given entity.
 	void adoptEntity(Entity& entity);
 
 	const std::string name;
@@ -132,6 +140,7 @@ protected:
 private:
 	unsigned usages = 0;
 	bool preventUsage = false;
+	bool initialized = false;
 
 	bool generated = false;
 	Entity* parent = nullptr;

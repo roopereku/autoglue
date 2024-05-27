@@ -151,7 +151,6 @@ void ClassEntity::onFirstUse()
 		}
 	}
 
-	// If no concrete type exists, try to create one.
 	if(!concreteType)
 	{
 		auto concrete = std::make_shared <ClassEntity> ("ConcreteType");
@@ -165,7 +164,6 @@ void ClassEntity::onFirstUse()
 		if(!concrete->children.empty())
 		{
 			concreteType = std::move(concrete);
-			concreteType->use();
 		}
 	}
 }
@@ -191,7 +189,6 @@ std::shared_ptr <ClassEntity> ClassEntity::getConcreteType()
 
 void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 {
-	// If a concrete type exists, generate every overridable function from there.
 	if(concreteType)
 	{
 		for(auto child : concreteType->children)
@@ -201,7 +198,13 @@ void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
-				generator.generateInterceptionFunction(group.getOverload(i), *this);
+				auto overridden = group.getOverload(i).getOverridden();
+				assert(overridden);
+
+				if(overridden->getUsages() > 0)
+				{
+					generator.generateInterceptionFunction(group.getOverload(i), *this);
+				}
 			}
 		}
 	}
@@ -228,6 +231,12 @@ void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 		{
 			auto& group = static_cast <FunctionGroupEntity&> (*child);
 
+			// TODO: Implement virtual destructors?
+			if(group.getType() == FunctionEntity::Type::Destructor)
+			{
+				continue;
+			}
+
 			std::shared_ptr <FunctionGroupEntity> overrideGroup;
 			auto resolved = concrete->resolve(group.getName());
 
@@ -246,6 +255,13 @@ void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
+				// In order to make abstract types properly instantiable, implicitly
+				// use interface functions that need to be overridden.
+				if(group.getOverload(i).isInterface())
+				{
+					group.getOverload(i).use();
+				}
+
 				// If the current function is an override or an overridable, an override
 				// representing the function will be returned.
 				auto overrideEntity = group.getOverload(i).createOverride();
@@ -270,7 +286,7 @@ void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 			}
 
 			// If the function group didn't exist previously, add it.
-			if(!resolved)
+			if(!resolved && overrideGroup->getOverloadCount() > 0)
 			{
 				concrete->addNested(std::move(overrideGroup));
 			}
@@ -298,6 +314,43 @@ void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 			{
 				std::static_pointer_cast <ClassEntity> (base)->addOverridesToConcrete(concrete);
 			}
+		}
+	}
+}
+
+void ClassEntity::onInitialize()
+{
+	if(concreteType)
+	{
+		size_t used = 0;
+
+		// Now that we should know what is used and what is not, let's go through
+		// each override within the concrete type and use those which refer to
+		// a used overridable function. When a concrete type is being generated,
+		// this will make generateNested generate overrides for any overridable functions
+		// within the concrete type.
+		for(auto child : concreteType->children)
+		{
+			assert(child->getType() == Entity::Type::FunctionGroup);
+			auto& group = static_cast <FunctionGroupEntity&> (*child);
+
+			for(size_t i = 0; i < group.getOverloadCount(); i++)
+			{
+				auto overridden = group.getOverload(i).getOverridden();
+				assert(overridden);
+
+				if(overridden->isOverridable() && overridden->getUsages() > 0)
+				{
+					group.getOverload(i).use();
+					used++;
+				}
+			}
+		}
+
+		// If nothing is used, the concrete type shouldn't be generated at all.
+		if(used == 0)
+		{
+			concreteType = nullptr;
 		}
 	}
 }

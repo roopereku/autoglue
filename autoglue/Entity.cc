@@ -112,6 +112,12 @@ void Entity::resetGenerated()
 {
 	generated = false;
 
+	if(!initialized)
+	{
+		onInitialize();
+		initialized = true;
+	}
+
 	for(auto child : children)
 	{
 		child->resetGenerated();
@@ -189,8 +195,17 @@ bool Entity::hasName(std::string_view str)
 	return name == str;
 }
 
+void Entity::onInitialize()
+{
+}
+
 void Entity::onFirstUse()
 {
+}
+
+void Entity::resetUsages()
+{
+	usages = 0;
 }
 
 void Entity::adoptEntity(Entity& entity)

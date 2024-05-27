@@ -9,7 +9,8 @@ namespace ag
 class TypeReferenceEntity;
 class FunctionGroupEntity;
 
-class FunctionEntity : public Entity
+class FunctionEntity : public Entity,
+						public std::enable_shared_from_this <FunctionEntity>
 {
 public:
 	enum class Type
@@ -203,6 +204,12 @@ public:
 	/// \return True if this function is a constructor that should do further initialization.
 	bool shouldPrepareClass();
 
+	/// Gets the function overload that this overload overrides. This only is valid
+	/// when the override was created with createOverride().
+	///
+	/// \return The functio overlaod that this overrides or nullptr.
+	std::shared_ptr <FunctionEntity> getOverridden();
+
 	const char* getTypeString() override;
 
 private:
@@ -220,6 +227,8 @@ private:
 	bool compoundOperator = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
+	std::weak_ptr <FunctionEntity> overrideCreatedFor;
+
 	size_t overloadIndex = 0;
 	bool protectedFunction = false;
 };
