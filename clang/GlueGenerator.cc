@@ -328,14 +328,17 @@ public:
 			int toClose = 0;
 			file << "return ";
 
-			// If the type to return isn't trivially copyable, let's move it instead and
-			// return the object that way.
-			// TODO: What if the type isn't moveable?
-			auto ctx = getClangContext(entity);
-			if(ctx && !ctx->getTyperefContext()->isTypeTriviallyCopyable())
+			if(!entity.isReference())
 			{
-				file << "std::move(";
-				toClose++;
+				// If the type to return isn't trivially copyable, let's move it instead and
+				// return the object that way.
+				// TODO: What if the type isn't moveable?
+				auto ctx = getClangContext(entity);
+				if(ctx && !ctx->getTyperefContext()->isTypeTriviallyCopyable())
+				{
+					file << "std::move(";
+					toClose++;
+				}
 			}
 
 			toClose += generateForeignToGlue(entity);
