@@ -206,7 +206,7 @@ void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 				auto overridden = group.getOverload(i).getOverridden();
 				assert(overridden);
 
-				if(overridden->getUsages() > 0 && !overridden->isOverride())
+				if(overridden->getUsages() > 0 && overridden->isOverridable())
 				{
 					generator.generateInterceptionFunction(group.getOverload(i), *this);
 				}
