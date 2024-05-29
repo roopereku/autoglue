@@ -5,7 +5,20 @@ Right now it can be used to generate a simplified hierarchy for a C++ project.
 
 ## Usage:
 
-Make sure that Autoglue is built with Clang support. This can be enabled by passing `-DAUTOGLUE_BUILD_CLANG_BACKEND=ON` when building Autoglue.
+Make sure that you have clang and LLVM installed.
+
+On Arch Linux:
+```
+sudo pacman -S clang llvm
+```
+
+Make sure that Autoglue is built with Clang support:
+
+```
+cmake -S autoglue -B build -DAUTOGLUE_BUILD_CLANG_BACKEND=ON
+cmake --build build
+```
+
 
 To add the Clang backend to your project, Add the following to your `CMakeLists.txt`:
 ```cmake
@@ -15,7 +28,10 @@ find_package(Autoglue REQUIRED)
 
 ...
 
-target_link_libraries(YourTarget Autoglue::Autoglue Autoglue::ClangBackend)
+target_link_libraries(YourTarget
+    Autoglue::Autoglue
+    Autoglue::ClangBackend
+)
 ```
 
 In your code:
@@ -43,7 +59,3 @@ int main()
     glueGen.generateBindings();
 }
 ```
-
-## TODO:
-
-- Generate glue code required for type extension (To support implementing virtual functions through the language bindings)
