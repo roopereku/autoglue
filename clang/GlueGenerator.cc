@@ -754,10 +754,12 @@ void GlueGenerator::generateBridgeCall(FunctionEntity& target)
 		case FunctionEntity::Type::Constructor:
 		case FunctionEntity::Type::Destructor:
 		{
+			// If the function represents an override within a concrete type, do a virtual
+			// call of the original overridable function. This is because a foreign language
+			// might not know the actual type that a concrete type represents.
 			auto overridden = target.getOverridden();
 			if(overridden)
 			{
-				file << "// " << target.getHierarchy(".") << " overrides " << overridden->getHierarchy(".") << '\n';
 				file << "AG_" << overridden->getParent().getHierarchy("::AG_") << "::AG_virtual_" <<
 						target.getBridgeName(true) << '(';
 			}

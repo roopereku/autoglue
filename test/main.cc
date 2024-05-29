@@ -30,9 +30,6 @@ int main(int argc, char** argv)
 		ns->useAll();
 	}
 
-	clangBackend.getRoot().resolve("std.basic_string_viewCharacter_char_traitsCharacter.size")->use();
-	clangBackend.getRoot().resolve("std.basic_string_viewCharacter_char_traitsCharacter.data")->use();
-
 	// Export glue code for C++.
 	ag::clang::GlueGenerator glueGen(clangBackend);
 	glueGen.generateBindings();

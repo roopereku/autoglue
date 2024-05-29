@@ -9,8 +9,7 @@ namespace ag
 class TypeReferenceEntity;
 class FunctionGroupEntity;
 
-class FunctionEntity : public Entity,
-						public std::enable_shared_from_this <FunctionEntity>
+class FunctionEntity : public Entity, public std::enable_shared_from_this <FunctionEntity>
 {
 public:
 	enum class Type
