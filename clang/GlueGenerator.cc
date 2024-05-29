@@ -141,33 +141,41 @@ public:
 
 	void generateClass(ClassEntity& entity) override
 	{
-		file << "struct " << "AG_" << entity.getName();
-
-		auto ctx = getClangContext(entity);
-		if(ctx)
+		if(!entity.isConcreteType())
 		{
-			file << " : public " << ctx->getTypeContext()->getRealName();
+			file << "struct " << "AG_" << entity.getName();
+
+			auto ctx = getClangContext(entity);
+			if(ctx)
+			{
+				file << " : public " << ctx->getTypeContext()->getRealName();
+			}
+
+			file << "\n{\n";
+
+			auto constructors = entity.resolve("Constructor");
+			if(constructors)
+			{
+				inOverride = true;
+				constructors->generate(*this);
+				constructors->resetGenerated();
+				inOverride = false;
+			}
+
+			entity.generateInterceptionContext(*this);
+			entity.generateInterceptionFunctions(*this);
+
+			entity.generateConcreteType(*this);
 		}
-
-		file << "\n{\n";
-
-		auto constructors = entity.resolve("Constructor");
-		if(constructors)
-		{
-			inOverride = true;
-			constructors->generate(*this);
-			constructors->resetGenerated();
-			inOverride = false;
-		}
-
-		entity.generateInterceptionContext(*this);
-		entity.generateInterceptionFunctions(*this);
 
 		inBridge = true;
 		entity.generateNested(*this);
 		inBridge = false;
 
-		file << "};\n\n";
+		if(!entity.isConcreteType())
+		{
+			file << "};\n\n";
+		}
 	}
 
 	void generateFunction(FunctionEntity& entity) override
@@ -198,22 +206,44 @@ public:
 
 		else if(inBridge)
 		{
-			auto ctx = getClangContext(entity);
-			assert(ctx);
-
-			// Don't generate in-class bridges for private interface overrides
-			// as they simply call a virtual bridge function and don't need data access.
-			if(ctx->getOverloadContext()->isPrivateOverride())
+			auto overridden = entity.getOverridden();
+			if(overridden)
 			{
-				return;
+				// This function should be an override residing in a concrete type.
+				// The actual containing class is the parent of the concrete type.
+				auto& containing = entity.getParent().getParent();
+
+				assert(ClassEntity::matchType(overridden->getParent()));
+				assert(ClassEntity::matchType(containing));
+
+				// Only generate functions for a virtual call in the class that originally defined
+				// the given overridable function.
+				if(static_cast <ClassEntity&> (containing).shared_from_this() !=
+					static_cast <ClassEntity&> (overridden->getParent()).shared_from_this())
+				{
+					return;
+				}
+			}
+
+			else
+			{
+				auto ctx = getClangContext(entity);
+				assert(ctx);
+
+				// Don't generate in-class bridges for private interface overrides
+				// as they simply call a virtual bridge function and don't need data access.
+				if(ctx->getOverloadContext()->isPrivateOverride())
+				{
+					return;
+				}
 			}
 
 			file << "static ";
 			entity.generateReturnType(*this, true);
 
-			if(entity.isInterface())
+			if(overridden)
 			{
-				file << "virtual_";
+				file << "AG_virtual_";
 			}
 
 			file << entity.getBridgeName(true) << '(';
@@ -253,14 +283,18 @@ public:
 		{
 			case FunctionEntity::Type::MemberFunction:
 			{
-				file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
-						getObjectHandleName() << ")->";
+				auto overridden = entity.getOverridden();
 
-				// If the function doesn't represent an interface, call the specific
-				// function implementation of the current class to prevent virtual calls.
-				if(!entity.isInterface())
+				if(entity.getOverridden())
 				{
-					file << getSelfType(entity) << "::";
+					file << "static_cast <AG_" << overridden->getParent().getHierarchy("::AG_") << "*> (" <<
+							getObjectHandleName() << ")->";
+				}
+
+				else
+				{
+					file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
+							getObjectHandleName() << ")->" << getSelfType(entity) << "::";
 				}
 
 				file << entity.getName() << '(';
@@ -328,14 +362,17 @@ public:
 			int toClose = 0;
 			file << "return ";
 
-			// If the type to return isn't trivially copyable, let's move it instead and
-			// return the object that way.
-			// TODO: What if the type isn't moveable?
-			auto ctx = getClangContext(entity);
-			if(ctx && !ctx->getTyperefContext()->isTypeTriviallyCopyable())
+			if(!entity.isReference())
 			{
-				file << "std::move(";
-				toClose++;
+				// If the type to return isn't trivially copyable, let's move it instead and
+				// return the object that way.
+				// TODO: What if the type isn't moveable?
+				auto ctx = getClangContext(entity);
+				if(ctx && !ctx->getTyperefContext()->isTypeTriviallyCopyable())
+				{
+					file << "std::move(";
+					toClose++;
+				}
 			}
 
 			toClose += generateForeignToGlue(entity);
@@ -676,6 +713,7 @@ void GlueGenerator::generateClass(ClassEntity& entity)
 
 	entity.generateInterceptionContext(*this);
 	entity.generateNested(*this);
+	entity.generateConcreteType(*this);
 }
 
 void GlueGenerator::generateTypeReference(TypeReferenceEntity& entity)
@@ -716,27 +754,40 @@ void GlueGenerator::generateBridgeCall(FunctionEntity& target)
 		case FunctionEntity::Type::Constructor:
 		case FunctionEntity::Type::Destructor:
 		{
-			auto ctx = getClangContext(target);
-			assert(ctx);
-
-			// If the function is a private override of an interface, it cannot be called
-			// without a virtual function call. Call the virtual function for interface instead.
-			if(ctx->getOverloadContext()->isPrivateOverride())
+			// If the function represents an override within a concrete type, do a virtual
+			// call of the original overridable function. This is because a foreign language
+			// might not know the actual type that a concrete type represents.
+			auto overridden = target.getOverridden();
+			if(overridden)
 			{
-				auto& containing = ctx->getOverloadContext()->getOverriddenInterface()->getParent();
-				file << "AG_" << containing.getHierarchy("::AG_") << "::virtual_" <<
+				file << "AG_" << overridden->getParent().getHierarchy("::AG_") << "::AG_virtual_" <<
 						target.getBridgeName(true) << '(';
 			}
 
-			// Call the corresponding function from the appropriate class.
-			// While some functions could directly be called in these bridge functions,
-			// stuff like protected functions cannot be invoked here directly. This
-			// is why we are invoking a method from a generated class
-			// impersonating the original class.
 			else
 			{
-				file << "AG_" << target.getParent().getHierarchy("::AG_") << "::" <<
-						target.getBridgeName(true) << '(';
+				auto ctx = getClangContext(target);
+				assert(ctx);
+
+				// If the function is a private override of an interface, it cannot be called
+				// without a virtual function call. Call the virtual function for interface instead.
+				if(ctx->getOverloadContext()->isPrivateOverride())
+				{
+					auto& containing = ctx->getOverloadContext()->getOverriddenInterface()->getParent();
+					file << "AG_" << containing.getHierarchy("::AG_") << "::AG_virtual_" <<
+							target.getBridgeName(true) << '(';
+				}
+
+				// Call the corresponding function from the appropriate class.
+				// While some functions could directly be called in these bridge functions,
+				// stuff like protected functions cannot be invoked here directly. This
+				// is why we are invoking a method from a generated class
+				// impersonating the original class.
+				else
+				{
+					file << "AG_" << target.getParent().getHierarchy("::AG_") << "::" <<
+							target.getBridgeName(true) << '(';
+				}
 			}
 
 			onlyParameterNames = true;

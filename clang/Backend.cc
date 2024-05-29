@@ -475,13 +475,6 @@ private:
 					{
 						auto classEntity = std::static_pointer_cast <ag::ClassEntity> (result);
 
-						// Since a C++ class can be abstract without defining pure virtual
-						// functions of its own, perform an extra check for it.
-						if(cxxDef->isAbstract())
-						{
-							classEntity->setAbstract();
-						}
-
 						// Since the class definition is available here, collect its base classes.
 						for(auto base : cxxDef->bases())
 						{
@@ -569,6 +562,7 @@ private:
 		}
 
 		bool isProtected = false;
+		bool isOverride = false;
 		std::weak_ptr <ag::FunctionGroupEntity> privateOverrides;
 
 		// Only export public and protected member functions.
@@ -577,31 +571,25 @@ private:
 			if(decl->getAccess() != clang::AccessSpecifier::AS_public &&
 				decl->getAccess() != clang::AccessSpecifier::AS_protected)
 			{
-				bool overridesPure = false;
-
-				// If this private method doesn't override a pure method, don't export it.
+				// If this function overrides another, it should be saved.
 				for(auto overridden : cxxDecl->overridden_methods())
 				{
-					if(overridden->isPure())
+					// If the overridden method is protected, treat this private override as protected.
+					isProtected = overridden->getAccess() == clang::AccessSpecifier::AS_protected;
+					isOverride = true;
+
+					// If a function group can be created for the overriden method, save the
+					// group entity for OverloadContext to store later.
+					auto group = ensureEntityExists(overridden);
+					if(group && group->getType() == ag::Entity::Type::FunctionGroup)
 					{
-						// If the overridden method is protected, treat this private override as
-						// protected. TODO: This should probably be done in the abstraction.
-						isProtected = overridden->getAccess() == clang::AccessSpecifier::AS_protected;
-						overridesPure = true;
-
-						// If a function group can be created for the overriden method, save the
-						// group entity for OverloadContext to store later.
-						auto group = ensureEntityExists(overridden);
-						if(group && group->getType() == ag::Entity::Type::FunctionGroup)
-						{
-							privateOverrides = std::static_pointer_cast <ag::FunctionGroupEntity> (group);
-						}
-
-						break;
+						privateOverrides = std::static_pointer_cast <ag::FunctionGroupEntity> (group);
 					}
+
+					break;
 				}
 
-				if(!overridesPure)
+				if(!isOverride)
 				{
 					return;
 				}
@@ -648,9 +636,6 @@ private:
 		returnEntity->initializeContext(std::make_shared <ag::clang::TyperefContext> (
 			decl->getReturnType(), decl->getASTContext()
 		));
-
-		// If this is a method in a C++ class, check if it overrides a base class method.
-		bool isOverride = false;
 
 		if(auto* cxxDecl = clang::dyn_cast <clang::CXXMethodDecl> (decl))
 		{
@@ -720,12 +705,6 @@ private:
 			//std::cerr << "Unable to add function " << decl->getQualifiedNameAsString() <<
 			//			": Failed to ensure that the function group exists\n";
 			return;
-		}
-
-		// If this function is a pure virtual member function, the class should become abstract.
-		if(entity->isInterface())
-		{
-			static_cast <ag::ClassEntity&> (group->getParent()).setAbstract();
 		}
 
 		std::static_pointer_cast <ag::FunctionGroupEntity> (group)->addOverload(std::move(entity));

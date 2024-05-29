@@ -241,9 +241,9 @@ void FunctionEntity::setOverloadIndex(size_t index)
 	overloadIndex = index;
 }
 
-std::shared_ptr <FunctionEntity> FunctionEntity::createInterfaceOverride()
+std::shared_ptr <FunctionEntity> FunctionEntity::createOverride()
 {
-	if(interface)
+	if(isOverridable() || isOverride())
 	{
 		auto ret = returnType;
 		auto functionOverride = std::make_shared <FunctionEntity> (*this);
@@ -251,7 +251,9 @@ std::shared_ptr <FunctionEntity> FunctionEntity::createInterfaceOverride()
 		functionOverride->overridable = false;
 		functionOverride->interface = false;
 		functionOverride->overrides = true;
+		functionOverride->overrideCreatedFor = shared_from_this();
 
+		functionOverride->resetUsages();
 		return functionOverride;
 	}
 
@@ -282,6 +284,11 @@ bool FunctionEntity::shouldPrepareClass()
 	}
 
 	return false;
+}
+
+std::shared_ptr <FunctionEntity> FunctionEntity::getOverridden()
+{
+	return overrideCreatedFor.expired() ? nullptr : overrideCreatedFor.lock();
 }
 
 const char* FunctionEntity::getTypeString()

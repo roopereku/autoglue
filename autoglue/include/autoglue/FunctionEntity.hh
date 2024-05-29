@@ -9,7 +9,7 @@ namespace ag
 class TypeReferenceEntity;
 class FunctionGroupEntity;
 
-class FunctionEntity : public Entity
+class FunctionEntity : public Entity, public std::enable_shared_from_this <FunctionEntity>
 {
 public:
 	enum class Type
@@ -184,11 +184,10 @@ public:
 	/// \param index The index of this overload.
 	void setOverloadIndex(size_t index);
 
-	/// Creates a new function entity representing an override of this
-	/// function if it is an interface.
+	/// Creates a new function entity representing an override of this overridable function.
 	///
-	/// \return A new function representing an override of this interface or nullptr.
-	std::shared_ptr <FunctionEntity> createInterfaceOverride();
+	/// \return A new function representing an override of this overridable or nullptr.
+	std::shared_ptr <FunctionEntity> createOverride();
 
 	/// Makes this function overload protected.
 	void setProtected();
@@ -203,6 +202,12 @@ public:
 	///
 	/// \return True if this function is a constructor that should do further initialization.
 	bool shouldPrepareClass();
+
+	/// Gets the function overload that this overload overrides. This only is valid
+	/// when the override was created with createOverride().
+	///
+	/// \return The functio overlaod that this overrides or nullptr.
+	std::shared_ptr <FunctionEntity> getOverridden();
 
 	const char* getTypeString() override;
 
@@ -221,6 +226,8 @@ private:
 	bool compoundOperator = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
+	std::weak_ptr <FunctionEntity> overrideCreatedFor;
+
 	size_t overloadIndex = 0;
 	bool protectedFunction = false;
 };

@@ -69,9 +69,6 @@ public:
 	/// \return True if this class is abstract.
 	bool isAbstract();
 
-	/// Sets this class as abstract.
-	void setAbstract();
-
 	/// Generates a concrete type for this class if it's present.
 	///
 	/// \param generator The BindingGenerator to call functions from.
@@ -81,6 +78,12 @@ public:
 	///
 	/// \return The concrete type of this class or nullptr.
 	std::shared_ptr <ClassEntity> getConcreteType();
+
+	/// Checks whether this class entity is a concrete type for
+	/// another class entity.
+	///
+	/// \return True if this is a concrete type.
+	bool isConcreteType();
 
 	/// Generates the interception functions of this class.
 	///
@@ -92,6 +95,12 @@ public:
 	/// \param generator The BindingGenerator to call functions from.
 	void generateInterceptionContext(BindingGenerator& generator);
 
+	/// Checks whether the given entity is a ClassEntity.
+	///
+	/// \param entity The entity to check.
+	/// \return True if the given entity is a ClassEntity.
+	static bool matchType(Entity& entity);
+
 	const char* getTypeString() override;
 
 private:
@@ -101,10 +110,15 @@ private:
 	/// Makes sure that the base classes and constructors are used.
 	void onFirstUse() override;
 
+	/// Checks class abstractness and initializes the concrete type if necessary.
+	void onInitialize() override;
+
 	/// Adds interface overrides of this class to the given concrete type.
-	void addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> concrete);
+	void addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete);
 
 	bool abstract = false;
+	bool isConcrete = false;
+
 	std::vector <std::weak_ptr <TypeEntity>> baseTypes;
 	std::vector <std::weak_ptr <ClassEntity>> derivedClasses;
 

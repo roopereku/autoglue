@@ -4,6 +4,7 @@
 #include <autoglue/TypeReferenceEntity.hh>
 
 #include <cassert>
+#include <memory>
 
 namespace ag
 {
@@ -120,6 +121,12 @@ void ClassEntity::onGenerate(BindingGenerator& generator)
 
 void ClassEntity::onFirstUse()
 {
+	// Only use the nested entities for concrete types.
+	if(isConcrete)
+	{
+		return;
+	}
+
 	// In order to make this class type instantiable, make sure
 	// that its constructors are used.
 	auto constructors = resolve("Constructor");
@@ -144,29 +151,26 @@ void ClassEntity::onFirstUse()
 		}
 	}
 
-	// If this class is abstract, create a new "concrete type".
-	// This is not stored in children in order for it to be generated
-	// only on demand.
-	if(abstract)
+	if(!concreteType)
 	{
-		concreteType = std::make_shared <ClassEntity> ("ConcreteType");
-		adoptEntity(*concreteType);
+		auto concrete = std::make_shared <ClassEntity> ("ConcreteType");
+		concrete->isConcrete = true;
+		adoptEntity(*concrete);
 		
-		concreteType->addBaseType(shared_from_this());
+		concrete->addBaseType(shared_from_this());
+		addOverridesToConcrete(concrete);
 
-		addInterfaceOverridesToConcrete(concreteType);
-		concreteType->use();
+		// Only save the concrete type if overrides were added to it.
+		if(!concrete->children.empty())
+		{
+			concreteType = std::move(concrete);
+		}
 	}
 }
 
 bool ClassEntity::isAbstract()
 {
 	return abstract;
-}
-
-void ClassEntity::setAbstract()
-{
-	abstract = true;
 }
 
 void ClassEntity::generateConcreteType(BindingGenerator& generator)
@@ -183,9 +187,13 @@ std::shared_ptr <ClassEntity> ClassEntity::getConcreteType()
 	return concreteType;
 }
 
+bool ClassEntity::isConcreteType()
+{
+	return isConcrete;
+}
+
 void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 {
-	// If a concrete type exists, generate every overridable function from there.
 	if(concreteType)
 	{
 		for(auto child : concreteType->children)
@@ -195,7 +203,13 @@ void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
-				generator.generateInterceptionFunction(group.getOverload(i), *this);
+				auto overridden = group.getOverload(i).getOverridden();
+				assert(overridden);
+
+				if(overridden->getUsages() > 0 && overridden->isOverridable())
+				{
+					generator.generateInterceptionFunction(group.getOverload(i), *this);
+				}
 			}
 		}
 	}
@@ -209,45 +223,89 @@ void ClassEntity::generateInterceptionContext(BindingGenerator& generator)
 	}
 }
 
+bool ClassEntity::matchType(Entity& entity)
+{
+	return entity.getType() == Entity::Type::Type &&
+			static_cast <TypeEntity&> (entity).getType() == Type::Class;
+}
+
 const char* ClassEntity::getTypeString()
 {
 	return "Class";
 }
 
-void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
+void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 {
-	// Collect new override function for any interface function that requires such.
-	// These will make the concrete type instantiable.
 	for(auto child : children)
 	{
 		if(child->getType() == Entity::Type::FunctionGroup)
 		{
 			auto& group = static_cast <FunctionGroupEntity&> (*child);
-			auto result = group.createInterfaceOverrides();
 
-			if(result)
+			// TODO: Implement virtual destructors?
+			if(group.getType() == FunctionEntity::Type::Destructor)
 			{
-				auto overrideGroup = concrete->resolve(group.getName());
+				continue;
+			}
 
-				// If there already was a function group for the overrides,
-				// append the result to it.
-				if(overrideGroup)
+			std::shared_ptr <FunctionGroupEntity> overrideGroup;
+			auto resolved = concrete->resolve(group.getName());
+
+			if(!resolved)
+			{
+				overrideGroup = std::make_shared <FunctionGroupEntity> (
+					group.getName(), group.getType()
+				);
+			}
+
+			else
+			{
+				assert(resolved->getType() == Entity::Type::FunctionGroup);
+				overrideGroup = std::static_pointer_cast <FunctionGroupEntity> (resolved);
+			}
+
+			for(size_t i = 0; i < group.getOverloadCount(); i++)
+			{
+				// In order to make abstract types properly instantiable, implicitly
+				// use interface functions that need to be overridden.
+				if(group.getOverload(i).isInterface())
 				{
-					assert(overrideGroup->getType() == Entity::Type::FunctionGroup);
-					std::static_pointer_cast <FunctionGroupEntity> (overrideGroup)->appendOverloads(result);
+					group.getOverload(i).use();
 				}
 
-				// Add a new group if there wasn't one yet.
-				else
+				// If the current function is an override or an overridable, an override
+				// representing the function will be returned.
+				auto overrideEntity = group.getOverload(i).createOverride();
+
+				// If the override function can be added to the concrete type, it means that it
+				// previously didn't have a function of the given signature.
+				if(overrideEntity && overrideGroup->addOverload(std::move(overrideEntity)))
 				{
-					concrete->addNested(std::move(result));
+					// If the current function is an interface that doesn't have an override
+					// in the concrete type, the class should be made abstract as a
+					// foreign language has to implement the function.
+					if(group.getOverload(i).isInterface())
+					{
+						auto& parent = concrete->getParent();
+
+						assert(parent.getType() == Entity::Type::Type);
+						assert(static_cast <TypeEntity&> (parent).getType() == TypeEntity::Type::Class);
+
+						static_cast <ClassEntity&> (parent).abstract = true;
+					}
 				}
+			}
+
+			// If the function group didn't exist previously, add it.
+			if(!resolved && overrideGroup->getOverloadCount() > 0)
+			{
+				concrete->addNested(std::move(overrideGroup));
 			}
 		}
 	}
 
-	// In case a derived class doesn't implement an interface, collect
-	// overrides for interfaces found in base classes.
+	// In case a base class has overridable functions, add them too to the concrete type.
+	// Doing so will also catch unimplemented interfaces which make a class abstract.
 	for(auto weakBase : baseTypes)
 	{
 		if(!weakBase.expired())
@@ -265,8 +323,45 @@ void ClassEntity::addInterfaceOverridesToConcrete(std::shared_ptr <ClassEntity> 
 			// to the given concrete type.
 			if(base->getType() == Type::Class)
 			{
-				std::static_pointer_cast <ClassEntity> (base)->addInterfaceOverridesToConcrete(concrete);
+				std::static_pointer_cast <ClassEntity> (base)->addOverridesToConcrete(concrete);
 			}
+		}
+	}
+}
+
+void ClassEntity::onInitialize()
+{
+	if(concreteType)
+	{
+		size_t used = 0;
+
+		// Now that we should know what is used and what is not, let's go through
+		// each override within the concrete type and use those which refer to
+		// a used overridable function. When a concrete type is being generated,
+		// this will make generateNested generate overrides for any overridable functions
+		// within the concrete type.
+		for(auto child : concreteType->children)
+		{
+			assert(child->getType() == Entity::Type::FunctionGroup);
+			auto& group = static_cast <FunctionGroupEntity&> (*child);
+
+			for(size_t i = 0; i < group.getOverloadCount(); i++)
+			{
+				auto overridden = group.getOverload(i).getOverridden();
+				assert(overridden);
+
+				if(overridden->isOverridable() && overridden->getUsages() > 0)
+				{
+					group.getOverload(i).use();
+					used++;
+				}
+			}
+		}
+
+		// If nothing is used, the concrete type shouldn't be generated at all.
+		if(used == 0)
+		{
+			concreteType = nullptr;
 		}
 	}
 }
