@@ -187,6 +187,11 @@ std::shared_ptr <ClassEntity> ClassEntity::getConcreteType()
 	return concreteType;
 }
 
+bool ClassEntity::isConcreteType()
+{
+	return isConcrete;
+}
+
 void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 {
 	if(concreteType)
@@ -201,7 +206,7 @@ void ClassEntity::generateInterceptionFunctions(BindingGenerator& generator)
 				auto overridden = group.getOverload(i).getOverridden();
 				assert(overridden);
 
-				if(overridden->getUsages() > 0)
+				if(overridden->getUsages() > 0 && !overridden->isOverride())
 				{
 					generator.generateInterceptionFunction(group.getOverload(i), *this);
 				}
@@ -216,6 +221,12 @@ void ClassEntity::generateInterceptionContext(BindingGenerator& generator)
 	{
 		generator.generateInterceptionContext(*this);
 	}
+}
+
+bool ClassEntity::matchType(Entity& entity)
+{
+	return entity.getType() == Entity::Type::Type &&
+			static_cast <TypeEntity&> (entity).getType() == Type::Class;
 }
 
 const char* ClassEntity::getTypeString()
