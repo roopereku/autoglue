@@ -551,7 +551,7 @@ void BindingGenerator::generateBridgeCall(FunctionEntity& entity)
 
 void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass)
 {
-	// Are we already in an interception context (The initialization function)?
+	// Are we already in an interception context (The initialization function)
 	if(inIntercept)
 	{
 		if(onlyParameterNames)
@@ -563,7 +563,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 		// The interception delegates are treated as pointers
 		else
 		{
-			file << ", IntPtr AG_intercept_" << entity.getName();
+			file << ", IntPtr AG_intercept_" << entity.getBridgeName(true);
 		}
 
 		return;
