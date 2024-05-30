@@ -17,6 +17,12 @@ public:
 	/// \return The underlying type entity or a null.
 	std::shared_ptr <TypeEntity> getUnderlying(bool recursive = false);
 
+	/// Resolves an entity from the underlying type pointed at by this type alias.
+	///
+	/// \param qualifiedName The qualified name of the entity delimited by dots.
+	/// \param The resolved entity or nullptr.
+	std::shared_ptr <Entity> resolve(std::string_view qualifiedName) override;
+
 	const char* getTypeString() override;
 
 private:

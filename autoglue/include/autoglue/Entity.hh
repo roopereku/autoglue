@@ -59,7 +59,7 @@ public:
 	///
 	/// \param qualifiedName The qualified name of the entity delimited by dots.
 	/// \param The resolved entity or nullptr.
-	std::shared_ptr <Entity> resolve(std::string_view qualifiedName);
+	virtual std::shared_ptr <Entity> resolve(std::string_view qualifiedName);
 
 	/// Gets the entity name.
 	///

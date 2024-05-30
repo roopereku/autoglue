@@ -1,6 +1,8 @@
 #include <autoglue/TypeAliasEntity.hh>
 #include <autoglue/BindingGenerator.hh>
 
+#include <cassert>
+
 namespace ag
 {
 
@@ -22,6 +24,14 @@ std::shared_ptr <TypeEntity> TypeAliasEntity::getUnderlying(bool recursive)
 	}
 
 	return underlying.expired() ? nullptr : underlying.lock();
+}
+
+std::shared_ptr <Entity> TypeAliasEntity::resolve(std::string_view qualifiedName)
+{
+	auto underlying = getUnderlying();
+	assert(underlying);
+
+	return underlying->resolve(qualifiedName);
 }
 
 void TypeAliasEntity::onFirstUse()
