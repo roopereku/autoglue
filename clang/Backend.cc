@@ -296,6 +296,7 @@ private:
 		}
 
 		type = type.getNonReferenceType();
+		type = type.getUnqualifiedType();
 
 		if(type->isBuiltinType())
 		{
@@ -309,7 +310,11 @@ private:
 			if(typedefNode)
 			{
 				auto result = ensureEntityExists(typedefNode->getDecl());
-				return result ? std::static_pointer_cast <ag::TypeEntity> (result) : nullptr;
+
+				if(result)
+				{
+					return std::static_pointer_cast <ag::TypeEntity> (result);
+				}
 			}
 
 			// TODO: This should probably never happen.
@@ -324,7 +329,10 @@ private:
 			auto* tagNode = type->getAsTagDecl();
 			auto result = ensureEntityExists(tagNode);
 
-			return result ? std::static_pointer_cast <ag::TypeEntity> (result) : nullptr;
+			if(result)
+			{
+				return std::static_pointer_cast <ag::TypeEntity> (result);
+			}
 		}
 
 		return nullptr;
@@ -337,11 +345,6 @@ private:
 		if(!named)
 		{
 			return backend.getRootPtr();
-		}
-
-		if(!isIncluded(named))
-		{
-			return nullptr;
 		}
 
 		std::shared_ptr <ag::Entity> parentEntity = backend.getRootPtr();
@@ -357,6 +360,19 @@ private:
 			{
 				return nullptr;
 			}
+		}
+
+		// If the given declaration doesn't come from an inclusion, return the parent
+		// entity instead which at latest should be the global scope.
+		//
+		// NOTE: The reason that this isn't done before resolving the parent is that
+		// with glibcxx std::string seems to fail when the containing namespace __cx11
+		// cannot be ensured due to it not being defined in a header? As a side effect
+		// this completely ignores the __cxx11 namespace which wouldn't make sense for
+		// MSVC anyways.
+		if(!isIncluded(named))
+		{
+			return parentEntity;
 		}
 
 		std::string name = getEntityName(named);
