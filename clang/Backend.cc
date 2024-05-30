@@ -383,7 +383,7 @@ private:
 		{
 			return nullptr;
 		}
-		
+
 		// If the parent entity doesn't contain an entity of the given name, try to add it.
 		auto result = parentEntity->resolve(name);
 
@@ -408,6 +408,13 @@ private:
 			// Check if the declaration is a class or a struct.
 			else if(auto* recordNode = clang::dyn_cast <clang::RecordDecl> (named))
 			{
+				// If the RecordDecl describes a template and is not a template instantiation,
+				// don't add it as foreign languages can't do anything with it.
+				if(recordNode->getDescribedTemplate())
+				{
+					return nullptr;
+				}
+
 				parentEntity->addChild(std::make_shared <ag::ClassEntity> (name));
 				shouldGetTypeInfo = false;
 			}
