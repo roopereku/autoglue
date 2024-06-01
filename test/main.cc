@@ -30,10 +30,6 @@ int main(int argc, char** argv)
 		ns->useAll();
 	}
 
-	// Export glue code for C++.
-	ag::clang::GlueGenerator glueGen(clangBackend);
-	glueGen.generateBindings();
-
 	// Export bindings for Java.
 	ag::java::BindingGenerator javaGen(clangBackend, "org");
 	javaGen.generateBindings();

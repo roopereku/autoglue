@@ -79,7 +79,9 @@ public:
 	void generate(BindingGenerator& generator);
 
 	/// Recursively resets the flag indicating whether this entity has been exported.
-	void resetGenerated();
+	///
+	/// \param resetEntityContext If true, the context of this entity will be reset.
+	void resetGenerated(bool resetEntityContext);
 
 	/// Checks whether this entity has already been generated.
 	///

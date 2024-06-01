@@ -15,6 +15,10 @@ Entities should override the following functions from `ag::Entity`:
 - To give users easy access to the string representation of the entity type, `ag::Entity::getTypeString()` should be overridden.
 - To let `ag::BindingGenerator` generate any given entity without having to check its type, `ag::Entity::onGenerate(ag::BindingGenerator&)` should be overridden. This will be invoked upon an entity being generated and an entity can call desired functions from `ag::BindingGenerator` through the passed object among other code that may be needed.
 
+## Bridge functions
+
+In order for the language bindings to invoke functions from the API that the language bindings are generated for, bridge functions should be generated that are able to invoke the functions. These should be generated as C-compatible functions so that any given language can call them.
+
 ## Generators
 
 To generate language bindings for any given language, a generator can be defined to generate code specific to the given programming language.
@@ -23,10 +27,6 @@ Every generator inherits `ag::BindingGenerator` and can override the desired fun
 
 ## Backends
 
-Backends are used to construct a simplified hierarchy. They process whatever data that describes code written in any given language such as an AST and convert it to the corresponding entities.
-
-For this purpose, a generator that only generates functions can be created.
-
-## Bridge functions
-
-In order for the language bindings to invoke functions from the API that the language bindings are generated for, bridge functions should be generated that are able to invoke the functions. These should be generated as C-compatible functions so that any given language can call them.
+Backends are used to construct a simplified hierarchy and define how bridge functions for calling the original functionality are generated. Any backend must inherit `ag::Backend` and overridde the following interface functions:
+- `ag::Backend::generateHierarchy` which is used to generate the hierarchy from any suitable data, such as an AST. Everything related to an API should be exported to the hierarchy which allows for the user to call `ag::Entity::use` for any given entity that they want to generate.
+- `ag::Backend::generateGlue` which is implicitly invoked right before any binding generator that is given a backend generates language bindings. During this step glue code should be generated which is required in order for any foreign language to properly use the generated language bindings.

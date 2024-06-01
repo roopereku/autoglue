@@ -20,6 +20,9 @@ public:
 
 	std::string getInclusion(const std::string& path);
 
+protected:
+	void generateGlue() override;
+
 private:
 	void disableUntrivialNew(ClassEntity& entity);
 

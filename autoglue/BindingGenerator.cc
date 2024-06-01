@@ -9,9 +9,11 @@ BindingGenerator::BindingGenerator(Backend& backend)
 {
 }
 
-void BindingGenerator::generateBindings()
+void BindingGenerator::generateBindings(bool resetEntityContext)
 {
-	backend.getRoot().resetGenerated();
+	backend.ensureGlueGenerated();
+
+	backend.getRoot().resetGenerated(resetEntityContext);
 	backend.getRoot().generate(*this);
 }
 

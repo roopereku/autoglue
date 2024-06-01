@@ -158,7 +158,7 @@ public:
 			{
 				inOverride = true;
 				constructors->generate(*this);
-				constructors->resetGenerated();
+				constructors->resetGenerated(false);
 				inOverride = false;
 			}
 
@@ -671,7 +671,7 @@ GlueGenerator::GlueGenerator(Backend& backend)
 	: BindingGenerator(backend), file("glue.cpp")
 {
 	IncludeCollector collector(backend);
-	collector.generateBindings();
+	collector.generateBindings(false);
 
 	for(auto& include : collector.includes)
 	{
@@ -679,7 +679,7 @@ GlueGenerator::GlueGenerator(Backend& backend)
 	}
 
 	ClassGenerator classGen(backend, file);
-	classGen.generateBindings();
+	classGen.generateBindings(false);
 }
 
 void GlueGenerator::generateFunction(FunctionEntity& entity)

@@ -9,25 +9,22 @@ namespace ag
 class Backend
 {
 public:
-	std::shared_ptr <Entity> getRootPtr()
-	{
-		return root;
-	}
-
-	Entity& getRoot()
-	{
-		return *root;
-	}
+	std::shared_ptr <Entity> getRootPtr();
+	Entity& getRoot();
 
 	virtual bool generateHierarchy() = 0;
 
+	/// Ensures that the glue code is generated.
+	void ensureGlueGenerated();
+
 protected:
-	Backend(std::shared_ptr <Entity>&& root)
-		: root(std::move(root))
-	{
-	}
+	Backend(std::shared_ptr <Entity>&& root);
+
+	/// Called when the glue code should be generated.
+	virtual void generateGlue() = 0;
 
 private:
+	bool glueGenerated = false;
 	std::shared_ptr <Entity> root;
 };
 

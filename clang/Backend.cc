@@ -3,6 +3,7 @@
 #include <autoglue/clang/TyperefContext.hh>
 #include <autoglue/clang/FunctionContext.hh>
 #include <autoglue/clang/OverloadContext.hh>
+#include <autoglue/clang/GlueGenerator.hh>
 
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
@@ -955,6 +956,12 @@ bool Backend::generateHierarchy()
 
 	untrivialNew.clear();
 	return result;
+}
+
+void Backend::generateGlue()
+{
+	GlueGenerator glueGen(*this);
+	glueGen.generateBindings(false);
 }
 
 void Backend::disableUntrivialNew(ClassEntity& entity)

@@ -178,7 +178,7 @@ void ClassEntity::generateConcreteType(BindingGenerator& generator)
 	if(concreteType)
 	{
 		concreteType->generate(generator);
-		concreteType->resetGenerated();
+		concreteType->resetGenerated(false);
 	}
 }
 

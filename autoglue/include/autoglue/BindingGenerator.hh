@@ -27,8 +27,8 @@ public:
 
 	/// Generates the bindings.
 	///
-	/// \return True if succesful.
-	void generateBindings();
+	/// \param resetEntityContext If true, the previous context of each entity is reset before generation.
+	void generateBindings(bool resetEntityContext = true);
 
 	/// Generates a class entity.
 	///

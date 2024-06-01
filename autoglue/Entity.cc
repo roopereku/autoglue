@@ -108,9 +108,14 @@ void Entity::generate(BindingGenerator& generator)
 	onGenerate(generator);
 }
 
-void Entity::resetGenerated()
+void Entity::resetGenerated(bool resetEntityContext)
 {
 	generated = false;
+
+	if(resetEntityContext)
+	{
+		context = nullptr;
+	}
 
 	if(!initialized)
 	{
@@ -120,7 +125,7 @@ void Entity::resetGenerated()
 
 	for(auto child : children)
 	{
-		child->resetGenerated();
+		child->resetGenerated(resetEntityContext);
 	}
 }
 
