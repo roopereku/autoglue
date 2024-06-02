@@ -80,8 +80,14 @@ public:
 
 	/// Recursively resets the flag indicating whether this entity has been exported.
 	///
+	/// \param generator The BindingGenerator that is used to initialize generation context.
 	/// \param resetEntityContext If true, the context of this entity will be reset.
-	void resetGenerated(bool resetEntityContext);
+	void resetGenerationState(BindingGenerator& generator, bool resetEntityContext);
+
+	/// Initializes a context for generation using a binding generator.
+	///
+	/// \param generator The BindingGenerator that does context initialization for this entity.
+	void initializeGenerationContext(BindingGenerator& generator);
 
 	/// Checks whether this entity has already been generated.
 	///

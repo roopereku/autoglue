@@ -158,7 +158,7 @@ public:
 			{
 				inOverride = true;
 				constructors->generate(*this);
-				constructors->resetGenerated(false);
+				constructors->resetGenerationState(*this, false);
 				inOverride = false;
 			}
 

@@ -1,4 +1,5 @@
 #include <autoglue/Entity.hh>
+#include <autoglue/BindingGenerator.hh>
 
 #include <cassert>
 #include <iostream>
@@ -108,8 +109,13 @@ void Entity::generate(BindingGenerator& generator)
 	onGenerate(generator);
 }
 
-void Entity::resetGenerated(bool resetEntityContext)
+void Entity::resetGenerationState(BindingGenerator& generator, bool resetEntityContext)
 {
+	if(getUsages() == 0)
+	{
+		return;
+	}
+
 	generated = false;
 
 	if(resetEntityContext)
@@ -125,7 +131,20 @@ void Entity::resetGenerated(bool resetEntityContext)
 
 	for(auto child : children)
 	{
-		child->resetGenerated(resetEntityContext);
+		child->resetGenerationState(generator, resetEntityContext);
+	}
+}
+
+void Entity::initializeGenerationContext(BindingGenerator& generator)
+{
+	if(getUsages() > 0)
+	{
+		generator.initializeGenerationContext(*this);
+
+		for(auto child : children)
+		{
+			child->initializeGenerationContext(generator);
+		}
 	}
 }
 

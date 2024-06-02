@@ -105,6 +105,11 @@ public:
 
 	virtual std::string_view getObjectHandleName();
 
+	/// Initializes a generator specific generation context for the given entity.
+	///
+	/// \param entity The entity to initialize a generation context for.
+	virtual void initializeGenerationContext(Entity& entity);
+
 protected:
 	unsigned getClassDepth();
 

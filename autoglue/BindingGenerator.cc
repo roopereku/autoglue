@@ -13,7 +13,13 @@ void BindingGenerator::generateBindings(bool resetEntityContext)
 {
 	backend.ensureGlueGenerated();
 
-	backend.getRoot().resetGenerated(resetEntityContext);
+	backend.getRoot().resetGenerationState(*this, resetEntityContext);
+
+	if(resetEntityContext)
+	{
+		backend.getRoot().initializeGenerationContext(*this);
+	}
+
 	backend.getRoot().generate(*this);
 }
 
@@ -46,4 +52,5 @@ std::string_view BindingGenerator::getObjectHandleName()
 	return "objectHandle";
 }
 
+void BindingGenerator::initializeGenerationContext(Entity&) {}
 }
