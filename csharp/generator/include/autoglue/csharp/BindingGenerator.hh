@@ -31,6 +31,7 @@ private:
 	void generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass) override;
 	void generateInterceptionContext(ClassEntity& entity) override;
 	std::string_view getObjectHandleName() override;
+	void initializeGenerationContext(Entity& entity) override;
 
 	bool hidesEntity(Entity& entity, Entity& containing);
 	bool generateBridgeToCSharp(TypeReferenceEntity& entity);
