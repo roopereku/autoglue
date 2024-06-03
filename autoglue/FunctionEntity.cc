@@ -57,6 +57,24 @@ void FunctionEntity::onFirstUse()
 	{
 		param->use();
 	}
+
+	// If this function is an override, associate the overridden function with it.
+	if(!isConcreteOverride() && isOverride())
+	{
+		auto& parent = getParent();	
+
+		if(ClassEntity::matchType(parent))
+		{
+			auto result = static_cast <ClassEntity&> (parent).findOverridableFromBase(*this);
+
+			if(result)
+			{
+				// In order for an override to exist, implicitly use the overridden function.
+				result->use();
+				overridden = result;
+			}
+		}
+	}
 }
 
 void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)

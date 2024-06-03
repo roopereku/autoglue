@@ -101,6 +101,13 @@ public:
 	/// \return True if the given entity is a ClassEntity.
 	static bool matchType(Entity& entity);
 
+	/// Finds the first occurence of an overridable FunctionEntity of the given name
+	/// and signature from any base class of this class. This is done recurrsively.
+	///
+	/// \param entity The FunctionEntity that specified the name and signature
+	/// \return The matching overridable function or nullptr.
+	std::shared_ptr <FunctionEntity> findOverridableFromBase(FunctionEntity& entity);
+
 	const char* getTypeString() override;
 
 private:

@@ -2,6 +2,7 @@
 #define AUTOGLUE_TYPE_ENTITY_HH
 
 #include <autoglue/Entity.hh>
+#include <autoglue/FunctionEntity.hh>
 
 namespace ag
 {

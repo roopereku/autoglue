@@ -229,6 +229,47 @@ bool ClassEntity::matchType(Entity& entity)
 			static_cast <TypeEntity&> (entity).getType() == Type::Class;
 }
 
+std::shared_ptr <FunctionEntity> ClassEntity::findOverridableFromBase(FunctionEntity& entity)
+{
+	for(auto base : baseTypes)
+	{
+		assert(!base.expired());
+		auto resulting = base.lock();
+
+		// Get the underlying type for type aliases.
+		if(resulting->getType() == TypeEntity::Type::Alias)
+		{
+			resulting = std::static_pointer_cast <TypeAliasEntity> (resulting)->getUnderlying(true);
+			assert(resulting);
+		}
+
+		// If the base type is a class, try to find a function group of the given name.
+		if(resulting->getType() == TypeEntity::Type::Class)
+		{
+			auto group = base.lock()->resolve(entity.getName());
+
+			if(group && group->getType() == Entity::Type::FunctionGroup)
+			{
+				// If the function group has a matching function that's overridable, return it.
+				auto matching = std::static_pointer_cast <FunctionGroupEntity> (group)->findMatchingParameters(entity);
+				if(matching && matching->isOverridable())
+				{
+					return matching;
+				}
+			}
+
+			// If nothing was found yet, recurse into further base types.
+			auto baseResult = std::static_pointer_cast <ClassEntity> (resulting)->findOverridableFromBase(entity);
+			if(baseResult)
+			{
+				return baseResult;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 const char* ClassEntity::getTypeString()
 {
 	return "Class";
