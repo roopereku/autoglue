@@ -206,9 +206,10 @@ public:
 
 		else if(inBridge)
 		{
-			auto overridden = entity.getOverridden();
-			if(overridden)
+			if(entity.isConcreteOverride())
 			{
+				auto overridden = entity.getOverridden();
+
 				// This function should be an override residing in a concrete type.
 				// The actual containing class is the parent of the concrete type.
 				auto& containing = entity.getParent().getParent();
@@ -241,7 +242,7 @@ public:
 			file << "static ";
 			entity.generateReturnType(*this, true);
 
-			if(overridden)
+			if(entity.isConcreteOverride())
 			{
 				file << "AG_virtual_";
 			}
@@ -283,10 +284,9 @@ public:
 		{
 			case FunctionEntity::Type::MemberFunction:
 			{
-				auto overridden = entity.getOverridden();
-
-				if(entity.getOverridden())
+				if(entity.isConcreteOverride())
 				{
+					auto overridden = entity.getOverridden();
 					file << "static_cast <AG_" << overridden->getParent().getHierarchy("::AG_") << "*> (" <<
 							getObjectHandleName() << ")->";
 				}
@@ -757,9 +757,9 @@ void GlueGenerator::generateBridgeCall(FunctionEntity& target)
 			// If the function represents an override within a concrete type, do a virtual
 			// call of the original overridable function. This is because a foreign language
 			// might not know the actual type that a concrete type represents.
-			auto overridden = target.getOverridden();
-			if(overridden)
+			if(target.isConcreteOverride())
 			{
+				auto overridden = target.getOverridden();
 				file << "AG_" << overridden->getParent().getHierarchy("::AG_") << "::AG_virtual_" <<
 						target.getBridgeName(true) << '(';
 			}

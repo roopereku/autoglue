@@ -251,7 +251,9 @@ std::shared_ptr <FunctionEntity> FunctionEntity::createOverride()
 		functionOverride->overridable = false;
 		functionOverride->interface = false;
 		functionOverride->overrides = true;
-		functionOverride->overrideCreatedFor = shared_from_this();
+
+		functionOverride->overridden = shared_from_this();
+		functionOverride->concreteOverride = true;
 
 		functionOverride->resetUsages();
 		return functionOverride;
@@ -288,7 +290,12 @@ bool FunctionEntity::shouldPrepareClass()
 
 std::shared_ptr <FunctionEntity> FunctionEntity::getOverridden()
 {
-	return overrideCreatedFor.expired() ? nullptr : overrideCreatedFor.lock();
+	return overridden.expired() ? nullptr : overridden.lock();
+}
+
+bool FunctionEntity::isConcreteOverride()
+{
+	return concreteOverride;
 }
 
 const char* FunctionEntity::getTypeString()

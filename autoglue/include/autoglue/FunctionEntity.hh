@@ -203,11 +203,15 @@ public:
 	/// \return True if this function is a constructor that should do further initialization.
 	bool shouldPrepareClass();
 
-	/// Gets the function overload that this overload overrides. This only is valid
-	/// when the override was created with createOverride().
+	/// Gets the function that this overload overrides.
 	///
 	/// \return The functio overlaod that this overrides or nullptr.
 	std::shared_ptr <FunctionEntity> getOverridden();
+
+	/// Checks whether this function is a concrete override made with createOverride.
+	///
+	/// \return True if this function is a concrete override made with createOverride.
+	bool isConcreteOverride();
 
 	const char* getTypeString() override;
 
@@ -226,7 +230,8 @@ private:
 	bool compoundOperator = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
-	std::weak_ptr <FunctionEntity> overrideCreatedFor;
+	std::weak_ptr <FunctionEntity> overridden;
+	bool concreteOverride = false;
 
 	size_t overloadIndex = 0;
 	bool protectedFunction = false;
