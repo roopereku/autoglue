@@ -184,10 +184,13 @@ public:
 	/// \param index The index of this overload.
 	void setOverloadIndex(size_t index);
 
-	/// Creates a new function entity representing an override of this overridable function.
+	/// Creates a new function entity representing an override of
+	/// this overridable function or override.
 	///
-	/// \return A new function representing an override of this overridable or nullptr.
-	std::shared_ptr <FunctionEntity> createOverride();
+	/// \param makeInterface If true, the resulting function will be made an interface.
+	/// \param inConcrete If true, the resulting function will be a concrete override.
+	/// \return A new function representing an override of this function or nullptr.
+	std::shared_ptr <FunctionEntity> createOverride(bool makeInterface = false, bool inConcrete = true);
 
 	/// Makes this function overload protected.
 	void setProtected();

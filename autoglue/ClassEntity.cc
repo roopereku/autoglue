@@ -307,33 +307,86 @@ void ClassEntity::addOverridesToConcrete(std::shared_ptr <ClassEntity> concrete)
 
 			for(size_t i = 0; i < group.getOverloadCount(); i++)
 			{
-				// In order to make abstract types properly instantiable, implicitly
-				// use interface functions that need to be overridden.
-				if(group.getOverload(i).isInterface())
+				auto& overload = group.getOverload(i);
+				if(!overload.isOverridable() && !overload.isOverride())
 				{
-					group.getOverload(i).use();
+					continue;
 				}
 
-				// If the current function is an override or an overridable, an override
-				// representing the function will be returned.
-				auto overrideEntity = group.getOverload(i).createOverride();
-
-				// If the override function can be added to the concrete type, it means that it
-				// previously didn't have a function of the given signature.
-				if(overrideEntity && overrideGroup->addOverload(std::move(overrideEntity)))
+				// In order to make abstract types properly instantiable, implicitly
+				// use interface functions that need to be overridden.
+				if(overload.isInterface())
 				{
+					overload.use();
+				}
+
+				// If the signature of the current overload isn't present in the concrete override
+				// group, try to add a concrete override for the overload.
+				if(!overrideGroup->findMatchingParameters(overload))
+				{
+					std::shared_ptr <FunctionEntity> overrideEntity;
+
 					// If the current function is an interface that doesn't have an override
 					// in the concrete type, the class should be made abstract as a
 					// foreign language has to implement the function.
-					if(group.getOverload(i).isInterface())
+					if(overload.isInterface())
 					{
 						auto& parent = concrete->getParent();
 
 						assert(parent.getType() == Entity::Type::Type);
 						assert(static_cast <TypeEntity&> (parent).getType() == TypeEntity::Type::Class);
 
-						static_cast <ClassEntity&> (parent).abstract = true;
+						auto& parentClass = static_cast <ClassEntity&> (parent);
+						parentClass.abstract = true;
+
+						// Because some languages such as C# expect classes implementing an interface to
+						// implement every method from it, the code may not compile when a source language
+						// such as C++ leaves the implementation of a pure virtual to a further derived
+						// class. To combat such a problem we can implicitly add the desired interface
+						// function to the lacking class.
+						if(parentClass.shared_from_this() != shared_from_this())
+						{
+							auto result = parentClass.resolve(group.getName());
+							std::shared_ptr <FunctionGroupEntity> parentGroup;
+
+							if(!result)
+							{
+								parentGroup = std::make_shared <FunctionGroupEntity> (group.getName(), group.getType());
+							}
+
+							else
+							{
+								assert(result->getType() == Entity::Type::FunctionGroup);
+								parentGroup = std::static_pointer_cast <FunctionGroupEntity> (result);
+							}
+
+							// Make a non-concrete override interface for the overload.
+							auto interfaceOverride = overload.createOverride(true, false);
+							assert(interfaceOverride);
+
+							// Because the parent class of the concrete type now has an
+							// interface representing the interface from a base class,
+							// the concrete override needs to refer to it instead.
+							overrideEntity = interfaceOverride->createOverride();
+							assert(overrideEntity);
+
+							parentGroup->addOverload(std::move(interfaceOverride));
+
+							if(!result)
+							{
+								parentClass.addNested(std::move(parentGroup));
+							}
+						}
 					}
+
+					// If no override entity exists, yet, create it now based on the overload.
+					if(!overrideEntity)
+					{
+						overrideEntity = overload.createOverride();
+						assert(overrideEntity);
+					}
+
+					overrideGroup->addOverload(std::move(overrideEntity));
 				}
 			}
 
