@@ -47,6 +47,8 @@ private:
 	/// Used to only write parameter names when a bridge function is called.
 	bool onlyParameterNames = false;
 
+	bool inBaseInitialization = false;
+	bool inCompositionBase = false;
 	bool convertStringType = false;
 	bool inIntercept = false;
 };

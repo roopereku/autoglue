@@ -28,51 +28,10 @@ std::shared_ptr <EntityContext> getCSharpContext(Entity& entity)
 	return nullptr;
 }
 
-void makeHierarchyInterface(TypeEntity& entity)
-{
-	if(entity.getType() == TypeEntity::Type::Class)
-	{
-		auto& classEntity = static_cast <ClassEntity&> (entity);
-
-		if(!entity.getContext())
-		{
-			classEntity.initializeContext(std::make_shared <ClassContext> ());
-		}
-
-		auto ctx = getCSharpContext(classEntity);
-		assert(ctx);
-		ctx->getClass().setInterface();
-
-		for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
-		{
-			makeHierarchyInterface(classEntity.getBaseType(i));
-		}
-	}
-
-	else if(entity.getType() == TypeEntity::Type::Alias)
-	{
-		auto underlying = static_cast <TypeAliasEntity&> (entity).getUnderlying();
-		assert(underlying);
-
-		makeHierarchyInterface(*underlying);
-	}
-
-	else
-	{
-		assert(false);
-	}
-}
-
 bool isOverloadProtected(FunctionEntity& entity)
 {
 	if(entity.isClassMemberFunction())
 	{
-		auto ctx = getCSharpContext(entity.getParent());
-		if(ctx && ctx->getClass().isInterface())
-		{
-			return false;
-		}
-
 		auto overridden = entity.getOverridden();
 
 		if(overridden)
@@ -149,72 +108,58 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	file << "public ";
 
 	auto ctx = getCSharpContext(entity);
-	bool isInterface = ctx && ctx->getClass().isInterface();
-
-	if(isInterface)
+	if(entity.isAbstract())
 	{
-		file << "interface " << sanitizeName(entity);
+		file << "abstract ";
 	}
 
-	else
-	{
-		if(entity.isAbstract())
-		{
-			file << "abstract ";
-		}
-
-		file << "class " << sanitizeName(entity);
-	}
+	file << "class " << sanitizeName(entity);
 
 	entity.generateBaseTypes(*this);
 	file << "\n{\n";
 
-	// Generate support code for the object handle in non-interface classes.
-	if(!isInterface)
+	// Store the object handle when there are no base classes.
+	if(!entity.hasBaseTypes())
 	{
-		// Store the object handle when there are no base classes.
-		if(!entity.hasBaseTypes())
-		{
-			file << "protected IntPtr " << "mObjectHandle" << ";\n";
+		file << "protected IntPtr " << "mObjectHandle" << ";\n";
 
-			file << "public static IntPtr AG_getObjectHandle(" << getTypeLocation(entity) << " obj)" <<
-					"\n{\nreturn obj.mObjectHandle;\n}\n";
-		}
+		file << "public static IntPtr AG_getObjectHandle(" << getTypeLocation(entity) << " obj)" <<
+				"\n{\nreturn obj.mObjectHandle;\n}\n";
+	}
 
-		// Define a constructor for object handle initialization.
-		file << "public " << sanitizeName(entity) << "(IntPtr objectHandle)";
+	// Define a constructor for object handle initialization.
+	file << "public " << sanitizeName(entity) << "(IntPtr objectHandle)";
 
-		// Call the base type constructor.
-		if(entity.hasBaseTypes())
-		{
-			file << " : base(objectHandle)\n{\n";
-		}
-
-		else
-		{
-			// If there are no base types, initialize the object handle.
-			file << "\n{\nmObjectHandle = objectHandle;\n";
-		}
-
-		file << "}\n";
+	// Call the base type constructor.
+	if(entity.hasBaseTypes())
+	{
+		file << " : base(objectHandle)\n{\n";
 	}
 
 	else
 	{
+		// If there are no base types, initialize the object handle.
+		file << "\n{\nmObjectHandle = objectHandle;\n";
 	}
 
-	if(!isInterface)
-	{
-		entity.generateInterceptionFunctions(*this);
-		entity.generateInterceptionContext(*this);
-	}
+	inBaseInitialization = true;
+	inCompositionBase = true;
+	entity.generateBaseTypes(*this);
+	inCompositionBase = false;
+	inBaseInitialization = false;
+
+	file << "}\n";
+
+	inCompositionBase = true;
+	entity.generateBaseTypes(*this);
+	inCompositionBase = false;
+
+	entity.generateInterceptionFunctions(*this);
+	entity.generateInterceptionContext(*this);
 
 	entity.generateNested(*this);
 
-	if(!isInterface)
-	{
-		entity.generateConcreteType(*this);
-	}
+	entity.generateConcreteType(*this);
 
 	file << "}\n";
 
@@ -274,6 +219,31 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 	file << '\n';
 }
 
+bool shouldGenerateOverride(FunctionEntity& entity)
+{
+	if(entity.isOverride())
+	{
+		auto overridden = entity.getOverridden();
+		assert(overridden);
+
+		assert(ClassEntity::matchType(entity.getParent()));
+		auto& parent = static_cast <ClassEntity&> (entity.getParent());
+
+		// If the parent class of the overridden function is a base class of the parent
+		// class of this function but implemented with composition, don't generate
+		// this override as there's nothing to override.
+		auto overrideParentCtx = getCSharpContext(overridden->getParent());
+		if(overrideParentCtx && overrideParentCtx->getClass().isCompositionBaseOf(parent))
+		{
+			return false;
+		}
+
+		return shouldGenerateOverride(*overridden);
+	}
+
+	return true;
+}
+
 void BindingGenerator::generateFunction(FunctionEntity& entity)
 {
 	if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
@@ -286,24 +256,12 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		return;
 	}
 
-	bool parentIsInterface = false;
-
-	if(entity.isClassMemberFunction())
+	if(!shouldGenerateOverride(entity))
 	{
-		assert(entity.getParent().getType() == Entity::Type::Type);
-
-		auto parentCtx = getCSharpContext(static_cast <TypeEntity&> (entity.getParent()));
-		parentIsInterface = parentCtx && parentCtx->getClass().isInterface();
+		return;
 	}
 
-	// TODO: Allow constructors for the instantiable type.
-	// Don't generate constructors inside interfaces.
-	if(entity.getType() == FunctionEntity::Type::Constructor && parentIsInterface)
-	{
-		return;	
-	}
-
-	if(!parentIsInterface && !entity.isInterface())
+	if(!entity.isInterface())
 	{
 		file << "[DllImport(\"" << libName << "\", CallingConvention = CallingConvention.Cdecl)]\n";
 		file << "private static extern ";
@@ -320,48 +278,36 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	file << (isOverloadProtected(entity) ? "protected " : "public ");
 
-	if(!parentIsInterface)
+	bool markAsOverride = entity.isOverride();
+
+	// If this function hides another defined in a base class, mark it as new.
+	if(hidesEntity(entity, entity.getParent()))
 	{
-		bool markAsOverride = false;
+		file << "new ";
+	}
 
-		if(entity.isOverride())
+	if(entity.isInterface())
+	{
+		file << "abstract ";
+	}
+
+	else
+	{
+		if(entity.isOverridable())
 		{
-			auto overridden = entity.getOverridden();
-			assert(overridden);
-
-			auto parentCtx = getCSharpContext(overridden->getParent());
-			markAsOverride = !parentCtx || !parentCtx->getClass().isInterface();
-		}
-
-		// If this function hides another defined in a base class, mark it as new.
-		if(hidesEntity(entity, entity.getParent()))
-		{
-			file << "new ";
-		}
-
-		if(entity.isInterface())
-		{
-			file << "abstract ";
-		}
-
-		else
-		{
-			if(entity.isOverridable())
+			// Overrides cannot be marked virtual.
+			if(!markAsOverride)
 			{
-				// Overrides cannot be marked virtual.
-				if(!markAsOverride)
-				{
-					file << "virtual ";
-				}
+				file << "virtual ";
 			}
-
-			// TODO: Add sealed somewhere here.
 		}
 
-		if(markAsOverride)
-		{
-			file << "override ";
-		}
+		// TODO: Add sealed somewhere here.
+	}
+
+	if(markAsOverride)
+	{
+		file << "override ";
 	}
 
 	if(entity.getType() == FunctionEntity::Type::Constructor)
@@ -389,22 +335,19 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		file << "\n{\n";
 	}
 
-	if(!parentIsInterface)
+	bool closeParenthesis = entity.generateReturnStatement(*this, false);
+
+	// The bridge function for a constructor was already generated.
+	if(entity.getType() != FunctionEntity::Type::Constructor)
 	{
-		bool closeParenthesis = entity.generateReturnStatement(*this, false);
+		entity.generateBridgeCall(*this);
 
-		// The bridge function for a constructor was already generated.
-		if(entity.getType() != FunctionEntity::Type::Constructor)
+		if(closeParenthesis)
 		{
-			entity.generateBridgeCall(*this);
-
-			if(closeParenthesis)
-			{
-				file << ')';
-			}
-
-			file << ";\n";
+			file << ')';
 		}
+
+		file << ";\n";
 	}
 
 	file << "}\n";
@@ -501,10 +444,56 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 
 bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
-	if(index == 0)
+	if(inCompositionBase)
 	{
-		file << " : " << getTypeLocation(entity);
-		return true;
+		// Base classes after the first one are generated as member objects.
+		if(index > 0)
+		{
+			switch(entity.getType())
+			{
+				case TypeEntity::Type::Alias:
+				{
+					auto underlying = static_cast <TypeAliasEntity&> (entity).getUnderlying(true);
+					assert(underlying);
+
+					return generateBaseType(*underlying, index);
+				}
+
+				case TypeEntity::Type::Class:
+				{
+					if(inBaseInitialization)
+					{
+						auto classEntity = static_cast <ClassEntity&> (entity);
+						assert(classEntity.getConcreteType());
+
+						file << "base" << entity.getName() << " = new " <<
+								getTypeLocation(*classEntity.getConcreteType()) << "(mObjectHandle);\n";
+					}
+
+					else
+					{
+						file << "public readonly " << getTypeLocation(entity) <<
+								' ' << "base" << entity.getName() << ";\n";
+					}
+
+					break;
+				}
+
+				default:
+				{
+					assert(false);
+				}
+			}
+		}
+	}
+
+	else
+	{
+		// Only generate the first base class when defining inheritance.
+		if(index == 0)
+		{
+			file << " : " << getTypeLocation(entity);
+		}
 	}
 
 	return false;
@@ -674,6 +663,11 @@ void BindingGenerator::generateBridgeCall(FunctionEntity& entity)
 
 void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass)
 {
+	if(!shouldGenerateOverride(entity))
+	{
+		return;
+	}
+
 	// Are we already in an interception context (The initialization function)
 	if(inIntercept)
 	{
@@ -778,9 +772,19 @@ void BindingGenerator::initializeGenerationContext(Entity& entity)
 
 					for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
 					{
+						// If a class uses multiple inheritance, treat every base class
+						// that's not the first one as a composition base where it
+						// will be stored as a member object.
 						if(i > 0)
 						{
-							makeHierarchyInterface(classEntity.getBaseType(i));
+							auto& base = classEntity.getBaseType(i);
+
+							if(!base.getContext())
+							{
+								base.initializeContext(std::make_shared <ClassContext> ());
+							}
+
+							getCSharpContext(base)->getClass().setCompositionBaseOf(classEntity);
 						}
 					}
 

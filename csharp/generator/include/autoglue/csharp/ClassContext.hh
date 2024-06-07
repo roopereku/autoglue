@@ -3,6 +3,11 @@
 
 #include <autoglue/csharp/EntityContext.hh>
 
+#include <autoglue/ClassEntity.hh>
+
+#include <memory>
+#include <set>
+
 namespace ag::csharp
 {
 
@@ -13,18 +18,19 @@ public:
 	{
 	}
 
-	bool isInterface()
+	bool isCompositionBaseOf(ClassEntity& derived)
 	{
-		return interface;
+		return compositionBaseOf.find(derived.shared_from_this()) != compositionBaseOf.end();
 	}
 
-	void setInterface()
+	void setCompositionBaseOf(ClassEntity& derived)
 	{
-		interface = true;
+		compositionBaseOf.emplace(derived.shared_from_this());
 	}
 
 private:
-	bool interface;
+	using PtrType = std::weak_ptr <ClassEntity>;
+	std::set <PtrType, std::owner_less <PtrType>> compositionBaseOf;
 };
 
 }
