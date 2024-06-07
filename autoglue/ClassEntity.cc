@@ -54,10 +54,10 @@ void ClassEntity::generateBaseTypes(BindingGenerator& generator)
 		if(!baseTypes[i].expired())
 		{
 			auto base = baseTypes[i].lock();
-			generator.generateBaseType(*base, i);
+			bool addSeparator = generator.generateBaseType(*base, i);
 
 			// Add an argument separator for base types that aren't the last one.
-			if(i != baseTypes.size() - 1)
+			if(addSeparator && i != baseTypes.size() - 1)
 			{
 				generator.generateArgumentSeparator();
 			}

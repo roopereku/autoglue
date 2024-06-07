@@ -23,7 +23,7 @@ private:
 	void generateFunction(FunctionEntity& entity) override;
 	void generateTypeReference(TypeReferenceEntity& entity) override;
 	void generateTypeAlias(TypeAliasEntity& entity) override;
-	void generateBaseType(TypeEntity& entity, size_t index) override;
+	bool generateBaseType(TypeEntity& entity, size_t index) override;
 	void generateNamedScope(ScopeEntity& entity) override;
 	void generateArgumentSeparator() override;
 	bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target) override;
