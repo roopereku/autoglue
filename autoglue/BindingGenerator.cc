@@ -39,7 +39,7 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity&) {}
 void BindingGenerator::generateFunction(FunctionEntity&) {}
 void BindingGenerator::generateTypeReference(TypeReferenceEntity&) {}
 void BindingGenerator::generateTypeAlias(TypeAliasEntity&) {}
-void BindingGenerator::generateBaseType(TypeEntity&, size_t) {}
+bool BindingGenerator::generateBaseType(TypeEntity&, size_t) { return false; }
 void BindingGenerator::generateNamedScope(ScopeEntity&) {}
 void BindingGenerator::generateArgumentSeparator() {}
 bool BindingGenerator::generateReturnStatement(TypeReferenceEntity&, FunctionEntity&) { return false; }

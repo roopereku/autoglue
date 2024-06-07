@@ -499,14 +499,15 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	//}
 }
 
-void BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
+bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
 	if(index == 0)
 	{
-		file << " : ";
+		file << " : " << getTypeLocation(entity);
+		return true;
 	}
 
-	file << getTypeLocation(entity);
+	return false;
 }
 
 void BindingGenerator::generateNamedScope(ScopeEntity& entity)

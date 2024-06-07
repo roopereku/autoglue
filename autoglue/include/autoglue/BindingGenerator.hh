@@ -64,7 +64,8 @@ public:
 	///
 	/// \param entity The TypeEntity containing the base type.
 	/// \param index The index of the base type.
-	virtual void generateBaseType(TypeEntity& entity, size_t index);
+	/// \return True if an argument separator may come after the base type.
+	virtual bool generateBaseType(TypeEntity& entity, size_t index);
 
 	/// Generates a named scope.
 	///

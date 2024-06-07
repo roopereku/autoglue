@@ -432,7 +432,7 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 	changeClassDepth(-1);
 }
 
-void BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
+bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
 	if(index == 0)
 	{
@@ -447,6 +447,8 @@ void BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 		// TODO: Maybe every base class should have "implements" in the case of multiple inheritance.
 		file << "implements " << entity.getHierarchy(".");
 	}
+
+	return true;
 }
 
 void BindingGenerator::generateNamedScope(ScopeEntity& entity)
