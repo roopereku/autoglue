@@ -736,8 +736,12 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	// interception function from the member representing the base class.
 	if(overridden)
 	{
-		file << "base" << overridden->getParent().getName() << '.' <<
-				"AG_intercept_" << overridden->getBridgeName(true) << '(';
+		file << "var AG_baseHandle = GCHandle.Alloc(" << "((((GCHandle)objectHandle" <<
+				").Target) as " << parentClass.getName() << ").base" << overridden->getParent().getName() << ");\n";
+
+		assert(ClassEntity::matchType(overridden->getParent()));
+		file << getTypeLocation(static_cast <ClassEntity&> (overridden->getParent())) <<
+				".AG_intercept_" << overridden->getBridgeName(true) << '(';
 	}
 
 	else
@@ -755,7 +759,15 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 		file << ')';
 	}
 
-	file << ");\n}\n";
+	file << ");\n";
+
+	// If parameters were delegated, destroy the temporarily created GCHandle.
+	if(delegateInterception)
+	{
+		file << "AG_baseHandle.Free();\n";
+	}
+
+	file << "}\n";
 	inIntercept = false;
 	delegateInterception = false;
 }
@@ -783,9 +795,14 @@ void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
 
 std::string_view BindingGenerator::getObjectHandleName()
 {
-	// NOTE: When parameters of an interception functions are
-	// delegated to another, objectHandle is preferred.
-	return onlyParameterNames && !delegateInterception ? "mObjectHandle" : "objectHandle";
+	// When parameters of an interception functions are delegated to another,
+	// cast the created GCHandle pointing to a composition base to a pointer.
+	if(delegateInterception)
+	{
+		return "(IntPtr)AG_baseHandle";
+	}
+
+	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
 }
 
 void BindingGenerator::initializeGenerationContext(Entity& entity)
