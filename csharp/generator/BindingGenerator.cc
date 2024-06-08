@@ -219,7 +219,7 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 	file << '\n';
 }
 
-bool shouldGenerateOverride(FunctionEntity& entity)
+std::shared_ptr <FunctionEntity> getOverriddenInCompositeBase(FunctionEntity& entity)
 {
 	if(entity.isOverride())
 	{
@@ -235,13 +235,13 @@ bool shouldGenerateOverride(FunctionEntity& entity)
 		auto overrideParentCtx = getCSharpContext(overridden->getParent());
 		if(overrideParentCtx && overrideParentCtx->getClass().isCompositionBaseOf(parent))
 		{
-			return false;
+			return overridden;
 		}
 
-		return shouldGenerateOverride(*overridden);
+		return getOverriddenInCompositeBase(*overridden);
 	}
 
-	return true;
+	return nullptr;
 }
 
 void BindingGenerator::generateFunction(FunctionEntity& entity)
@@ -256,7 +256,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		return;
 	}
 
-	if(!shouldGenerateOverride(entity))
+	if(getOverriddenInCompositeBase(entity))
 	{
 		return;
 	}
@@ -357,6 +357,12 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
+		if(delegateInterception)
+		{
+			file << entity.getName();
+			return;
+		}
+
 		// If a parameter pass is being generated for an interception function,
 		// follow the same logic as when returning values. This works because an
 		// interception function accepts POD types and converts them to C# types,
@@ -535,6 +541,12 @@ void BindingGenerator::generateArgumentSeparator()
 
 bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
 {
+	if(delegateInterception)
+	{
+		file << "return ";
+		return false;
+	}
+
 	if(inIntercept)
 	{
 		file << "return ";
@@ -663,17 +675,15 @@ void BindingGenerator::generateBridgeCall(FunctionEntity& entity)
 
 void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass)
 {
-	if(!shouldGenerateOverride(entity))
-	{
-		return;
-	}
+	auto overridden = getOverriddenInCompositeBase(entity);
 
 	// Are we already in an interception context (The initialization function)
 	if(inIntercept)
 	{
 		if(onlyParameterNames)
 		{
-            file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
+			// TODO: If creating a interception function for overridden, use its bridge name instead.
+			file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
 					entity.getBridgeName(true) << "(AG_intercept_" << entity.getBridgeName(true) << "))";
 		}
 
@@ -707,20 +717,32 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	entity.generateParameters(*this, true, true);
 	file << ");\n";
 
-	file << "private static ";
+	file << "internal static ";
 	entity.generateReturnType(*this, true);
 	file << "AG_intercept_" << entity.getBridgeName(true) << '(';
 
 	entity.generateParameters(*this, true, true);
 	file << ")\n{\n";
 
+	delegateInterception = static_cast <bool> (overridden);
 	bool closeParenthesis = entity.generateReturnStatement(*this, false);
 
-	file << "((((GCHandle)" << getObjectHandleName() << ").Target) as " <<
-			parentClass.getName() << ")." << entity.getName() << '(';
+	// If the overridden function is from a composition base class, call another
+	// interception function from the member representing the base class.
+	if(overridden)
+	{
+		file << "base" << overridden->getParent().getName() << '.' <<
+				"AG_intercept_" << overridden->getBridgeName(true) << '(';
+	}
+
+	else
+	{
+		file << "((((GCHandle)" << getObjectHandleName() << ").Target) as " <<
+				parentClass.getName() << ")." << entity.getName() << '(';
+	}
 
 	onlyParameterNames = true;
-	entity.generateParameters(*this, false, false);
+	entity.generateParameters(*this, false, delegateInterception);
 	onlyParameterNames = false;
 
 	if(closeParenthesis)
@@ -730,6 +752,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 
 	file << ");\n}\n";
 	inIntercept = false;
+	delegateInterception = false;
 }
 
 void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
@@ -755,7 +778,9 @@ void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
 
 std::string_view BindingGenerator::getObjectHandleName()
 {
-	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
+	// NOTE: When parameters of an interception functions are
+	// delegated to another, objectHandle is preferred.
+	return onlyParameterNames && !delegateInterception ? "mObjectHandle" : "objectHandle";
 }
 
 void BindingGenerator::initializeGenerationContext(Entity& entity)
