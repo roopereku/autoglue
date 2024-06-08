@@ -290,6 +290,8 @@ public:
 			{
 				if(entity.isConcreteOverride())
 				{
+					assert(!entity.isStatic());
+
 					auto overridden = entity.getOverridden();
 					file << "static_cast <AG_" << overridden->getParent().getHierarchy("::AG_") << "*> (" <<
 							getObjectHandleName() << ")->";
@@ -297,8 +299,18 @@ public:
 
 				else
 				{
-					file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
-							getObjectHandleName() << ")->" << getSelfType(entity) << "::";
+					// Static functions are not accessed through an object handle.
+					if(entity.isStatic())
+					{
+						file << getSelfType(entity) << "::";
+					}
+
+					// Non-static functions are accessed through an object handle.
+					else
+					{
+						file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
+								getObjectHandleName() << ")->" << getSelfType(entity) << "::";
+					}
 				}
 
 				file << entity.getName() << '(';

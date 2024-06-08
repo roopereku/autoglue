@@ -42,7 +42,7 @@ public:
 	};
 
 	FunctionEntity(std::shared_ptr <TypeReferenceEntity>&& returnType,
-					bool overridable, bool overrides, bool interface);
+					bool overridable, bool overrides, bool interface, bool staticFunction);
 
 	/// Adds a new parameter to this function.
 	///
@@ -213,6 +213,11 @@ public:
 	/// \return True if this function is a concrete override made with createOverride.
 	bool isConcreteOverride();
 
+	/// Checks whether this function is static.
+	///
+	/// \return True if this function is static.
+	bool isStatic();
+
 	const char* getTypeString() override;
 
 private:
@@ -235,6 +240,7 @@ private:
 
 	size_t overloadIndex = 0;
 	bool protectedFunction = false;
+	bool staticFunction = false;
 };
 
 }

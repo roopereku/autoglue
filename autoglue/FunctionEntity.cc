@@ -9,9 +9,10 @@ namespace ag
 {
 
 FunctionEntity::FunctionEntity(std::shared_ptr <TypeReferenceEntity>&& returnType,
-								bool overridable, bool overrides, bool interface)
+								bool overridable, bool overrides, bool interface, bool staticFunction)
 	:	Entity(Entity::Type::Function, ""), returnType(std::move(returnType)),
-		overridable(overridable || interface), overrides(overrides), interface(interface)
+		overridable(overridable || interface), overrides(overrides),
+		interface(interface), staticFunction(staticFunction)
 {
 }
 
@@ -174,9 +175,9 @@ FunctionEntity::Type FunctionEntity::getType()
 
 bool FunctionEntity::needsThisHandle()
 {
-	// TODO: Exclude static functions.
-	return getType() == Type::MemberFunction ||
-			getType() == Type::Destructor;
+	return !staticFunction &&
+			(getType() == Type::MemberFunction ||
+			getType() == Type::Destructor);
 }
 
 bool FunctionEntity::returnsValue()
@@ -314,6 +315,11 @@ std::shared_ptr <FunctionEntity> FunctionEntity::getOverridden()
 bool FunctionEntity::isConcreteOverride()
 {
 	return concreteOverride;
+}
+
+bool FunctionEntity::isStatic()
+{
+	return staticFunction;
 }
 
 const char* FunctionEntity::getTypeString()

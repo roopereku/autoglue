@@ -209,6 +209,11 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	file << (entity.isProtected() ? "protected " : "public ");
 
+	if(entity.isStatic())
+	{
+		file << "static ";
+	}
+
 	// If this function hides another defined in a base class, mark it as new.
 	if(hidesEntity(entity, entity.getParent()))
 	{

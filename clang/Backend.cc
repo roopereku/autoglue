@@ -668,7 +668,8 @@ private:
 		}
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
-			std::move(returnEntity), decl->isVirtualAsWritten(), isOverride, decl->isPure()
+			std::move(returnEntity), decl->isVirtualAsWritten(), isOverride,
+			decl->isPure(), decl->isStatic()
 		);
 
 		entity->initializeContext(std::make_shared <ag::clang::OverloadContext> (decl, privateOverrides));
