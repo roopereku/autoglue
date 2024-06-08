@@ -168,9 +168,7 @@ public:
 			entity.generateConcreteType(*this);
 		}
 
-		inBridge = true;
 		entity.generateNested(*this);
-		inBridge = false;
 
 		if(!entity.isConcreteType())
 		{
@@ -180,6 +178,12 @@ public:
 
 	void generateFunction(FunctionEntity& entity) override
 	{
+		// TODO: Generate bridges to operator overloads with the correct names.
+		if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
+		{
+			return;
+		}
+
 		if(inOverride)
 		{
 			assert(entity.getType() == FunctionEntity::Type::Constructor);
@@ -204,7 +208,7 @@ public:
 			file << "}\n";
 		}
 
-		else if(inBridge)
+		else
 		{
 			if(entity.isConcreteOverride())
 			{
@@ -286,6 +290,8 @@ public:
 			{
 				if(entity.isConcreteOverride())
 				{
+					assert(!entity.isStatic());
+
 					auto overridden = entity.getOverridden();
 					file << "static_cast <AG_" << overridden->getParent().getHierarchy("::AG_") << "*> (" <<
 							getObjectHandleName() << ")->";
@@ -293,8 +299,18 @@ public:
 
 				else
 				{
-					file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
-							getObjectHandleName() << ")->" << getSelfType(entity) << "::";
+					// Static functions are not accessed through an object handle.
+					if(entity.isStatic())
+					{
+						file << getSelfType(entity) << "::";
+					}
+
+					// Non-static functions are accessed through an object handle.
+					else
+					{
+						file << "static_cast <AG_" << entity.getParent().getHierarchy("::AG_") << "*> (" <<
+								getObjectHandleName() << ")->" << getSelfType(entity) << "::";
+					}
 				}
 
 				file << entity.getName() << '(';
@@ -386,7 +402,7 @@ public:
 			}
 		}
 
-		else if(inBridge)
+		else
 		{
 			bool closeParenthesis = false;
 			file << "return ";
@@ -429,7 +445,7 @@ public:
 				file << ctx->getTyperefContext()->getOriginalType();
 			}
 
-			else if(inBridge)
+			else
 			{
 				assert(entity.isPrimitive());
 				generateTypePOD(file, entity);
@@ -469,7 +485,7 @@ public:
 		}
 
 		// Parameters passed in class bridge functions.
-		else if(inBridge)
+		else
 		{
 			int toClose = generateForeignToGlue(entity);
 			file << entity.getName();
@@ -490,12 +506,10 @@ public:
 			return;
 		}
 
-		inBridge = true;
 		entity.generateReturnType(*this, true);
 		file << "(*AG_intercept_" << entity.getBridgeName(true) << ")(";
 		entity.generateParameters(*this, true, true);
 		file << ");\n";
-		inBridge = false;
 
 		inOverride = true;
 		entity.generateReturnType(*this, false);
@@ -659,7 +673,6 @@ public:
 private:
 	std::ofstream& file;
 
-	bool inBridge = false;
 	bool inOverride = false;
 	bool inIntercept = false;
 	bool onlyParameterNames = false;
@@ -684,6 +697,12 @@ GlueGenerator::GlueGenerator(Backend& backend)
 
 void GlueGenerator::generateFunction(FunctionEntity& entity)
 {
+	// TODO: Generate bridges to operator overloads with the correct names.
+	if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
+	{
+		return;
+	}
+
 	if(entity.isInterface())
 	{
 		return;
