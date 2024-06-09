@@ -154,6 +154,22 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	entity.generateBaseTypes(*this);
 	inCompositionBase = false;
 
+	if(ctx)
+	{
+		auto& classCtx = ctx->getClass();
+		for(size_t i = 0; i < classCtx.getBaseGetterCount(); i++)
+		{
+			auto baseGetter = classCtx.getBaseGetter(i);
+			assert(baseGetter);
+			assert(baseGetter->getConcreteType());
+
+			file << "protected override " << getTypeLocation(*baseGetter) <<
+					" createBase" << sanitizeName(*baseGetter) << "()\n{\n" <<
+					"return new " << getTypeLocation(*baseGetter->getConcreteType()) <<
+					"(mObjectHandle);\n}\n";
+		}
+	}
+
 	entity.generateInterceptionFunctions(*this);
 	entity.generateInterceptionContext(*this);
 
@@ -219,6 +235,35 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 	file << '\n';
 }
 
+bool hasCompositionBase(ClassContext& ctx, TypeEntity& entity)
+{
+	if(entity.getType() == TypeEntity::Type::Alias)
+	{
+		auto underlying = static_cast <TypeAliasEntity&> (entity).getUnderlying();
+		assert(underlying);
+
+		return hasCompositionBase(ctx, *underlying);
+	}
+
+	assert(entity.getType() == TypeEntity::Type::Class);
+	auto& classEntity = static_cast <ClassEntity&> (entity);
+
+	if(ctx.isCompositionBaseOf(classEntity))
+	{
+		return true;
+	}
+
+	for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
+	{
+		if(hasCompositionBase(ctx, classEntity.getBaseType(i)))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 std::shared_ptr <FunctionEntity> getOverriddenInCompositeBase(FunctionEntity& entity)
 {
 	if(entity.isOverride())
@@ -229,11 +274,8 @@ std::shared_ptr <FunctionEntity> getOverriddenInCompositeBase(FunctionEntity& en
 		assert(ClassEntity::matchType(entity.getParent()));
 		auto& parent = static_cast <ClassEntity&> (entity.getParent());
 
-		// If the parent class of the overridden function is a base class of the parent
-		// class of this function but implemented with composition, don't generate
-		// this override as there's nothing to override.
 		auto overrideParentCtx = getCSharpContext(overridden->getParent());
-		if(overrideParentCtx && overrideParentCtx->getClass().isCompositionBaseOf(parent))
+		if(overrideParentCtx && hasCompositionBase(overrideParentCtx->getClass(), parent))
 		{
 			return overridden;
 		}
@@ -364,7 +406,7 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 	{
 		if(delegateInterception)
 		{
-			file << entity.getName();
+			file << sanitizeName(entity);
 			return;
 		}
 
@@ -474,17 +516,45 @@ bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 				{
 					if(inBaseInitialization)
 					{
-						auto classEntity = static_cast <ClassEntity&> (entity);
-						assert(classEntity.getConcreteType());
-
-						file << "base" << entity.getName() << " = new " <<
-								getTypeLocation(*classEntity.getConcreteType()) << "(mObjectHandle);\n";
+						file << "base" << sanitizeName(entity) << " = createBase" <<
+								sanitizeName(entity) << "();\n";
 					}
 
 					else
 					{
 						file << "public readonly " << getTypeLocation(entity) <<
-								' ' << "base" << entity.getName() << ";\n";
+								' ' << "base" << sanitizeName(entity) << ";\n";
+
+						// Abstract base classes should be provided with an implementation.
+						auto classEntity = static_cast <ClassEntity&> (entity);
+						if(classEntity.isAbstract())
+						{
+							file << "protected abstract " << getTypeLocation(entity) <<
+									" createBase" << sanitizeName(entity) << "();\n";
+						}
+
+						// If the base class is not abstract, provide a default implementation
+						// for the getter function so that overriding it is optional.
+						else
+						{
+							file << "protected virtual " << getTypeLocation(entity) <<
+									" createBase" << sanitizeName(entity) << "()\n{\n" <<
+									"return new ";
+
+							// If the base class has a concrete type, prefer it
+							// to make virtual functions work.
+							if(classEntity.getConcreteType())
+							{
+								file << getTypeLocation(*classEntity.getConcreteType());
+							}
+
+							else
+							{
+								file << getTypeLocation(entity);
+							}
+									
+							file << "(mObjectHandle);\n}\n";
+						}
 					}
 
 					break;
@@ -737,7 +807,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	if(overridden)
 	{
 		file << "var AG_baseHandle = GCHandle.Alloc(" << "((((GCHandle)objectHandle" <<
-				").Target) as " << parentClass.getName() << ").base" << overridden->getParent().getName() << ");\n";
+				").Target) as " << sanitizeName(parentClass) << ").base" << sanitizeName(overridden->getParent()) << ");\n";
 
 		assert(ClassEntity::matchType(overridden->getParent()));
 		file << getTypeLocation(static_cast <ClassEntity&> (overridden->getParent())) <<
@@ -747,7 +817,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	else
 	{
 		file << "((((GCHandle)" << getObjectHandleName() << ").Target) as " <<
-				parentClass.getName() << ")." << entity.getName() << '(';
+				sanitizeName(parentClass) << ")." << sanitizeName(entity) << '(';
 	}
 
 	onlyParameterNames = true;
@@ -824,7 +894,8 @@ void BindingGenerator::initializeGenerationContext(Entity& entity)
 						// will be stored as a member object.
 						if(i > 0)
 						{
-							auto& base = classEntity.getBaseType(i);
+							assert(classEntity.getBaseType(i).getType() == TypeEntity::Type::Class);
+							auto& base = static_cast <ClassEntity&> (classEntity.getBaseType(i));
 
 							if(!base.getContext())
 							{
@@ -832,6 +903,11 @@ void BindingGenerator::initializeGenerationContext(Entity& entity)
 							}
 
 							getCSharpContext(base)->getClass().setCompositionBaseOf(classEntity);
+
+							if(base.isAbstract())
+							{
+								getCSharpContext(base)->getClass().ensureBaseGetters(classEntity, base);
+							}
 						}
 					}
 

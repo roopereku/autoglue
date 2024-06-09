@@ -6,6 +6,7 @@
 #include <autoglue/ClassEntity.hh>
 
 #include <memory>
+#include <vector>
 #include <set>
 
 namespace ag::csharp
@@ -14,23 +15,22 @@ namespace ag::csharp
 class ClassContext : public EntityContext
 {
 public:
-	ClassContext() : EntityContext(Type::Class)
-	{
-	}
+	ClassContext();
 
-	bool isCompositionBaseOf(ClassEntity& derived)
-	{
-		return compositionBaseOf.find(derived.shared_from_this()) != compositionBaseOf.end();
-	}
+	bool isCompositionBaseOf(ClassEntity& derived);
 
-	void setCompositionBaseOf(ClassEntity& derived)
-	{
-		compositionBaseOf.emplace(derived.shared_from_this());
-	}
+	void setCompositionBaseOf(ClassEntity& derived);
+
+	void ensureBaseGetters(TypeEntity& entity, ClassEntity& base);
+
+	size_t getBaseGetterCount();
+	std::shared_ptr <ClassEntity> getBaseGetter(size_t index);
 
 private:
 	using PtrType = std::weak_ptr <ClassEntity>;
 	std::set <PtrType, std::owner_less <PtrType>> compositionBaseOf;
+
+	std::set <PtrType, std::owner_less <PtrType>> baseGetters;
 };
 
 }
