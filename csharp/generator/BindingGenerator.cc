@@ -806,7 +806,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	// interception function from the member representing the base class.
 	if(overridden)
 	{
-		file << "var AG_baseHandle = GCHandle.Alloc(" << "((((GCHandle)objectHandle" <<
+		file << "var AG_BaseHandle = GCHandle.Alloc(" << "((((GCHandle)objectHandle" <<
 				").Target) as " << sanitizeName(parentClass) << ").base" << sanitizeName(overridden->getParent()) << ");\n";
 
 		assert(ClassEntity::matchType(overridden->getParent()));
@@ -834,7 +834,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	// If parameters were delegated, destroy the temporarily created GCHandle.
 	if(delegateInterception)
 	{
-		file << "AG_baseHandle.Free();\n";
+		file << "AG_BaseHandle.Free();\n";
 	}
 
 	file << "}\n";
@@ -869,7 +869,7 @@ std::string_view BindingGenerator::getObjectHandleName()
 	// cast the created GCHandle pointing to a composition base to a pointer.
 	if(delegateInterception)
 	{
-		return "(IntPtr)AG_baseHandle";
+		return "(IntPtr)AG_BaseHandle";
 	}
 
 	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
