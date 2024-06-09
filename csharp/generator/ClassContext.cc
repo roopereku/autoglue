@@ -36,6 +36,8 @@ void ClassContext::ensureBaseGetters(TypeEntity& entity, ClassEntity& base)
 	assert(entity.getType() == TypeEntity::Type::Class);
 	auto& classEntity = static_cast <ClassEntity&> (entity);
 
+	// For each derived class of the given class, add an override for a function
+	// that creates an instance of the given base class.
 	for(size_t i = 0; i < classEntity.getDerivedCount(); i++)
 	{
 		auto& derived = classEntity.getDerived(i);

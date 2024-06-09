@@ -152,6 +152,8 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	entity.generateBaseTypes(*this);
 	compositionBaseTarget = nullptr;
 
+	// Write a creation function for each composition base class that
+	// doesn't have such a function yet.
 	if(ctx)
 	{
 		auto& classCtx = ctx->getClass();
@@ -162,7 +164,7 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 			assert(baseGetter->getConcreteType());
 
 			file << "protected override " << getTypeLocation(*baseGetter) <<
-					" createBase" << sanitizeName(*baseGetter) << "()\n{\n" <<
+					" createBase_" << sanitizeName(*baseGetter) << "()\n{\n" <<
 					"return new " << getTypeLocation(*baseGetter->getConcreteType()) <<
 					"(mObjectHandle);\n}\n";
 		}
@@ -246,11 +248,15 @@ bool hasCompositionBase(ClassContext& ctx, TypeEntity& entity)
 	assert(entity.getType() == TypeEntity::Type::Class);
 	auto& classEntity = static_cast <ClassEntity&> (entity);
 
+	// If the current class has a composition base class represented 
+	// by the given context, there is a composition base class.
 	if(ctx.isCompositionBaseOf(classEntity))
 	{
 		return true;
 	}
 
+	// If no composition base class was found yet, look for such
+	// in further base classes.
 	for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
 	{
 		if(hasCompositionBase(ctx, classEntity.getBaseType(i)))
@@ -272,12 +278,15 @@ std::shared_ptr <FunctionEntity> getOverriddenInCompositeBase(FunctionEntity& en
 		assert(ClassEntity::matchType(entity.getParent()));
 		auto& parent = static_cast <ClassEntity&> (entity.getParent());
 
+		// If the parent class inherits a composition base class that contains
+		// the overridden function, return the overridden function.
 		auto overrideParentCtx = getCSharpContext(overridden->getParent());
 		if(overrideParentCtx && hasCompositionBase(overrideParentCtx->getClass(), parent))
 		{
 			return overridden;
 		}
 
+		// If nothing was found yet, look further using the overridden function.
 		return getOverriddenInCompositeBase(*overridden);
 	}
 
@@ -514,7 +523,7 @@ bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 				{
 					if(inBaseInitialization)
 					{
-						file << "base" << sanitizeName(entity) << " = createBase" <<
+						file << "base" << sanitizeName(entity) << " = createBase_" <<
 								sanitizeName(entity) << "();\n";
 					}
 
@@ -535,7 +544,7 @@ bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 						if(compositionBaseTarget->isAbstract() && classEntity.isAbstract())
 						{
 							file << "protected abstract " << getTypeLocation(entity) <<
-									" createBase" << sanitizeName(entity) << "();\n";
+									" createBase_" << sanitizeName(entity) << "();\n";
 						}
 
 						// If the base class is not abstract, provide a default implementation
@@ -543,7 +552,7 @@ bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 						else
 						{
 							file << "protected virtual " << getTypeLocation(entity) <<
-									" createBase" << sanitizeName(entity) << "()\n{\n" <<
+									" createBase_" << sanitizeName(entity) << "()\n{\n" <<
 									"return new ";
 
 							// If the base class has a concrete type, prefer it
