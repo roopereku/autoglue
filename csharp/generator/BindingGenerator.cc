@@ -880,6 +880,26 @@ std::string_view BindingGenerator::getObjectHandleName()
 	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
 }
 
+void initializeBaseContext(ClassEntity& derived, TypeEntity& base)
+{
+	assert(base.getType() == TypeEntity::Type::Class);
+	auto& baseClass = static_cast <ClassEntity&> (base);
+
+	if(!base.getContext())
+	{
+		base.initializeContext(std::make_shared <ClassContext> ());
+	}
+
+	getCSharpContext(base)->getClass().setCompositionBaseOf(derived);
+
+	// If the base class is abstract, ensure that getters function implementations
+	// for creating an instance of this class exist for the derived types.
+	if(baseClass.isAbstract())
+	{
+		getCSharpContext(base)->getClass().ensureBaseGetters(derived, baseClass);
+	}
+}
+
 void BindingGenerator::initializeGenerationContext(Entity& entity)
 {
 	switch(entity.getType())
@@ -899,19 +919,19 @@ void BindingGenerator::initializeGenerationContext(Entity& entity)
 						// will be stored as a member object.
 						if(i > 0)
 						{
-							assert(classEntity.getBaseType(i).getType() == TypeEntity::Type::Class);
-							auto& base = static_cast <ClassEntity&> (classEntity.getBaseType(i));
+							auto& base = classEntity.getBaseType(i);
 
-							if(!base.getContext())
+							if(base.getType() == TypeEntity::Type::Alias)
 							{
-								base.initializeContext(std::make_shared <ClassContext> ());
+								auto underlying = static_cast <TypeAliasEntity&> (base).getUnderlying(true);
+								assert(underlying);
+
+								initializeBaseContext(classEntity, *underlying);
 							}
 
-							getCSharpContext(base)->getClass().setCompositionBaseOf(classEntity);
-
-							if(base.isAbstract())
+							else
 							{
-								getCSharpContext(base)->getClass().ensureBaseGetters(classEntity, base);
+								initializeBaseContext(classEntity, base);
 							}
 						}
 					}
