@@ -48,10 +48,11 @@ private:
 	bool onlyParameterNames = false;
 
 	bool delegateInterception = false;
-	bool inBaseInitialization = false;
-	bool inCompositionBase = false;
 	bool convertStringType = false;
 	bool inIntercept = false;
+
+	std::shared_ptr <ClassEntity> compositionBaseTarget;
+	bool inBaseInitialization = false;
 };
 
 }

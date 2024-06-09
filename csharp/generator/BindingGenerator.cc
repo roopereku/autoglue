@@ -142,17 +142,15 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 		file << "\n{\nmObjectHandle = objectHandle;\n";
 	}
 
+	compositionBaseTarget = entity.shared_from_this();
 	inBaseInitialization = true;
-	inCompositionBase = true;
 	entity.generateBaseTypes(*this);
-	inCompositionBase = false;
 	inBaseInitialization = false;
 
 	file << "}\n";
 
-	inCompositionBase = true;
 	entity.generateBaseTypes(*this);
-	inCompositionBase = false;
+	compositionBaseTarget = nullptr;
 
 	if(ctx)
 	{
@@ -497,7 +495,7 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 
 bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
-	if(inCompositionBase)
+	if(compositionBaseTarget)
 	{
 		// Base classes after the first one are generated as member objects.
 		if(index > 0)
@@ -525,9 +523,16 @@ bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 						file << "public readonly " << getTypeLocation(entity) <<
 								' ' << "base" << sanitizeName(entity) << ";\n";
 
-						// Abstract base classes should be provided with an implementation.
 						auto classEntity = static_cast <ClassEntity&> (entity);
-						if(classEntity.isAbstract())
+
+						// If both the derived class and the composition base class, make the
+						// creator function abstract. This works because when the base class
+						// is abstract and a derived class doesn't implement it, the derived
+						// class is implicitly abstract as well.
+						//
+						// FIXME: This might not work when there are 2 abstract composition base
+						// classes out of which only 1 is implemented.
+						if(compositionBaseTarget->isAbstract() && classEntity.isAbstract())
 						{
 							file << "protected abstract " << getTypeLocation(entity) <<
 									" createBase" << sanitizeName(entity) << "();\n";
