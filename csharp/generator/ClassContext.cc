@@ -46,8 +46,6 @@ void ClassContext::ensureBaseGetters(TypeEntity& entity, ClassEntity& base)
 
 		auto ctx = std::static_pointer_cast <csharp::EntityContext> (derived.getContext());
 		ctx->getClass().baseGetters.emplace(base.shared_from_this());
-
-		printf("'%s' implements getter for '%s'\n", derived.getHierarchy(".").c_str(), base.getHierarchy(".").c_str());
 	}
 }
 
