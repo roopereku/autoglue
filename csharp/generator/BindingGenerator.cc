@@ -1,6 +1,8 @@
 #include <autoglue/csharp/BindingGenerator.hh>
+#include <autoglue/csharp/ClassContext.hh>
 
 #include <autoglue/TypeReferenceEntity.hh>
+#include <autoglue/TypeAliasEntity.hh>
 #include <autoglue/ClassEntity.hh>
 #include <autoglue/ScopeEntity.hh>
 #include <autoglue/FunctionGroupEntity.hh>
@@ -15,6 +17,31 @@
 
 namespace ag::csharp
 {
+
+std::shared_ptr <EntityContext> getCSharpContext(Entity& entity)
+{
+	if(entity.getContext())
+	{
+		return std::static_pointer_cast <EntityContext> (entity.getContext());
+	}
+
+	return nullptr;
+}
+
+bool isOverloadProtected(FunctionEntity& entity)
+{
+	if(entity.isClassMemberFunction())
+	{
+		auto overridden = entity.getOverridden();
+
+		if(overridden)
+		{
+			return isOverloadProtected(*overridden);
+		}
+	}
+
+	return entity.isProtected();
+}
 
 static void sanitizeName(std::string& str)
 {
@@ -79,17 +106,19 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	}
 
 	file << "public ";
+
+	auto ctx = getCSharpContext(entity);
 	if(entity.isAbstract())
 	{
 		file << "abstract ";
 	}
 
 	file << "class " << sanitizeName(entity);
+
 	entity.generateBaseTypes(*this);
 	file << "\n{\n";
 
 	// Store the object handle when there are no base classes.
-	// TODO: Don't do this for interfaces.
 	if(!entity.hasBaseTypes())
 	{
 		file << "protected IntPtr " << "mObjectHandle" << ";\n";
@@ -99,7 +128,6 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	}
 
 	// Define a constructor for object handle initialization.
-	// TODO: Don't do this for interfaces, but generate an interface function like getClassName.
 	file << "public " << sanitizeName(entity) << "(IntPtr objectHandle)";
 
 	// Call the base type constructor.
@@ -114,12 +142,39 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 		file << "\n{\nmObjectHandle = objectHandle;\n";
 	}
 
+	compositionBaseTarget = entity.shared_from_this();
+	inBaseInitialization = true;
+	entity.generateBaseTypes(*this);
+	inBaseInitialization = false;
+
 	file << "}\n";
+
+	entity.generateBaseTypes(*this);
+	compositionBaseTarget = nullptr;
+
+	// Write a creation function for each composition base class that
+	// doesn't have such a function yet.
+	if(ctx)
+	{
+		auto& classCtx = ctx->getClass();
+		for(size_t i = 0; i < classCtx.getBaseGetterCount(); i++)
+		{
+			auto baseGetter = classCtx.getBaseGetter(i);
+			assert(baseGetter);
+			assert(baseGetter->getConcreteType());
+
+			file << "protected override " << getTypeLocation(*baseGetter) <<
+					" createBase_" << sanitizeName(*baseGetter) << "()\n{\n" <<
+					"return new " << getTypeLocation(*baseGetter->getConcreteType()) <<
+					"(mObjectHandle);\n}\n";
+		}
+	}
 
 	entity.generateInterceptionFunctions(*this);
 	entity.generateInterceptionContext(*this);
 
 	entity.generateNested(*this);
+
 	entity.generateConcreteType(*this);
 
 	file << "}\n";
@@ -180,6 +235,64 @@ void BindingGenerator::generateEnumEntry(EnumEntryEntity& entity)
 	file << '\n';
 }
 
+bool hasCompositionBase(ClassContext& ctx, TypeEntity& entity)
+{
+	if(entity.getType() == TypeEntity::Type::Alias)
+	{
+		auto underlying = static_cast <TypeAliasEntity&> (entity).getUnderlying();
+		assert(underlying);
+
+		return hasCompositionBase(ctx, *underlying);
+	}
+
+	assert(entity.getType() == TypeEntity::Type::Class);
+	auto& classEntity = static_cast <ClassEntity&> (entity);
+
+	// If the current class has a composition base class represented 
+	// by the given context, there is a composition base class.
+	if(ctx.isCompositionBaseOf(classEntity))
+	{
+		return true;
+	}
+
+	// If no composition base class was found yet, look for such
+	// in further base classes.
+	for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
+	{
+		if(hasCompositionBase(ctx, classEntity.getBaseType(i)))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+std::shared_ptr <FunctionEntity> getOverriddenInCompositeBase(FunctionEntity& entity)
+{
+	if(entity.isOverride())
+	{
+		auto overridden = entity.getOverridden();
+		assert(overridden);
+
+		assert(ClassEntity::matchType(entity.getParent()));
+		auto& parent = static_cast <ClassEntity&> (entity.getParent());
+
+		// If the parent class inherits a composition base class that contains
+		// the overridden function, return the overridden function.
+		auto overrideParentCtx = getCSharpContext(overridden->getParent());
+		if(overrideParentCtx && hasCompositionBase(overrideParentCtx->getClass(), parent))
+		{
+			return overridden;
+		}
+
+		// If nothing was found yet, look further using the overridden function.
+		return getOverriddenInCompositeBase(*overridden);
+	}
+
+	return nullptr;
+}
+
 void BindingGenerator::generateFunction(FunctionEntity& entity)
 {
 	if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
@@ -188,6 +301,11 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	}
 
 	if(entity.getType() == FunctionEntity::Type::Destructor)
+	{
+		return;
+	}
+
+	if(getOverriddenInCompositeBase(entity))
 	{
 		return;
 	}
@@ -207,7 +325,9 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		file << ");\n";
 	}
 
-	file << (entity.isProtected() ? "protected " : "public ");
+	file << (isOverloadProtected(entity) ? "protected " : "public ");
+
+	bool markAsOverride = entity.isOverride();
 
 	if(entity.isStatic())
 	{
@@ -229,19 +349,19 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 	{
 		if(entity.isOverridable())
 		{
-			file << "virtual ";
+			// Overrides cannot be marked virtual.
+			if(!markAsOverride)
+			{
+				file << "virtual ";
+			}
 		}
 
-		// If this function isn't overridable but is an override, make it sealed.
-		else if(entity.isOverride())
-		{
-			file << "sealed ";
-		}
+		// TODO: Add sealed somewhere here.
+	}
 
-		if(entity.isOverride())
-		{
-			file << "override ";
-		}
+	if(markAsOverride)
+	{
+		file << "override ";
 	}
 
 	if(entity.getType() == FunctionEntity::Type::Constructor)
@@ -266,7 +386,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	if(entity.getType() != FunctionEntity::Type::Constructor)
 	{
-		file << "{\n";
+		file << "\n{\n";
 	}
 
 	bool closeParenthesis = entity.generateReturnStatement(*this, false);
@@ -291,6 +411,12 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 {
 	if(onlyParameterNames)
 	{
+		if(delegateInterception)
+		{
+			file << sanitizeName(entity);
+			return;
+		}
+
 		// If a parameter pass is being generated for an interception function,
 		// follow the same logic as when returning values. This works because an
 		// interception function accepts POD types and converts them to C# types,
@@ -378,17 +504,91 @@ void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
 
 bool BindingGenerator::generateBaseType(TypeEntity& entity, size_t index)
 {
-	if(index == 0)
+	if(compositionBaseTarget)
 	{
-		file << " : " << getTypeLocation(entity);
+		// Base classes after the first one are generated as member objects.
+		if(index > 0)
+		{
+			switch(entity.getType())
+			{
+				case TypeEntity::Type::Alias:
+				{
+					auto underlying = static_cast <TypeAliasEntity&> (entity).getUnderlying(true);
+					assert(underlying);
 
-		// TODO: Somehow correctly generate the rest.
-		file << " // ";
+					return generateBaseType(*underlying, index);
+				}
+
+				case TypeEntity::Type::Class:
+				{
+					if(inBaseInitialization)
+					{
+						file << "base" << sanitizeName(entity) << " = createBase_" <<
+								sanitizeName(entity) << "();\n";
+					}
+
+					else
+					{
+						file << "public readonly " << getTypeLocation(entity) <<
+								' ' << "base" << sanitizeName(entity) << ";\n";
+
+						auto classEntity = static_cast <ClassEntity&> (entity);
+
+						// If both the derived class and the composition base class, make the
+						// creator function abstract. This works because when the base class
+						// is abstract and a derived class doesn't implement it, the derived
+						// class is implicitly abstract as well.
+						//
+						// FIXME: This might not work when there are 2 abstract composition base
+						// classes out of which only 1 is implemented.
+						if(compositionBaseTarget->isAbstract() && classEntity.isAbstract())
+						{
+							file << "protected abstract " << getTypeLocation(entity) <<
+									" createBase_" << sanitizeName(entity) << "();\n";
+						}
+
+						// If the base class is not abstract, provide a default implementation
+						// for the getter function so that overriding it is optional.
+						else
+						{
+							file << "protected virtual " << getTypeLocation(entity) <<
+									" createBase_" << sanitizeName(entity) << "()\n{\n" <<
+									"return new ";
+
+							// If the base class has a concrete type, prefer it
+							// to make virtual functions work.
+							if(classEntity.getConcreteType())
+							{
+								file << getTypeLocation(*classEntity.getConcreteType());
+							}
+
+							else
+							{
+								file << getTypeLocation(entity);
+							}
+									
+							file << "(mObjectHandle);\n}\n";
+						}
+					}
+
+					break;
+				}
+
+				default:
+				{
+					assert(false);
+				}
+			}
+		}
 	}
 
 	else
 	{
-		file << getTypeLocation(entity);
+		// Only generate the first base class when defining inheritance.
+		if(index == 0)
+		{
+			file << " : " << getTypeLocation(entity);
+		}
 	}
 
 	return false;
@@ -430,6 +630,12 @@ void BindingGenerator::generateArgumentSeparator()
 
 bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
 {
+	if(delegateInterception)
+	{
+		file << "return ";
+		return false;
+	}
+
 	if(inIntercept)
 	{
 		file << "return ";
@@ -558,12 +764,15 @@ void BindingGenerator::generateBridgeCall(FunctionEntity& entity)
 
 void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass)
 {
+	auto overridden = getOverriddenInCompositeBase(entity);
+
 	// Are we already in an interception context (The initialization function)
 	if(inIntercept)
 	{
 		if(onlyParameterNames)
 		{
-            file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
+			// TODO: If creating a interception function for overridden, use its bridge name instead.
+			file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
 					entity.getBridgeName(true) << "(AG_intercept_" << entity.getBridgeName(true) << "))";
 		}
 
@@ -597,20 +806,36 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	entity.generateParameters(*this, true, true);
 	file << ");\n";
 
-	file << "private static ";
+	file << "internal static ";
 	entity.generateReturnType(*this, true);
 	file << "AG_intercept_" << entity.getBridgeName(true) << '(';
 
 	entity.generateParameters(*this, true, true);
 	file << ")\n{\n";
 
+	delegateInterception = static_cast <bool> (overridden);
 	bool closeParenthesis = entity.generateReturnStatement(*this, false);
 
-	file << "((((GCHandle)" << getObjectHandleName() << ").Target) as " <<
-			parentClass.getName() << ")." << entity.getName() << '(';
+	// If the overridden function is from a composition base class, call another
+	// interception function from the member representing the base class.
+	if(overridden)
+	{
+		file << "var AG_BaseHandle = GCHandle.Alloc(" << "((((GCHandle)objectHandle" <<
+				").Target) as " << sanitizeName(parentClass) << ").base" << sanitizeName(overridden->getParent()) << ");\n";
+
+		assert(ClassEntity::matchType(overridden->getParent()));
+		file << getTypeLocation(static_cast <ClassEntity&> (overridden->getParent())) <<
+				".AG_intercept_" << overridden->getBridgeName(true) << '(';
+	}
+
+	else
+	{
+		file << "((((GCHandle)" << getObjectHandleName() << ").Target) as " <<
+				sanitizeName(parentClass) << ")." << sanitizeName(entity) << '(';
+	}
 
 	onlyParameterNames = true;
-	entity.generateParameters(*this, false, false);
+	entity.generateParameters(*this, false, delegateInterception);
 	onlyParameterNames = false;
 
 	if(closeParenthesis)
@@ -618,8 +843,17 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 		file << ')';
 	}
 
-	file << ");\n}\n";
+	file << ");\n";
+
+	// If parameters were delegated, destroy the temporarily created GCHandle.
+	if(delegateInterception)
+	{
+		file << "AG_BaseHandle.Free();\n";
+	}
+
+	file << "}\n";
 	inIntercept = false;
+	delegateInterception = false;
 }
 
 void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
@@ -645,7 +879,83 @@ void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
 
 std::string_view BindingGenerator::getObjectHandleName()
 {
+	// When parameters of an interception functions are delegated to another,
+	// cast the created GCHandle pointing to a composition base to a pointer.
+	if(delegateInterception)
+	{
+		return "(IntPtr)AG_BaseHandle";
+	}
+
 	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
+}
+
+void initializeBaseContext(ClassEntity& derived, TypeEntity& base)
+{
+	assert(base.getType() == TypeEntity::Type::Class);
+	auto& baseClass = static_cast <ClassEntity&> (base);
+
+	if(!base.getContext())
+	{
+		base.initializeContext(std::make_shared <ClassContext> ());
+	}
+
+	getCSharpContext(base)->getClass().setCompositionBaseOf(derived);
+
+	// If the base class is abstract, ensure that getters function implementations
+	// for creating an instance of this class exist for the derived types.
+	if(baseClass.isAbstract())
+	{
+		getCSharpContext(base)->getClass().ensureBaseGetters(derived, baseClass);
+	}
+}
+
+void BindingGenerator::initializeGenerationContext(Entity& entity)
+{
+	switch(entity.getType())
+	{
+		case Entity::Type::Type:
+		{
+			switch(static_cast <TypeEntity&> (entity).getType())
+			{
+				case TypeEntity::Type::Class:
+				{
+					auto& classEntity = static_cast <ClassEntity&> (entity);
+
+					for(size_t i = 0; i < classEntity.getBaseTypeCount(); i++)
+					{
+						// If a class uses multiple inheritance, treat every base class
+						// that's not the first one as a composition base where it
+						// will be stored as a member object.
+						if(i > 0)
+						{
+							auto& base = classEntity.getBaseType(i);
+
+							if(base.getType() == TypeEntity::Type::Alias)
+							{
+								auto underlying = static_cast <TypeAliasEntity&> (base).getUnderlying(true);
+								assert(underlying);
+
+								initializeBaseContext(classEntity, *underlying);
+							}
+
+							else
+							{
+								initializeBaseContext(classEntity, base);
+							}
+						}
+					}
+
+					break;
+				}
+
+				default: {}
+			}
+
+			break;
+		}
+
+		default: {}
+	}
 }
 
 void BindingGenerator::openFile(TypeEntity& entity)

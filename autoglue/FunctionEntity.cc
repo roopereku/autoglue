@@ -260,21 +260,27 @@ void FunctionEntity::setOverloadIndex(size_t index)
 	overloadIndex = index;
 }
 
-std::shared_ptr <FunctionEntity> FunctionEntity::createOverride()
+std::shared_ptr <FunctionEntity> FunctionEntity::createOverride(bool makeInterface, bool inConcrete)
 {
 	if(isOverridable() || isOverride())
 	{
 		auto ret = returnType;
 		auto functionOverride = std::make_shared <FunctionEntity> (*this);
 
-		functionOverride->overridable = false;
-		functionOverride->interface = false;
+		functionOverride->overridable = makeInterface;
+		functionOverride->interface = makeInterface;
 		functionOverride->overrides = true;
 
 		functionOverride->overridden = shared_from_this();
-		functionOverride->concreteOverride = true;
-
+		functionOverride->concreteOverride = inConcrete;
 		functionOverride->resetUsages();
+
+		// Interfaces are used implicitly.
+		if(makeInterface)
+		{
+			functionOverride->use();
+		}
+
 		return functionOverride;
 	}
 

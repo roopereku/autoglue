@@ -31,6 +31,7 @@ private:
 	void generateInterceptionFunction(FunctionEntity& entity, ClassEntity& parentClass) override;
 	void generateInterceptionContext(ClassEntity& entity) override;
 	std::string_view getObjectHandleName() override;
+	void initializeGenerationContext(Entity& entity) override;
 
 	bool hidesEntity(Entity& entity, Entity& containing);
 	bool generateBridgeToCSharp(TypeReferenceEntity& entity);
@@ -46,8 +47,12 @@ private:
 	/// Used to only write parameter names when a bridge function is called.
 	bool onlyParameterNames = false;
 
+	bool delegateInterception = false;
 	bool convertStringType = false;
 	bool inIntercept = false;
+
+	std::shared_ptr <ClassEntity> compositionBaseTarget;
+	bool inBaseInitialization = false;
 };
 
 }
