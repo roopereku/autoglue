@@ -45,11 +45,12 @@ bool isOverloadProtected(FunctionEntity& entity)
 
 static void sanitizeName(std::string& str)
 {
-	static std::array <std::string_view, 3> words
+	static std::array <std::string_view, 4> words
 	{
 		"string",
 		"base",
 		"interface",
+		"object"
 	};
 
 	// Capitalize each occurence of a reserved word.
@@ -128,18 +129,18 @@ void BindingGenerator::generateClass(ClassEntity& entity)
 	}
 
 	// Define a constructor for object handle initialization.
-	file << "public " << sanitizeName(entity) << "(IntPtr objectHandle)";
+	file << "public " << sanitizeName(entity) << "(IntPtr ObjectHandle)";
 
 	// Call the base type constructor.
 	if(entity.hasBaseTypes())
 	{
-		file << " : base(objectHandle)\n{\n";
+		file << " : base(ObjectHandle)\n{\n";
 	}
 
 	else
 	{
 		// If there are no base types, initialize the object handle.
-		file << "\n{\nmObjectHandle = objectHandle;\n";
+		file << "\n{\nmObjectHandle = ObjectHandle;\n";
 	}
 
 	compositionBaseTarget = entity.shared_from_this();
@@ -771,9 +772,18 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	{
 		if(onlyParameterNames)
 		{
-			// TODO: If creating a interception function for overridden, use its bridge name instead.
-			file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
-					entity.getBridgeName(true) << "(AG_intercept_" << entity.getBridgeName(true) << "))";
+			// FIXME: Once operator overloads are generated, pass them in correctly.
+			if(entity.getOverloadedOperator() != FunctionEntity::OverloadedOperator::None)
+			{
+				file << ", 0";
+			}
+
+			else
+			{
+				// TODO: If creating a interception function for overridden, use its bridge name instead.
+				file << ", Marshal.GetFunctionPointerForDelegate(new AG_delegate_intercept_" <<
+						entity.getBridgeName(true) << "(AG_intercept_" << entity.getBridgeName(true) << "))";
+			}
 		}
 
 		// The interception delegates are treated as pointers
@@ -820,7 +830,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	// interception function from the member representing the base class.
 	if(overridden)
 	{
-		file << "var AG_BaseHandle = GCHandle.Alloc(" << "((((GCHandle)objectHandle" <<
+		file << "var AG_BaseHandle = GCHandle.Alloc(" << "((((GCHandle)ObjectHandle" <<
 				").Target) as " << sanitizeName(parentClass) << ").base" << sanitizeName(overridden->getParent()) << ");\n";
 
 		assert(ClassEntity::matchType(overridden->getParent()));
@@ -861,7 +871,7 @@ void BindingGenerator::generateInterceptionContext(ClassEntity& entity)
 	inIntercept = true;
 
 	file << "[DllImport(\"" << libName << "\", CallingConvention = CallingConvention.Cdecl)]\n";
-	file << "private static extern void " << entity.getHierarchy() << "_AG_initializeInterceptionContext(IntPtr objectHandle, IntPtr AG_foreignObject";
+	file << "private static extern void " << entity.getHierarchy() << "_AG_initializeInterceptionContext(IntPtr ObjectHandle, IntPtr AG_foreignObject";
 	entity.generateInterceptionFunctions(*this);
 	file << ");\n";
 
@@ -886,7 +896,7 @@ std::string_view BindingGenerator::getObjectHandleName()
 		return "(IntPtr)AG_BaseHandle";
 	}
 
-	return onlyParameterNames ? "mObjectHandle" : "objectHandle";
+	return onlyParameterNames ? "mObjectHandle" : "ObjectHandle";
 }
 
 void initializeBaseContext(ClassEntity& derived, TypeEntity& base)
