@@ -451,12 +451,6 @@ void ClassEntity::onInitialize()
 				}
 			}
 		}
-
-		// If nothing is used, the concrete type shouldn't be generated at all.
-		if(used == 0)
-		{
-			concreteType = nullptr;
-		}
 	}
 }
 
