@@ -585,6 +585,7 @@ public:
 			}
 
 			case TypeEntity::Type::Primitive:
+			case TypeEntity::Type::Callable:
 			{
 				return false;
 			}
@@ -596,6 +597,8 @@ public:
 				return generateGlueToForeign(underlying);
 			}
 		}
+
+		return false;
 	}
 
 	int generateForeignToGlue(TypeReferenceEntity& entity)
@@ -664,6 +667,11 @@ public:
 				TypeReferenceEntity underlying(entity.getName(), entity.getAliasType().getUnderlying(true), entity.isReference());
 				underlying.initializeContext(entity.getContext());
 				return generateForeignToGlue(underlying);
+			}
+
+			case TypeEntity::Type::Callable:
+			{
+				// TODO: Something with function pointers?
 			}
 		}
 

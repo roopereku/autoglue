@@ -13,6 +13,7 @@ public:
 	enum class Type
 	{
 		Primitive,
+		Callable,
 		Alias,
 		Class,
 		Enum
