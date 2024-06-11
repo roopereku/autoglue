@@ -149,8 +149,6 @@ static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
 	return nullptr;
 }
 
-bool logArgs = false;
-
 class NodeVisitor : public clang::RecursiveASTVisitor <NodeVisitor>
 {
 public:
@@ -192,12 +190,6 @@ private:
 	{
 		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
 		{
-			logArgs = name.find("function") != std::string::npos;
-			if(logArgs)
-			{
-				//printf("Logging args for '%s'\n", name.c_str());
-			}
-
 			// Append all of the template arguments after the name.
 			const auto& args = templateDecl->getTemplateArgs();
 			for(size_t i = 0; i < args.size(); i++)
@@ -244,8 +236,6 @@ private:
 				}
 			}
 		}
-
-		logArgs = false;
 	}
 
 	std::string getEntityName(const clang::NamedDecl* named)
@@ -332,11 +322,6 @@ private:
 
 	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
-		//if(logArgs)
-		//{
-		//	printf("Resolving arg '%s'\n", type.getAsString().c_str());
-		//}
-
 		if(type->isFunctionType())
 		{
 			return resolveFunctionType(type);
