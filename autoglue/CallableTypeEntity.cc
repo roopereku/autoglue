@@ -35,6 +35,10 @@ const char* CallableTypeEntity::getTypeString()
 
 void CallableTypeEntity::onGenerate(BindingGenerator& generator)
 {
+	// TODO: Since some languages might want to export some interface
+	// that can be used to utilize a callable type entity when such
+	// is used by the language bindings, something like
+	// generator.generateCallableType should be called here.
 }
 
 }
