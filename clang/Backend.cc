@@ -8,6 +8,7 @@
 #include <autoglue/FunctionEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
 #include <autoglue/TypeAliasEntity.hh>
+#include <autoglue/CallableTypeEntity.hh>
 #include <autoglue/EnumEntity.hh>
 #include <autoglue/EnumEntryEntity.hh>
 #include <autoglue/FunctionGroupEntity.hh>
@@ -41,6 +42,19 @@ std::string toString(const llvm::APSInt& value)
 	value.toString(valueStr);
 
 	return std::string(valueStr.begin(), valueStr.end());
+}
+
+std::string getFullTypename(const clang::TypeDecl* decl)
+{
+	assert(decl);
+
+	// Make getAsString output "bool" instead of "_Bool" and ignore "class".
+	::clang::PrintingPolicy pp(::clang::LangOptions{});
+	pp.SuppressTagKeyword = 1;
+	pp.Bool = 1;
+
+	clang::QualType qualified(decl->getTypeForDecl(), 0);
+	return qualified.getAsString(pp);
 }
 
 ag::FunctionEntity::Type getFunctionType(const clang::FunctionDecl* decl)
@@ -135,6 +149,8 @@ static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
 	return nullptr;
 }
 
+bool logArgs = false;
+
 class NodeVisitor : public clang::RecursiveASTVisitor <NodeVisitor>
 {
 public:
@@ -172,18 +188,14 @@ public:
 	}
 
 private:
-	void appendTemplateArgs(std::string& name, const clang::NamedDecl* named, bool abstract)
+	void appendTemplateArgs(std::string& name, const clang::NamedDecl* named)
 	{
 		if(auto* templateDecl = clang::dyn_cast <clang::ClassTemplateSpecializationDecl> (named))
 		{
-			// Make getAsString output "bool" instead of "_Bool" and ignore "class".
-			::clang::PrintingPolicy pp(::clang::LangOptions{});
-			pp.SuppressTagKeyword = 1;
-			pp.Bool = 1;
-
-			if(!abstract)
+			logArgs = name.find("function") != std::string::npos;
+			if(logArgs)
 			{
-				name += '<';
+				//printf("Logging args for '%s'\n", name.c_str());
 			}
 
 			// Append all of the template arguments after the name.
@@ -193,7 +205,7 @@ private:
 				// Add a delimiter before any argument but the first.
 				if(i > 0)
 				{
-					name += (abstract ? '_' : ',');
+					name += '_';
 				}
 
 				switch(args[i].getKind())
@@ -202,35 +214,28 @@ private:
 					{
 						auto type = args[i].getAsType();
 
-						if(abstract)
-						{
-							// TODO: Save other qualifiers like references and pointers to the abstract template name.
-							auto argType = resolveType(type);
-							name += argType ? argType->getName() : "invalidType";
-						}
-
-						else
-						{
-							name += type.getAsString(pp);
-						}
-
+						// TODO: Save other qualifiers like references and pointers to the abstract template name.
+						auto argType = resolveType(type);
+						name += argType ? argType->getName() : "invalidType";
 						break;
 					}
 
 					case clang::TemplateArgument::ArgKind::Integral:
 					{
 						auto value = toString(args[i].getAsIntegral());
-
-						// In the case where a template literal is an enum type,
-						// cast it to the original format.
-						// TODO: It's also possible to find out the original enumeration name.
-						if(!abstract)
-						{
-							auto type = args[i].getIntegralType();
-							name += '(' + type.getAsString(pp) + ')';
-						}
-
 						name += value;
+						break;
+					}
+
+					case clang::TemplateArgument::ArgKind::TemplateExpansion:
+					{
+						name += "cxxexpansion";
+						break;
+					}
+
+					case clang::TemplateArgument::ArgKind::Expression:
+					{
+						name += "cxxexpr";
 						break;
 					}
 
@@ -238,12 +243,9 @@ private:
 					default: {}
 				}
 			}
-
-			if(!abstract)
-			{
-				name += '>';
-			}
 		}
+
+		logArgs = false;
 	}
 
 	std::string getEntityName(const clang::NamedDecl* named)
@@ -269,12 +271,77 @@ private:
 			}
 		}
 
-		appendTemplateArgs(name, named, true);
+		appendTemplateArgs(name, named);
 		return name;
+	}
+
+	std::shared_ptr <ag::TypeEntity> resolveFunctionType(clang::QualType type)
+	{
+		// If the given type is a function with a prototype, try to create an entity for it.
+		auto* functionType = type->getAs <clang::FunctionProtoType> ();
+		if(!functionType)
+		{
+			return nullptr;
+		}
+
+		auto ret = resolveType(functionType->getReturnType());
+		if(!ret)
+		{
+			return nullptr;
+		}
+
+		auto entity = std::make_shared <ag::CallableTypeEntity> (std::make_shared <ag::TypeReferenceEntity> (
+			"",
+			ret,
+			isReferenceType(functionType->getReturnType())
+		));
+
+		size_t paramIndex = 0;
+		for(unsigned i = 0; i < functionType->getNumParams(); i++)
+		{
+			auto paramType = functionType->getParamType(i);
+			auto paramTypeEntity = resolveType(paramType);
+
+			if(!paramTypeEntity)
+			{
+				return nullptr;
+			}
+
+			entity->addParameter(std::make_shared <ag::TypeReferenceEntity> (
+				"param" + std::to_string(paramIndex),
+				paramTypeEntity,
+				isReferenceType(paramType)
+			));
+		}
+
+		auto result = backend.getRoot().resolve(entity->getName());
+
+		if(!result)
+		{
+			auto name = entity->getName();
+
+			backend.getRoot().addChild(std::move(entity));
+			result = backend.getRoot().resolve(name);
+
+			assert(result);
+		}
+
+		assert(result && result->getType() == ag::Entity::Type::Type);
+		return std::static_pointer_cast <ag::TypeEntity> (result);
 	}
 
 	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
+		//if(logArgs)
+		//{
+		//	printf("Resolving arg '%s'\n", type.getAsString().c_str());
+		//}
+
+		if(type->isFunctionType())
+		{
+			return resolveFunctionType(type);
+		}
+
 		// TODO: Ignore void pointers until there's a nice way to
 		// present them in the abstraction.
 		if(type->isVoidPointerType())
@@ -468,11 +535,8 @@ private:
 
 			if(shouldGetTypeInfo && result && isIncluded(named))
 			{
-				auto realName = named->getQualifiedNameAsString();
-				appendTemplateArgs(realName, named, false);
-
 				result->initializeContext(std::make_shared <ag::clang::TypeContext> (
-					getDeclInclusion(named), std::move(realName)
+					getDeclInclusion(named), getFullTypename(clang::dyn_cast <clang::TypeDecl> (named))
 				));
 			}
 		}
@@ -487,12 +551,9 @@ private:
 
 				if(def)
 				{
-					std::string className = def->getQualifiedNameAsString();
-					appendTemplateArgs(className, def, false);
-
 					result->initializeContext(std::make_shared <ag::clang::TypeContext> (
 						getDeclInclusion(def),
-						std::move(className)
+						getFullTypename(def)
 					));
 
 					if(auto* cxxDef = clang::dyn_cast <clang::CXXRecordDecl> (def))

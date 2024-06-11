@@ -216,7 +216,7 @@ void Entity::onList(std::string_view indent)
 
 bool Entity::hasName(std::string_view str)
 {
-	return name == str;
+	return getName() == str;
 }
 
 void Entity::onInitialize()
