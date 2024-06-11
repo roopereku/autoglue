@@ -713,6 +713,11 @@ bool BindingGenerator::generateBridgeToCSharp(TypeReferenceEntity& entity)
 
 			break;
 		}
+
+		case TypeEntity::Type::Callable:
+		{
+			// TODO: Something here?
+		}
 	}
 
 	return false;
@@ -746,6 +751,7 @@ bool BindingGenerator::generateCSharpToBridge(TypeReferenceEntity& entity)
 		}
 
 		case TypeEntity::Type::Primitive:
+		case TypeEntity::Type::Callable:
 		{
 			break;
 		}

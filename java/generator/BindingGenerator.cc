@@ -545,6 +545,11 @@ void BindingGenerator::generateTyperefJNI(TypeReferenceEntity& entity)
 				jni << typeName << ' ' << entity.getName();
 				break;
 			}
+
+			case TypeEntity::Type::Callable:
+			{
+				// TODO: Something here?
+			}
 		}
 	}
 }
@@ -763,6 +768,7 @@ bool BindingGenerator::generateReturnStatement(TypeReferenceEntity& entity, Func
 			}
 
 			case TypeEntity::Type::Primitive:
+			case TypeEntity::Type::Callable:
 			{
 				file << "return ";
 				break;
