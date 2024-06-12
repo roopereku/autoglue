@@ -27,10 +27,10 @@ private:
 	std::string writtenType;
 	std::string originalType;
 
-	bool triviallyCopyable;
-	bool rvalueReference;
-	bool pointer;
-	bool constType;
+	bool triviallyCopyable = false;
+	bool rvalueReference = false;
+	bool pointer = false;
+	bool constType = false;
 };
 
 }

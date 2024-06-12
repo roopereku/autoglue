@@ -618,9 +618,9 @@ public:
 					toClose++;
 				}
 
-				// If the class type parameter isn't a reference or a pointer,
+				// If the class type parameter isn't a pointer,
 				// dereference the casted pointer type.
-				if(!entity.isReference() || !ctx->getTyperefContext()->isPointer())
+				if(!ctx->getTyperefContext()->isPointer())
 				{
 					file << '*';
 				}
