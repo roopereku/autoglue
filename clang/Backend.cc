@@ -27,7 +27,6 @@
 #include <filesystem>
 #include <algorithm>
 #include <iostream>
-#include <fstream>
 #include <cassert>
 #include <set>
 
@@ -111,7 +110,26 @@ ag::FunctionEntity::OverloadedOperator getOverloadedOperator(clang::OverloadedOp
 
 bool isReferenceType(clang::QualType type)
 {
-	return type->isPointerType() || type->isReferenceType();
+	// Reference and pointer types can be treated as references.
+	if(type->isReferenceType() || type->isPointerType())
+	{
+		// Check if the type is a char pointer (i.e. is it a string).
+		auto nonReference = type.getNonReferenceType();
+		if(nonReference->isPointerType())
+		{
+			// If this type is a string, only treat is as a string when
+			// it explicitly is marked as a reference.
+			auto nonPointer = nonReference->getPointeeType();
+			if(nonPointer->isAnyCharacterType())
+			{
+				return type->isReferenceType();
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 static std::shared_ptr <ag::TypeEntity> getPrimitive(clang::QualType type)
@@ -322,6 +340,9 @@ private:
 
 	std::shared_ptr <ag::TypeEntity> resolveType(clang::QualType type)
 	{
+		type = type.getNonReferenceType();
+		type = type.getUnqualifiedType();
+
 		if(type->isFunctionType())
 		{
 			return resolveFunctionType(type);
@@ -347,9 +368,6 @@ private:
 				return ag::PrimitiveEntity::getString();
 			}
 		}
-
-		type = type.getNonReferenceType();
-		type = type.getUnqualifiedType();
 
 		if(type->isBuiltinType())
 		{
