@@ -78,37 +78,17 @@ void FunctionEntity::onFirstUse()
 	}
 }
 
-void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD)
+void FunctionEntity::generateReturnType(BindingGenerator& generator, bool asPOD, bool preferUnderlying)
 {
-	// If this function is a constructor, generate an object handle.
-	if(getType() == Type::Constructor && asPOD)
-	{
-		TypeReferenceEntity podRef("", PrimitiveEntity::getObjectHandle(), false);
-		generator.generateTypeReference(podRef);
-
-		return;
-	}
-
-	if(returnType)
-	{
-		if(asPOD && returnType->getType() != TypeEntity::Type::Primitive)
-		{
-			auto podRef = returnType->getAsPOD();
-			generator.generateTypeReference(podRef);
-		}
-
-		else
-		{
-			generator.generateTypeReference(*returnType);
-		}
-	}
+	auto retType = getReturnType(asPOD, preferUnderlying);
+	generator.generateTypeReference(retType);
 }
 
-bool FunctionEntity::generateReturnStatement(BindingGenerator& generator, bool asPOD)
+bool FunctionEntity::generateReturnStatement(BindingGenerator& generator, bool asPOD, bool preferUnderlying)
 {
 	if(returnsValue())
 	{
-		auto retType = getReturnType(asPOD);
+		auto retType = getReturnType(asPOD, preferUnderlying);
 		return generator.generateReturnStatement(retType, *this);
 	}
 
@@ -120,13 +100,15 @@ void FunctionEntity::generateBridgeCall(BindingGenerator& generator)
 	generator.generateBridgeCall(*this);
 }
 
-void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf)
+void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf, bool preferUnderlying)
 {
 	// If the self parameter should be included, export it for member functions and destructors.
 	if(includeSelf && needsThisHandle())
 	{
-		TypeReferenceEntity self(generator.getObjectHandleName(), PrimitiveEntity::getObjectHandle(), false);
-		generator.generateTypeReference(self);
+		auto original = getSelfType(generator.getObjectHandleName());
+		auto selfType = getTypeReference(original, true, preferUnderlying);
+
+		generator.generateTypeReference(selfType);
 
 		// If there are more parameters, add a separator.
 		if(getParameterCount() > 0)
@@ -138,17 +120,9 @@ void FunctionEntity::generateParameters(BindingGenerator& generator, bool asPOD,
 	for(size_t i = 0; i < children.size(); i++)
 	{
 		auto current = std::static_pointer_cast <TypeReferenceEntity> (children[i]);
+		auto param = getTypeReference(*current, asPOD, preferUnderlying);
 
-		if(asPOD && current->getType() != TypeEntity::Type::Primitive)
-		{
-			auto podRef = current->getAsPOD();
-			generator.generateTypeReference(podRef);
-		}
-
-		else
-		{
-			generator.generateTypeReference(*current);
-		}
+		generator.generateTypeReference(param);
 
 		// Add an argument separator for parameters that aren't the last one.
 		if(i != children.size() - 1)
@@ -203,23 +177,39 @@ bool FunctionEntity::isInterface()
 	return interface;
 }
 
-TypeReferenceEntity FunctionEntity::getReturnType(bool asPOD)
+TypeReferenceEntity FunctionEntity::getReturnType(bool asPOD, bool preferUnderlying)
 {
-	// If specified by the caller, return the POD return type.
-	if(asPOD)
-	{
-		auto ret = getReturnType(false);
-		return ret.getAsPOD();
-	}
-
 	// Return a reference to the parent class for constructors.
 	if(getType() == Type::Constructor)
 	{
-		return TypeReferenceEntity("", static_cast <ClassEntity&> (getParent()).shared_from_this(), false);
+		auto selfType = getSelfType("");
+		return getTypeReference(selfType, asPOD, preferUnderlying);
 	}
 
 	assert(returnType);
-	return *returnType;
+	return getTypeReference(*returnType, asPOD, preferUnderlying);
+}
+
+TypeReferenceEntity FunctionEntity::getTypeReference(TypeReferenceEntity& ref, bool asPOD, bool preferUnderlying)
+{
+	if(preferUnderlying)
+	{
+		auto underlying = ref.getUnderlying();
+		return getTypeReference(underlying, asPOD, false);
+	}
+
+	else if(asPOD)
+	{
+		return ref.getAsPOD();
+	}
+
+	return ref;
+}
+
+TypeReferenceEntity FunctionEntity::getSelfType(std::string_view name)
+{
+	assert(ClassEntity::matchType(getParent()));
+	return TypeReferenceEntity(name, static_cast <ClassEntity&> (getParent()).shared_from_this(), false);
 }
 
 std::string FunctionEntity::getBridgeName(bool shortened)
