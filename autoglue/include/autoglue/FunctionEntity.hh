@@ -76,7 +76,8 @@ public:
 	///
 	/// \param generator The BindingGenerator to call functions from.
 	/// \param asPOD If true, the POD version of the return type is generated.
-	void generateReturnType(BindingGenerator& generator, bool asPOD);
+	/// \param preferUnderlying If true, the underlying type behind a type alias is preferred.
+	void generateReturnType(BindingGenerator& generator, bool asPOD, bool preferUnderlying = false);
 
 	/// Generate a return statement for this function. The return statement is generated
 	/// only if the function should return a value, as indicated by returnsValue.
@@ -84,7 +85,8 @@ public:
 	/// \param generator The BindingGenerator to call functions from.
 	/// \param asPOD If true, a return statement for the POD return type is generated.
 	/// \return Depending on the implementation, true could be returned when an additional enclosure is generated.
-	bool generateReturnStatement(BindingGenerator& generator, bool asPOD);
+	/// \param preferUnderlying If true, the underlying type behind a type alias is preferred.
+	bool generateReturnStatement(BindingGenerator& generator, bool asPOD, bool preferUnderlying = false);
 
 	/// Generates a call to the bridge function.
 	///
@@ -98,7 +100,8 @@ public:
 	/// \param generator The BindingGenerator to call functions from.
 	/// \param asPOD If true, the POD versions of the parameters are generated.
 	/// \param includeSelf If true, the first parameter is "self" if it should be present.
-	void generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf);
+	/// \param preferUnderlying If true, the underlying type behind a type alias is preferred.
+	void generateParameters(BindingGenerator& generator, bool asPOD, bool includeSelf, bool preferUnderlying = false);
 
 	/// Gets the parameter count.
 	///
@@ -149,8 +152,9 @@ public:
 	/// Note that this will always return the parent class type for constructors.
 	///
 	/// \param asPOD If true, the POD version of the return type will be returned.
+	/// \param preferUnderlying If true, the underlying type behind a type alias is preferred.
 	/// \return The return type of this function.
-	TypeReferenceEntity getReturnType(bool asPOD = false);
+	TypeReferenceEntity getReturnType(bool asPOD = false, bool preferUnderlying = false);
 
 	/// Gets the name of the corresponding bridge function.
 	///
@@ -224,6 +228,9 @@ public:
 	const char* getTypeString() override;
 
 private:
+	TypeReferenceEntity getTypeReference(TypeReferenceEntity& ref, bool asPOD, bool preferUnderlying);
+	TypeReferenceEntity getSelfType(std::string_view name);
+
 	/// Generates this function entity.
 	void onGenerate(BindingGenerator& generator) override;
 

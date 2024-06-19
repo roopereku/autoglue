@@ -87,6 +87,12 @@ public:
 	/// \return The POD representation of this type reference.
 	TypeReferenceEntity getAsPOD();
 
+	/// Returns a new type reference pointing to the underlying type
+	/// if this type reference refers to a type alias.
+	///
+	/// \return This object or a new TypeReferenceEntity referring to the underlying type.
+	TypeReferenceEntity getUnderlying();
+
 	const char* getTypeString() override;
 
 private:

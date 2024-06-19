@@ -124,6 +124,19 @@ TypeReferenceEntity TypeReferenceEntity::getAsPOD()
 	return *this;
 }
 
+TypeReferenceEntity TypeReferenceEntity::getUnderlying()
+{
+	auto ret = *this;
+
+	if(isAlias())
+	{
+		ret.referred = getAliasType().getUnderlying(true);
+		assert(ret.referred);
+	}
+
+	return ret;
+}
+
 const char* TypeReferenceEntity::getTypeString()
 {
 	return "TypeReference";
