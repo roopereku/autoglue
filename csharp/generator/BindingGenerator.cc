@@ -318,11 +318,11 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 		// Represent strings as IntPtr when returning from externed functions.
 		convertStringType = true;
-		entity.generateReturnType(*this, true);
+		entity.generateReturnType(*this, true, true);
 		convertStringType = false;
 
 		file << entity.getBridgeName() << '(';
-		entity.generateParameters(*this, true, true);
+		entity.generateParameters(*this, true, true, true);
 		file << ");\n";
 	}
 
@@ -372,11 +372,11 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 
 	else
 	{
-		entity.generateReturnType(*this, false);
+		entity.generateReturnType(*this, false, true);
 		file << sanitizeName(entity) << '(';
 	}
 
-	entity.generateParameters(*this, false, false);
+	entity.generateParameters(*this, false, false, true);
 	file << ')';
 
 	if(entity.isInterface())
@@ -390,7 +390,7 @@ void BindingGenerator::generateFunction(FunctionEntity& entity)
 		file << "\n{\n";
 	}
 
-	bool closeParenthesis = entity.generateReturnStatement(*this, false);
+	bool closeParenthesis = entity.generateReturnStatement(*this, false, true);
 
 	// The bridge function for a constructor was already generated.
 	if(entity.getType() != FunctionEntity::Type::Constructor)
@@ -670,17 +670,6 @@ bool BindingGenerator::generateBridgeToCSharp(TypeReferenceEntity& entity)
 {
 	switch(entity.getType())
 	{
-		case TypeEntity::Type::Alias:
-		{
-			TypeReferenceEntity underlying(
-				"",
-				entity.getAliasType().getUnderlying(true),
-				entity.isReference()
-			);
-
-			return generateBridgeToCSharp(underlying);
-		}
-
 		case TypeEntity::Type::Class:
 		{
 			if(entity.getClassType().isAbstract())
@@ -714,9 +703,8 @@ bool BindingGenerator::generateBridgeToCSharp(TypeReferenceEntity& entity)
 			break;
 		}
 
-		case TypeEntity::Type::Callable:
+		default:
 		{
-			// TODO: Something here?
 		}
 	}
 
@@ -727,17 +715,6 @@ bool BindingGenerator::generateCSharpToBridge(TypeReferenceEntity& entity)
 {
 	switch(entity.getType())
 	{
-		case TypeEntity::Type::Alias:
-		{
-			TypeReferenceEntity underlying(
-				"",
-				entity.getAliasType().getUnderlying(true),
-				entity.isReference()
-			);
-
-			return generateCSharpToBridge(underlying);
-		}
-
 		case TypeEntity::Type::Class:
 		{
 			file << getTypeLocation(entity.getReferred()) << ".AG_getObjectHandle(";
@@ -750,8 +727,7 @@ bool BindingGenerator::generateCSharpToBridge(TypeReferenceEntity& entity)
 			break;
 		}
 
-		case TypeEntity::Type::Primitive:
-		case TypeEntity::Type::Callable:
+		default:
 		{
 			break;
 		}
@@ -764,7 +740,7 @@ void BindingGenerator::generateBridgeCall(FunctionEntity& entity)
 {
 	file << entity.getBridgeName() << '(';
 	onlyParameterNames = true;
-	entity.generateParameters(*this, false, true);
+	entity.generateParameters(*this, false, true, true);
 	onlyParameterNames = false;
 	file << ')';
 }
@@ -817,20 +793,20 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 
 	file << "[UnmanagedFunctionPointer(CallingConvention.Cdecl)]\n";
     file << "private delegate ";
-	entity.generateReturnType(*this, true);
+	entity.generateReturnType(*this, true, true);
 	file << "AG_delegate_intercept_" << entity.getBridgeName(true) << '(';
-	entity.generateParameters(*this, true, true);
+	entity.generateParameters(*this, true, true, true);
 	file << ");\n";
 
 	file << "internal static ";
-	entity.generateReturnType(*this, true);
+	entity.generateReturnType(*this, true, true);
 	file << "AG_intercept_" << entity.getBridgeName(true) << '(';
 
-	entity.generateParameters(*this, true, true);
+	entity.generateParameters(*this, true, true, true);
 	file << ")\n{\n";
 
 	delegateInterception = static_cast <bool> (overridden);
-	bool closeParenthesis = entity.generateReturnStatement(*this, false);
+	bool closeParenthesis = entity.generateReturnStatement(*this, false, true);
 
 	// If the overridden function is from a composition base class, call another
 	// interception function from the member representing the base class.
@@ -851,7 +827,7 @@ void BindingGenerator::generateInterceptionFunction(FunctionEntity& entity, Clas
 	}
 
 	onlyParameterNames = true;
-	entity.generateParameters(*this, false, delegateInterception);
+	entity.generateParameters(*this, false, delegateInterception, true);
 	onlyParameterNames = false;
 
 	if(closeParenthesis)
