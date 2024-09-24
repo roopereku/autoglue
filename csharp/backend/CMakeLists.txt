@@ -2,18 +2,18 @@ cmake_minimum_required(VERSION 3.5)
 
 file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
-add_library(Generator SHARED ${Sources})
-target_link_libraries(Generator Autoglue::Autoglue)
+add_library(Backend SHARED ${Sources})
+target_link_libraries(Backend Autoglue::Autoglue)
 
 target_include_directories(
-	Generator PUBLIC
+	Backend PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  
     $<INSTALL_INTERFACE:include>
 )
 
 install(
-	TARGETS Generator
-	EXPORT AutoglueJavaTargets
+	TARGETS Backend
+	EXPORT AutoglueCSharpTargets
 )
 
 install(

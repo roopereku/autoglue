@@ -21,7 +21,7 @@ target_include_directories(ClangBackend PUBLIC
 )
 
 install(TARGETS ClangBackend
-	EXPORT AutoglueTargets
+	EXPORT AutoglueClangClangTargets
 )
 
 install(DIRECTORY include/ DESTINATION include)
