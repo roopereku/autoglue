@@ -2,25 +2,27 @@
 
 Autoglue is a library that aims to provide an easy interface for generating language bindings from any language to any language.
 
+## Building
+
+To build Autoglue, execute the following while in the Autoglue root directory:
+```
+python3 build.py
+```
+Without any additional arguments only the Autoglue core will be built. Different subsystems can be built as well by passing the appropriate command line parameters following this pattern:
+```
+--subsystem              ->    Build backend and generator
+--subsystem-backend      ->    Build backend
+--subsystem-generator    ->    Build generator
+```
+Replace `subsystem` with the subsystem of your choice, such as `csharp` or `clang`.
+
+To view all of the available options, execute the following:
+```
+python3 build.py -h
+```
+
 ## Usage
 
-Until Autoglue is properly packaged, you have to build it yourself.
-To build Autoglue on Linux:
-```
-git clone https://github.com/roopereku/autoglue.git
-cmake -S autoglue -B build
-cmake --build build
-sudo cmake --install build
-```
-
-To include Autoglue in your project, check out the specific guides:
+Check out the subsystem specific guides:
 
 - [Clang](clang/README.md)
-
-## File structure
-
-- **autoglue** The common parts that can be used to build a simplified hierarchy.
-- **clang** The clang backend used to generate a simplified hierarchy from C and C++.
-- **java** The binding generator that outputs Java code. Later a backend can be added here aswell.
-- **test** Contains things used for testing autoglue.
-- **docs** Documentation for autoglue.
