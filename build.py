@@ -1,80 +1,105 @@
 from argparse import ArgumentParser
-from pathlib import Path
+import pathlib
 import subprocess
 import shutil
 import os
 
-optional_subsystems = {
-    "csharp" : "Autoglue C#",
-    "java" : "Autoglue Java"
-}
-
-arg_parser = ArgumentParser(
-    prog="Autoglue building utility"
-)
-
-arg_parser.add_argument(f"--all", action="store_true")
-
-for key in optional_subsystems:
-    arg_parser.add_argument(f"--{key}", action="store_true")
-    arg_parser.add_argument(f"--{key}-generator", action="store_true")
-    arg_parser.add_argument(f"--{key}-backend", action="store_true")
-
-args = vars(arg_parser.parse_args())
+# Find the Autoglue root path and CMake.
+root_path = os.path.abspath(os.path.dirname(__file__))
 cmake_path = shutil.which("cmake")
-
-def build_subsystem(cmake_path, subsystem_path, description, config_opts):
-    build_path = f"{subsystem_path}/build"
-    Path(build_path).mkdir(exist_ok=True)
-
-    configure_result = subprocess.run(
-        [cmake_path, "-S", subsystem_path, "-B", build_path] + config_opts,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    if configure_result.returncode == 1:
-        print(f"Configuring {description} failed:")
-        print(configure_result.stderr)
-        exit(1)
-
-    build_result = subprocess.run(
-        [cmake_path, "--build", build_path],
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    if build_result.returncode == 1:
-        print(f"Building {description} failed:")
-        print(build_result.stderr)
-        exit(1)
-
-    install_result = subprocess.run(
-        [cmake_path, "--install", build_path, "--prefix", f"{build_path}/prefix"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    if install_result.returncode == 1:
-        print(f"Installing prefix for {description} failed:")
-        print(install_result.stderr)
-        exit(1)
 
 if len(cmake_path) == 0:
     print("Error: Failed to find CMake")
     exit(1)
 
-build_subsystem(cmake_path, "autoglue", "Autoglue Core", [])
+class Subsystem:
+    def __init__(self, desc, path):
+        self.name = pathlib.PurePath(path).name
+        self.desc = desc
+        self.path = f"{root_path}/{path}"
 
-for key in optional_subsystems:
-    config_opts = []
+    def build(self, generator=False, backend=False):
+        print(f"Building {self.desc}")
 
-    if args[key] or args[f"{key}_backend"]:
-        config_opts.append(f"-DAUTOGLUE_BUILD_{key.upper()}_BACKEND=ON")
+        build_path = f"{self.path}/build"
+        pathlib.Path(build_path).mkdir(exist_ok=True)
 
-    if args[key] or args[f"{key}_generator"]:
-        config_opts.append(f"-DAUTOGLUE_BUILD_{key.upper()}_GENERATOR=ON")
+        cmake_opts = [
+            cmake_path,
+            "-S", self.path, "-B", build_path,
+            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ]
 
-    build_subsystem(cmake_path, key, optional_subsystems[key], config_opts)
+        if backend:
+            cmake_opts.append(f"-DAUTOGLUE_BUILD_{self.name.upper()}_BACKEND=ON")
+
+        if generator:
+            cmake_opts.append(f"-DAUTOGLUE_BUILD_{self.name.upper()}_GENERATOR=ON")
+
+        configure_result = subprocess.run(
+            cmake_opts,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        if configure_result.returncode == 1:
+            print(f"Configuring {self.desc} failed:")
+            print(configure_result.stderr)
+            exit(1)
+
+        build_result = subprocess.run(
+            [cmake_path, "--build", build_path],
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        if build_result.returncode == 1:
+            print(f"Building {self.desc} failed:")
+            print(build_result.stderr)
+            exit(1)
+
+        install_result = subprocess.run(
+            [cmake_path, "--install", build_path, "--prefix", f"prefix"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        if install_result.returncode == 1:
+            print(f"Installing prefix for {self.desc} failed:")
+            print(install_result.stderr)
+            exit(1)
+
+core = Subsystem("Autoglue Core", "autoglue")
+core.build([])
+
+optional_subsystems = [
+    Subsystem("Autoglue Clang", "clang"),
+    Subsystem("Autoglue C#", "csharp"),
+    Subsystem("Autoglue Java", "java"),
+]
+
+def main():
+    arg_parser = ArgumentParser(
+        prog="Autoglue building utility"
+    )
+
+    for entry in optional_subsystems:
+        arg_parser.add_argument(f"--{entry.name}", action="store_true")
+        arg_parser.add_argument(f"--{entry.name}-generator", action="store_true")
+        arg_parser.add_argument(f"--{entry.name}-backend", action="store_true")
+
+    args = vars(arg_parser.parse_args())
+
+    for entry in optional_subsystems:
+        generator = args[entry.name] or args[f"{entry.name}_backend"]
+        backend = args[entry.name] or args[f"{entry.name}_backend"]
+
+        if not generator and not backend:
+            continue
+
+        entry.build(generator=generator, backend=backend)
+
+if __name__=="__main__":
+    main()

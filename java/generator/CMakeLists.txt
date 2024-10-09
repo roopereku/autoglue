@@ -11,6 +11,11 @@ target_include_directories(
     $<INSTALL_INTERFACE:include>
 )
 
+set_target_properties(
+	Generator PROPERTIES
+	OUTPUT_NAME "JavaGenerator"
+)
+
 install(
 	TARGETS Generator
 	EXPORT AutoglueJavaTargets

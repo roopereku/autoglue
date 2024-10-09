@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(Autoglue VERSION 1.0)
 
+include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB_RECURSE Sources *.cc)
@@ -27,10 +28,28 @@ install(
 	EXPORT AutoglueTargets
 	FILE AutoglueTargets.cmake
 	NAMESPACE Autoglue::
-	DESTINATION lib/cmake/${PROJECT_NAME}
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Autoglue
 )
 
-include(${CMAKE_CURRENT_LIST_DIR}/../cmake/CreateConfig.cmake)
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+	"${CMAKE_CURRENT_LIST_DIR}/../cmake/${PROJECT_NAME}Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION lib/cmake/Autoglue
+)
+
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION lib/cmake/Autoglue
+)
 
 set(CPACK_PACKAGE_NAME "autoglue-core")
 set(CPACK_PACKAGE_VERSION "${AUTOGLUE_VERSION}")
