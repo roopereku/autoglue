@@ -21,12 +21,12 @@ class Subsystem:
     def build(self, generator=False, backend=False):
         print(f"Building {self.desc}")
 
-        build_path = f"{self.path}/build"
-        pathlib.Path(build_path).mkdir(exist_ok=True)
+        self.build_path = f"{self.path}/build"
+        pathlib.Path(self.build_path).mkdir(exist_ok=True)
 
         cmake_opts = [
             cmake_path,
-            "-S", self.path, "-B", build_path,
+            "-S", self.path, "-B", self.build_path,
             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
         ]
 
@@ -49,7 +49,7 @@ class Subsystem:
             exit(1)
 
         build_result = subprocess.run(
-            [cmake_path, "--build", build_path],
+            [cmake_path, "--build", self.build_path],
             stderr=subprocess.PIPE,
             text=True
         )
@@ -60,7 +60,7 @@ class Subsystem:
             exit(1)
 
         install_result = subprocess.run(
-            [cmake_path, "--install", build_path, "--prefix", f"prefix"],
+            [cmake_path, "--install", self.build_path, "--prefix", f"{root_path}/prefix"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
