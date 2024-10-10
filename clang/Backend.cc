@@ -733,7 +733,7 @@ private:
 
 		auto entity = std::make_shared <ag::FunctionEntity> (
 			std::move(returnEntity), decl->isVirtualAsWritten(), isOverride,
-			decl->isPure(), decl->isStatic()
+			decl->isPureVirtual(), decl->isStatic()
 		);
 
 		entity->initializeContext(std::make_shared <ag::clang::OverloadContext> (decl, privateOverrides));
@@ -953,7 +953,7 @@ Backend::Backend(std::string_view compilationDatabasePath)
 
 	// TODO: Do this only when explicitly specified by user.
 	// This is done elsewhere by an argument adjuster which doesn't touch the database.
-	includePaths.emplace_back("/lib/clang/17/include");
+	includePaths.emplace_back("/lib/clang/18/include");
 
 	// Sort the include paths by length. This is done to make sure that
 	std::sort(
@@ -1007,7 +1007,7 @@ bool Backend::generateHierarchy()
 	tool.appendArgumentsAdjuster(::clang::tooling::getClangStripOutputAdjuster());
 
 	// TODO: Do this only when explicitly specified by user.
-	tool.appendArgumentsAdjuster(::clang::tooling::getInsertArgumentAdjuster("-I/lib/clang/17/include/"));
+	tool.appendArgumentsAdjuster(::clang::tooling::getInsertArgumentAdjuster("-I/lib/clang/18/include/"));
 
 	bool result = tool.run(std::make_unique <HierarchyGeneratorFactory> (*this).get()) == 0;
 
