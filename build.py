@@ -78,6 +78,7 @@ optional_subsystems = [
     Subsystem("Autoglue Clang", "clang"),
     Subsystem("Autoglue C#", "csharp"),
     Subsystem("Autoglue Java", "java"),
+    Subsystem("Autoglue XML", "xml"),
 ]
 
 def main():
