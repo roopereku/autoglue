@@ -35,14 +35,20 @@ if(DEFINED AUTOGLUE_BUILD_CLANG_BACKEND AND AUTOGLUE_BUILD_CLANG_BACKEND)
 	)
 
 	install(
+		DIRECTORY include/
+		DESTINATION include
+	)
+
+	install(
 		EXPORT AutoglueClangTargets
 		FILE AutoglueClangTargets.cmake
 		NAMESPACE Autoglue::Clang::
 		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Autoglue
 	)
 
-	install(
-		DIRECTORY include/
-		DESTINATION include
-	)
+	set(CPACK_PACKAGE_NAME "autoglue-clang")
+	set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+	set(CPACK_PACKAGE_DESCRIPTION "Autoglue Clang")
+	set(CPACK_GENERATOR "ZIP")
+	include(CPack)
 endif()

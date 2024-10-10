@@ -93,7 +93,7 @@ def main():
     args = vars(arg_parser.parse_args())
 
     for entry in optional_subsystems:
-        generator = args[entry.name] or args[f"{entry.name}_backend"]
+        generator = args[entry.name] or args[f"{entry.name}_generator"]
         backend = args[entry.name] or args[f"{entry.name}_backend"]
 
         if not generator and not backend:
@@ -101,5 +101,5 @@ def main():
 
         entry.build(generator=generator, backend=backend)
 
-if __name__=="__main__":
+if __name__== "__main__":
     main()

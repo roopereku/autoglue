@@ -17,4 +17,10 @@ if(DEFINED AUTOGLUE_INSTALL)
 		NAMESPACE Autoglue::CSharp::
 		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Autoglue
 	)
+
+	set(CPACK_PACKAGE_NAME "autoglue-csharp")
+	set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+	set(CPACK_PACKAGE_DESCRIPTION "Autoglue C#")
+	set(CPACK_GENERATOR "ZIP")
+	include(CPack)
 endif()
