@@ -8,4 +8,8 @@ Serializer::Serializer(Backend& backend)
 {
 }
 
+void Serializer::writeElement()
+{
+}
+
 }
