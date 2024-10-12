@@ -21,6 +21,7 @@ void BindingGenerator::generateBindings(bool resetEntityContext)
 	}
 
 	backend.getRoot().generate(*this);
+	onGenerationFinished();
 }
 
 void BindingGenerator::changeClassDepth(int amount)
@@ -53,4 +54,6 @@ std::string_view BindingGenerator::getObjectHandleName()
 }
 
 void BindingGenerator::initializeGenerationContext(Entity&) {}
+void BindingGenerator::onGenerationFinished() {}
+
 }

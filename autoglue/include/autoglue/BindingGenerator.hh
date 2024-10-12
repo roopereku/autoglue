@@ -112,6 +112,8 @@ public:
 	virtual void initializeGenerationContext(Entity& entity);
 
 protected:
+	virtual void onGenerationFinished();
+
 	unsigned getClassDepth();
 
 private:

@@ -3,7 +3,10 @@ cmake_minimum_required(VERSION 3.5)
 file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 add_library(Serializer SHARED ${Sources})
-target_link_libraries(Serializer Autoglue::Autoglue)
+target_link_libraries(Serializer
+	Autoglue::Autoglue
+	tinyxml2
+)
 
 target_include_directories(
 	Serializer PUBLIC

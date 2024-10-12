@@ -5,7 +5,7 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/../prefix")
 include(GNUInstallDirs)
 
 find_package(Autoglue REQUIRED)
-find_package(TinyXML2 REQUIRED)
+find_package(tinyxml2 REQUIRED)
 
 if(DEFINED AUTOGLUE_BUILD_XML_GENERATOR AND AUTOGLUE_BUILD_XML_GENERATOR)
 	add_subdirectory(generator)
