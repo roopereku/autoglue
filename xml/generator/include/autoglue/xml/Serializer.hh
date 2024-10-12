@@ -9,8 +9,8 @@ public:
 	Serializer(Backend& backend);
 
 protected:
-	void beginElement(std::string_view name) override;
-	void endElement(std::string_view name) override;
+	void beginElement(Entity& entity) override;
+	void endElement(Entity& entity) override;
 };
 
 }

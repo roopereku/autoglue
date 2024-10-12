@@ -15,6 +15,8 @@ void Serializer::serialize()
 
 void Serializer::generateClass(ClassEntity& entity)
 {
+	beginElement(entity);	
+	endElement(entity);	
 }
 
 void Serializer::generateEnum(EnumEntity& entity)

@@ -15,7 +15,8 @@ public:
 
 protected:
 	Serializer(Backend& backend);
-	virtual void beginElement(std::string_view name) = 0;
+	virtual void beginElement(Entity& entity) = 0;
+	virtual void endElement(Entity& entity) = 0;
 
 	void generateClass(ClassEntity& entity) final override;
 	void generateEnum(EnumEntity& entity) final override;

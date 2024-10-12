@@ -1,4 +1,5 @@
 #include <autoglue/xml/Serializer.hh>
+#include <tinyxml2.h>
 
 namespace ag::xml
 {
@@ -8,7 +9,11 @@ Serializer::Serializer(Backend& backend)
 {
 }
 
-void Serializer::writeElement()
+void Serializer::beginElement(Entity& entity)
+{
+}
+
+void Serializer::endElement(Entity& entity)
 {
 }
 

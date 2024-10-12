@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.5)
 project(AutoglueXml VERSION 1.0)
 
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/../prefix")
-find_package(Autoglue REQUIRED)
 include(GNUInstallDirs)
+
+find_package(Autoglue REQUIRED)
+find_package(TinyXML2 REQUIRED)
 
 if(DEFINED AUTOGLUE_BUILD_XML_GENERATOR AND AUTOGLUE_BUILD_XML_GENERATOR)
 	add_subdirectory(generator)
