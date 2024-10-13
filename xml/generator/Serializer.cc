@@ -31,21 +31,22 @@ void Serializer::endElement(Entity& entity)
 	trail.pop();
 }
 
-
-void Serializer::setReturnValue(FunctionEntity& entity)
+void Serializer::setReturnType(TypeReferenceEntity& entity)
 {
 }
 
-void Serializer::setReferredType(TypeAliasEntity& entity)
+void Serializer::setReferredType(TypeEntity& entity)
 {
 	auto* element = document.NewElement("Underlying");
 	element->SetText(entity.getHierarchy(".").c_str());
-
 	trail.top()->InsertEndChild(element);
 }
 
 void Serializer::addBaseType(TypeEntity& entity)
 {
+	auto* element = document.NewElement("Base");
+	element->SetText(entity.getHierarchy(".").c_str());
+	trail.top()->InsertEndChild(element);
 }
 
 void Serializer::onGenerationFinished()

@@ -30,6 +30,7 @@ void Serializer::endNestingElement(Entity& entity)
 void Serializer::generateClass(ClassEntity& entity)
 {
 	beginNestingElement(entity);
+	entity.generateBaseTypes(*this);
 	entity.generateNested(*this);
 	endNestingElement(entity);	
 }
@@ -58,12 +59,16 @@ void Serializer::generateTypeReference(TypeReferenceEntity& entity)
 void Serializer::generateTypeAlias(TypeAliasEntity& entity)
 {
 	beginElement(entity);
-	setReferredType(entity);
+	setReferredType(*entity.getUnderlying());
 	endElement(entity);
 }
 
-bool Serializer::generateBaseType(TypeEntity& entity, size_t index)
+bool Serializer::generateBaseType(TypeEntity& entity, size_t)
 {
+	printf("Generate base spec '%s'\n", entity.getName().c_str());
+	addBaseType(entity);
+
+	return false;
 }
 
 void Serializer::generateNamedScope(ScopeEntity& entity)
@@ -79,6 +84,7 @@ void Serializer::generateArgumentSeparator()
 
 bool Serializer::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
 {
+	return false;
 }
 
 }

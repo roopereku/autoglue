@@ -15,10 +15,9 @@ protected:
 	void beginElement(Entity& entity) override;
 	void endElement(Entity& entity) override;
 
-	void setReturnValue(FunctionEntity& entity) override;
-	void setReferredType(TypeAliasEntity& entity) override;
+	void setReturnType(TypeReferenceEntity& entity) override;
+	void setReferredType(TypeEntity& entity) override;
 	void addBaseType(TypeEntity& entity) override;
-	void endNestingElement(Entity& entity) override;
 
 	void onGenerationFinished() override;
 

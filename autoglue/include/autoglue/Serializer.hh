@@ -19,8 +19,10 @@ protected:
 	virtual void beginElement(Entity& entity) = 0;
 	virtual void beginNestingElement(Entity& entity);
 
-	virtual void setReturnValue(FunctionEntity& entity) = 0;
-	virtual void setReferredType(TypeAliasEntity& entity) = 0;
+	virtual void setReturnType(TypeReferenceEntity& entity) = 0;
+
+	// FIXME: Make this TypeReferenceEntity
+	virtual void setReferredType(TypeEntity& entity) = 0;
 	virtual void addBaseType(TypeEntity& entity) = 0;
 
 	virtual void endElement(Entity& entity) = 0;
