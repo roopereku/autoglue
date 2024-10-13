@@ -1,5 +1,7 @@
 #include <autoglue/xml/Serializer.hh>
 #include <autoglue/TypeAliasEntity.hh>
+#include <autoglue/TypeReferenceEntity.hh>
+
 #include <tinyxml2.h>
 
 #include <cassert>
@@ -33,11 +35,16 @@ void Serializer::endElement(Entity& entity)
 
 void Serializer::setReturnType(TypeReferenceEntity& entity)
 {
+	auto* element = document.NewElement("Return");
+
+	// TODO: Handle qualifiers?
+	element->SetText(entity.getReferred().getHierarchy(".").c_str());
+	trail.top()->InsertEndChild(element);
 }
 
 void Serializer::setReferredType(TypeEntity& entity)
 {
-	auto* element = document.NewElement("Underlying");
+	auto* element = document.NewElement("Referred");
 	element->SetText(entity.getHierarchy(".").c_str());
 	trail.top()->InsertEndChild(element);
 }

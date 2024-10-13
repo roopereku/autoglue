@@ -3,6 +3,7 @@
 #include <autoglue/ScopeEntity.hh>
 #include <autoglue/EnumEntity.hh>
 #include <autoglue/TypeAliasEntity.hh>
+#include <autoglue/TypeReferenceEntity.hh>
 
 namespace ag
 {
@@ -50,10 +51,19 @@ void Serializer::generateEnumEntry(EnumEntryEntity& entity)
 
 void Serializer::generateFunction(FunctionEntity& entity)
 {
+	auto ret = entity.getReturnType();
+
+	beginNestingElement(entity);
+	setReturnType(ret);
+	entity.generateParameters(*this, false, false);
+	endNestingElement(entity);
 }
 
 void Serializer::generateTypeReference(TypeReferenceEntity& entity)
 {
+	beginElement(entity);
+	setReferredType(entity.getReferred());
+	endElement(entity);
 }
 
 void Serializer::generateTypeAlias(TypeAliasEntity& entity)
@@ -65,9 +75,7 @@ void Serializer::generateTypeAlias(TypeAliasEntity& entity)
 
 bool Serializer::generateBaseType(TypeEntity& entity, size_t)
 {
-	printf("Generate base spec '%s'\n", entity.getName().c_str());
 	addBaseType(entity);
-
 	return false;
 }
 
@@ -82,7 +90,7 @@ void Serializer::generateArgumentSeparator()
 {
 }
 
-bool Serializer::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
+bool Serializer::generateReturnStatement(TypeReferenceEntity&, FunctionEntity&)
 {
 	return false;
 }
