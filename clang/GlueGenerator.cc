@@ -534,7 +534,7 @@ public:
 		file << ");\n}\n";
 	}
 
-	void generateInterceptionContext(ClassEntity& entity) override
+	void generateInterceptionContext(ClassEntity&) override
 	{
 		file << "void* AG_foreignObject;\n";
 	}
@@ -767,7 +767,7 @@ std::string_view GlueGenerator::getObjectHandleName()
 	return "objectHandle";
 }
 
-bool GlueGenerator::generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target)
+bool GlueGenerator::generateReturnStatement(TypeReferenceEntity&, FunctionEntity&)
 {
 	file << "return ";
 	return false;

@@ -98,11 +98,10 @@ private:
 
 	void onList(std::string_view indent) override;
 
+	std::shared_ptr <TypeEntity> referred;
 	bool reference = false;
 	bool unsignedType = false;
 	size_t size = 0;
-
-	std::shared_ptr <TypeEntity> referred;
 };
 
 }

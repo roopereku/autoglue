@@ -37,7 +37,7 @@ public:
 private:
 	PrimitiveEntity(std::string_view name, Type type);
 
-	void onGenerate(BindingGenerator& generator) override
+	void onGenerate(BindingGenerator&) override
 	{
 		// TODO: Call something like generatePrimitive if necessary.
 	}

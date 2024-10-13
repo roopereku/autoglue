@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(Autoglue VERSION 1.0)
 
-include(GNUInstallDirs)
-set(CMAKE_CXX_STANDARD 17)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Common.cmake")
 
 file(GLOB_RECURSE Sources *.cc)
-
 add_library(Autoglue SHARED ${Sources})
+ag_apply_target_options(Autoglue)
 
 target_include_directories(
 	Autoglue PUBLIC  
@@ -28,7 +27,7 @@ install(
 	EXPORT AutoglueTargets
 	FILE AutoglueTargets.cmake
 	NAMESPACE Autoglue::
-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Autoglue
+	DESTINATION ${AUTOGLUE_DESTINATION}
 )
 
 include(CMakePackageConfigHelpers)

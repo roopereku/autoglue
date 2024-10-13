@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 add_library(Generator SHARED ${Sources})
+ag_apply_target_options(Generator)
 target_link_libraries(Generator Autoglue::Autoglue)
 
 target_include_directories(

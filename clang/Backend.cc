@@ -262,12 +262,12 @@ private:
 
 		if(auto* functionNode = clang::dyn_cast <clang::FunctionDecl> (named))
 		{
-			if(auto* destructorNode = clang::dyn_cast <clang::CXXDestructorDecl> (functionNode))
+			if(clang::dyn_cast <clang::CXXDestructorDecl> (functionNode))
 			{
 				name = "Destructor";
 			}
 
-			else if(auto* conversionNode = clang::dyn_cast <clang::CXXConversionDecl> (functionNode))
+			else if(clang::dyn_cast <clang::CXXConversionDecl> (functionNode))
 			{
 				// TODO: Implement type conversions in the simplified hierarchy.
 				return std::string();
@@ -491,7 +491,7 @@ private:
 			}
 
 			// Check if the declaration is a namespace.
-			else if(auto* namespaceNode = clang::dyn_cast <clang::NamespaceDecl> (named))
+			else if(clang::dyn_cast <clang::NamespaceDecl> (named))
 			{
 				parentEntity->addChild(std::make_shared <ag::ScopeEntity> (name));
 				shouldGetTypeInfo = false;
@@ -593,7 +593,7 @@ private:
 
 						if(auto* method = clang::dyn_cast <clang::FunctionDecl> (subDecl))
 						{
-							ensureFunctionExists(method, getFunctionType(method));
+							ensureFunctionExists(method);
 						}
 
 						else
@@ -614,7 +614,7 @@ private:
 		return ensureEntityExists(decl, created);
 	}
 
-	void ensureFunctionExists(clang::FunctionDecl* decl, ag::FunctionEntity::Type type)
+	void ensureFunctionExists(clang::FunctionDecl* decl)
 	{
 		// If this function is an overload of the "new" operator which has more than 1 argument,
 		// the bridge functions will be unable to instantiate an object with new.
@@ -841,8 +841,8 @@ private:
 		return sourceManager.getIncludeLoc(sourceManager.getFileID(decl->getLocation())).isValid();
 	}
 
-	clang::SourceManager& sourceManager;
 	ag::clang::Backend& backend;
+	clang::SourceManager& sourceManager;
 };
 
 class HierarchyGenerator : public clang::ASTConsumer

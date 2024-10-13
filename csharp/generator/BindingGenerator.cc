@@ -476,7 +476,7 @@ void BindingGenerator::generateTypeReference(TypeReferenceEntity& entity)
 	}
 }
 
-void BindingGenerator::generateTypeAlias(TypeAliasEntity& entity)
+void BindingGenerator::generateTypeAlias(TypeAliasEntity&)
 {
 	// TODO: Implement type aliases with class inheritance?
 
