@@ -12,6 +12,10 @@ Entity::Entity(Type type, std::string_view name)
 {
 }
 
+Entity::~Entity()
+{
+}
+
 void Entity::addChild(std::shared_ptr <Entity>&& child)
 {
 	assert(child);

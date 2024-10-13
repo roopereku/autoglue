@@ -100,8 +100,10 @@ private:
 
 	std::shared_ptr <TypeEntity> referred;
 	bool reference = false;
-	bool unsignedType = false;
-	size_t size = 0;
+
+	// TODO: Use these:
+	//bool unsignedType = false;
+	//size_t size = 0;
 };
 
 }

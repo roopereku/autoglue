@@ -425,8 +425,6 @@ void ClassEntity::onInitialize()
 {
 	if(concreteType)
 	{
-		size_t used = 0;
-
 		// Now that we should know what is used and what is not, let's go through
 		// each override within the concrete type and use those which refer to
 		// a used overridable function. When a concrete type is being generated,
@@ -445,7 +443,6 @@ void ClassEntity::onInitialize()
 				if(overridden->isOverridable() && overridden->getUsages() > 0)
 				{
 					group.getOverload(i).use();
-					used++;
 				}
 			}
 		}

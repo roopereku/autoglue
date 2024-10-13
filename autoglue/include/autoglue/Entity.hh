@@ -27,6 +27,7 @@ public:
 	};
 
 	Entity(Type type, std::string_view name);
+	virtual ~Entity();
 
 	/// Adds a child entity
 	///

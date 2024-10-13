@@ -103,7 +103,7 @@ def main():
         if not generator and not backend:
             continue
 
-        if not entry.build(generator=generator, backend=backend, debug=args.debug):
+        if not entry.build(generator=generator, backend=backend, debug=args["debug"]):
             exit(1)
 
 if __name__== "__main__":
