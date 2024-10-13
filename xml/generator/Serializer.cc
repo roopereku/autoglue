@@ -15,18 +15,14 @@ Serializer::Serializer(Backend& backend)
 	trail.push(root);
 }
 
-void Serializer::writeElement(Entity& entity)
+void Serializer::beginElement(Entity& entity)
 {
 	assert(!trail.empty());
 
 	current = document.NewElement(entity.getTypeString());
 	current->SetAttribute("name", entity.getName().c_str());
 	trail.top()->InsertEndChild(current);
-}
 
-void Serializer::beginElement(Entity& entity)
-{
-	writeElement(entity);
 	trail.push(current);
 }
 
@@ -35,13 +31,17 @@ void Serializer::endElement(Entity& entity)
 	trail.pop();
 }
 
+
 void Serializer::setReturnValue(FunctionEntity& entity)
 {
 }
 
 void Serializer::setReferredType(TypeAliasEntity& entity)
 {
-	current->SetAttribute("referred", entity.getUnderlying()->getHierarchy(".").c_str());
+	auto* element = document.NewElement("Underlying");
+	element->SetText(entity.getHierarchy(".").c_str());
+
+	trail.top()->InsertEndChild(element);
 }
 
 void Serializer::addBaseType(TypeEntity& entity)

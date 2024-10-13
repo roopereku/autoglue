@@ -12,12 +12,13 @@ public:
 	Serializer(Backend& backend);
 
 protected:
-	void writeElement(Entity& entity) override;
 	void beginElement(Entity& entity) override;
 	void endElement(Entity& entity) override;
+
 	void setReturnValue(FunctionEntity& entity) override;
 	void setReferredType(TypeAliasEntity& entity) override;
 	void addBaseType(TypeEntity& entity) override;
+	void endNestingElement(Entity& entity) override;
 
 	void onGenerationFinished() override;
 

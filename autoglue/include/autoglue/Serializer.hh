@@ -16,18 +16,15 @@ public:
 protected:
 	Serializer(Backend& backend);
 
-	/// Used to begin an element that can contain other elements.
 	virtual void beginElement(Entity& entity) = 0;
-
-	/// Used to end an element that can contain other elements.
-	virtual void endElement(Entity& entity) = 0;
-
-	/// Used to write an element that cannot contain other elements.
-	virtual void writeElement(Entity& entity) = 0;
+	virtual void beginNestingElement(Entity& entity);
 
 	virtual void setReturnValue(FunctionEntity& entity) = 0;
 	virtual void setReferredType(TypeAliasEntity& entity) = 0;
 	virtual void addBaseType(TypeEntity& entity) = 0;
+
+	virtual void endElement(Entity& entity) = 0;
+	virtual void endNestingElement(Entity& entity);
 
 	void generateClass(ClassEntity& entity) final override;
 	void generateEnum(EnumEntity& entity) final override;

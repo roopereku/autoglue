@@ -17,23 +17,34 @@ void Serializer::serialize()
 	generateBindings();
 }
 
-void Serializer::generateClass(ClassEntity& entity)
+void Serializer::beginNestingElement(Entity& entity)
 {
 	beginElement(entity);
+}
+
+void Serializer::endNestingElement(Entity& entity)
+{
+	endElement(entity);
+}
+
+void Serializer::generateClass(ClassEntity& entity)
+{
+	beginNestingElement(entity);
 	entity.generateNested(*this);
-	endElement(entity);	
+	endNestingElement(entity);	
 }
 
 void Serializer::generateEnum(EnumEntity& entity)
 {
-	beginElement(entity);
+	beginNestingElement(entity);
 	entity.generateValues(*this);
-	endElement(entity);	
+	endNestingElement(entity);	
 }
 
 void Serializer::generateEnumEntry(EnumEntryEntity& entity)
 {
-	writeElement(entity);
+	beginElement(entity);
+	endElement(entity);
 }
 
 void Serializer::generateFunction(FunctionEntity& entity)
@@ -46,8 +57,9 @@ void Serializer::generateTypeReference(TypeReferenceEntity& entity)
 
 void Serializer::generateTypeAlias(TypeAliasEntity& entity)
 {
-	writeElement(entity);
+	beginElement(entity);
 	setReferredType(entity);
+	endElement(entity);
 }
 
 bool Serializer::generateBaseType(TypeEntity& entity, size_t index)
@@ -56,9 +68,9 @@ bool Serializer::generateBaseType(TypeEntity& entity, size_t index)
 
 void Serializer::generateNamedScope(ScopeEntity& entity)
 {
-	beginElement(entity);
+	beginNestingElement(entity);
 	entity.generateNested(*this);
-	endElement(entity);	
+	endNestingElement(entity);	
 }
 
 void Serializer::generateArgumentSeparator()
