@@ -82,8 +82,6 @@ public:
 	/// \return Depending on the implementation, true could be returned when an additional enclosure is generated.
 	virtual bool generateReturnStatement(TypeReferenceEntity& entity, FunctionEntity& target);
 
-	/// Generates a call to the bridge function corresponding to the given function.
-	///
 	/// \param entity The function to generate the bridge function call for.
 	virtual void generateBridgeCall(FunctionEntity& entity);
 
@@ -112,6 +110,8 @@ public:
 	virtual void initializeGenerationContext(Entity& entity);
 
 protected:
+	virtual void onGenerationFinished();
+
 	unsigned getClassDepth();
 
 private:

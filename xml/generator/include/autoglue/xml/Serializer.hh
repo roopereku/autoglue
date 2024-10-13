@@ -1,0 +1,30 @@
+#include <autoglue/Serializer.hh>
+#include <tinyxml2.h>
+
+#include <stack>
+
+namespace ag::xml
+{
+
+class Serializer : public ag::Serializer
+{
+public:
+	Serializer(Backend& backend);
+
+protected:
+	void beginElement(Entity& entity) override;
+	void endElement(Entity& entity) override;
+
+	void setReturnType(TypeReferenceEntity& entity) override;
+	void setReferredType(TypeEntity& entity) override;
+	void addBaseType(TypeEntity& entity) override;
+
+	void onGenerationFinished() override;
+
+private:
+	tinyxml2::XMLDocument document;
+	tinyxml2::XMLElement* current = nullptr;
+	std::stack <tinyxml2::XMLElement*> trail;
+};
+
+}

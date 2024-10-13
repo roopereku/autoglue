@@ -11,4 +11,6 @@ target_link_libraries(autogluetest
 	Autoglue::Java::Generator
 	Autoglue::CSharp::Generator
 	Autoglue::Clang::Backend
+	Autoglue::Xml::Serializer
+	Autoglue::Xml::Deserializer
 )

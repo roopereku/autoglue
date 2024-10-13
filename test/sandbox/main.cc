@@ -8,6 +8,8 @@
 
 #include <autoglue/csharp/BindingGenerator.hh>
 
+#include <autoglue/xml/Serializer.hh>
+
 #include <cassert>
 
 int main(int argc, char** argv)
@@ -37,4 +39,7 @@ int main(int argc, char** argv)
 	// Export bindings for C#.
 	ag::csharp::BindingGenerator csGen(clangBackend, "libcppglue.so");
 	csGen.generateBindings();
+
+	ag::xml::Serializer xmlSer(clangBackend);
+	xmlSer.serialize();
 }

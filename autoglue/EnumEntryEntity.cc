@@ -26,7 +26,7 @@ bool EnumEntryEntity::isLast()
 
 const char* EnumEntryEntity::getTypeString()
 {
-	return "Enum entry";
+	return "EnumEntry";
 }
 
 }

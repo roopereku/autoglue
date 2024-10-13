@@ -50,17 +50,15 @@ void ClassEntity::generateBaseTypes(BindingGenerator& generator)
 {
 	for(size_t i = 0; i < baseTypes.size(); i++)
 	{
-		// Only if the type definition still exists, generate it as a base type.
-		if(!baseTypes[i].expired())
-		{
-			auto base = baseTypes[i].lock();
-			bool addSeparator = generator.generateBaseType(*base, i);
+		assert(!baseTypes[i].expired());
 
-			// Add an argument separator for base types that aren't the last one.
-			if(addSeparator && i != baseTypes.size() - 1)
-			{
-				generator.generateArgumentSeparator();
-			}
+		auto base = baseTypes[i].lock();
+		bool addSeparator = generator.generateBaseType(*base, i);
+
+		// Add an argument separator for base types that aren't the last one.
+		if(addSeparator && i != baseTypes.size() - 1)
+		{
+			generator.generateArgumentSeparator();
 		}
 	}
 }

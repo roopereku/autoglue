@@ -49,7 +49,7 @@ void TypeAliasEntity::onGenerate(BindingGenerator& generator)
 
 const char* TypeAliasEntity::getTypeString()
 {
-	return "Type alias";
+	return "TypeAlias";
 }
 
 }
