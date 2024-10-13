@@ -18,7 +18,7 @@ class Subsystem:
         self.desc = desc
         self.path = f"{root_path}/{path}"
 
-    def build(self, generator=False, backend=False):
+    def build(self, generator=False, backend=False, debug=False):
         print(f"Building {self.desc}")
 
         self.build_path = f"{self.path}/build"
@@ -36,6 +36,9 @@ class Subsystem:
         if generator:
             cmake_opts.append(f"-DAUTOGLUE_BUILD_{self.name.upper()}_GENERATOR=ON")
 
+        if debug:
+            cmake_opts.append(f"-DCMAKE_BUILD_TYPE=Debug")
+
         configure_result = subprocess.run(
             cmake_opts,
             stdout=subprocess.PIPE,
@@ -43,21 +46,16 @@ class Subsystem:
             text=True
         )
 
-        if configure_result.returncode == 1:
+        if configure_result.returncode != 0:
             print(f"Configuring {self.desc} failed:")
             print(configure_result.stderr)
-            exit(1)
+            return False
 
-        build_result = subprocess.run(
-            [cmake_path, "--build", self.build_path],
-            stderr=subprocess.PIPE,
-            text=True
-        )
+        build_result = subprocess.run([cmake_path, "--build", self.build_path])
 
-        if build_result.returncode == 1:
-            print(f"Building {self.desc} failed:")
-            print(build_result.stderr)
-            exit(1)
+        if build_result.returncode != 0:
+            print(f"Building {self.desc} failed")
+            return False
 
         install_result = subprocess.run(
             [cmake_path, "--install", self.build_path, "--prefix", f"{root_path}/prefix"],
@@ -66,13 +64,16 @@ class Subsystem:
             text=True
         )
 
-        if install_result.returncode == 1:
+        if install_result.returncode != 0:
             print(f"Installing prefix for {self.desc} failed:")
             print(install_result.stderr)
-            exit(1)
+            return False
+
+        return True
 
 core = Subsystem("Autoglue Core", "autoglue")
-core.build([])
+if not core.build([]):
+    exit(1)
 
 optional_subsystems = [
     Subsystem("Autoglue Clang", "clang"),
@@ -85,6 +86,8 @@ def main():
     arg_parser = ArgumentParser(
         prog="Autoglue building utility"
     )
+
+    arg_parser.add_argument(f"--debug", action="store_true")
 
     for entry in optional_subsystems:
         arg_parser.add_argument(f"--{entry.name}", action="store_true")
@@ -100,7 +103,8 @@ def main():
         if not generator and not backend:
             continue
 
-        entry.build(generator=generator, backend=backend)
+        if not entry.build(generator=generator, backend=backend, debug=args.debug):
+            exit(1)
 
 if __name__== "__main__":
     main()

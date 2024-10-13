@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(AutoglueCSharp VERSION 1.0)
 
-set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/../prefix")
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Common.cmake")
 find_package(Autoglue REQUIRED)
-include(GNUInstallDirs)
 
 if(DEFINED AUTOGLUE_BUILD_CSHARP_GENERATOR AND AUTOGLUE_BUILD_CSHARP_GENERATOR)
 	add_subdirectory(generator)
@@ -15,7 +14,7 @@ if(DEFINED AUTOGLUE_INSTALL)
 		EXPORT AutoglueCSharpTargets
 		FILE AutoglueCSharpTargets.cmake
 		NAMESPACE Autoglue::CSharp::
-		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Autoglue
+		DESTINATION ${AUTOGLUE_DESTINATION}
 	)
 
 	set(CPACK_PACKAGE_NAME "autoglue-csharp")

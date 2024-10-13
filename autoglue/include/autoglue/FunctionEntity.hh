@@ -230,16 +230,16 @@ private:
 	/// Makes sure that the return type is used.
 	void onFirstUse() override;
 
-	bool overridable = false;
-	bool overrides = false;
-	bool interface = false;
-
 	OverloadedOperator overloadedOperator = OverloadedOperator::None;
 	bool compoundOperator = false;
 
 	std::shared_ptr <TypeReferenceEntity> returnType;
 	std::weak_ptr <FunctionEntity> overridden;
 	bool concreteOverride = false;
+
+	bool overridable = false;
+	bool overrides = false;
+	bool interface = false;
 
 	size_t overloadIndex = 0;
 	bool protectedFunction = false;

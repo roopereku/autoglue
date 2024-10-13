@@ -7,16 +7,21 @@ from build import *
 
 # Build all subsystems.
 for entry in optional_subsystems:
-    entry.build(generator=True, backend=True)
+    if not entry.build(generator=True, backend=True, debug=True):
+        print("Build failed")
+        exit(1)
 
-# Build the sandbox.
+# Configure the sandbox.
 subprocess.run([
     cmake_path,
     "-S", ".", "-B", "build",
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 ])
 
-subprocess.run([cmake_path, "--build", "build"])
+# Build the sandbox.
+build_result = subprocess.run([cmake_path, "--build", "build"])
+if build_result.returncode != 0:
+    exit(1)
 
 # Generate Autoglue bindings.
 all_subsystems = [core] + optional_subsystems

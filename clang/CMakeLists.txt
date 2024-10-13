@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(AutoglueClang VERSION 1.0)
 
-set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/../prefix")
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Common.cmake")
 find_package(Autoglue REQUIRED)
-include(GNUInstallDirs)
 
 if(DEFINED AUTOGLUE_BUILD_CLANG_BACKEND AND AUTOGLUE_BUILD_CLANG_BACKEND)
 	if(CMAKE_EXPORT_COMPILE_COMMANDS)
@@ -16,6 +15,7 @@ if(DEFINED AUTOGLUE_BUILD_CLANG_BACKEND AND AUTOGLUE_BUILD_CLANG_BACKEND)
 	find_package(Clang REQUIRED CONFIG)
 
 	add_library(Backend SHARED ${Sources})
+	ag_apply_target_options(Backend)
 	target_link_libraries(Backend Autoglue::Autoglue LLVM clang-cpp)
 
 	target_include_directories(
@@ -43,7 +43,7 @@ if(DEFINED AUTOGLUE_BUILD_CLANG_BACKEND AND AUTOGLUE_BUILD_CLANG_BACKEND)
 		EXPORT AutoglueClangTargets
 		FILE AutoglueClangTargets.cmake
 		NAMESPACE Autoglue::Clang::
-		DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Autoglue
+		DESTINATION ${AUTOGLUE_DESTINATION}
 	)
 
 	set(CPACK_PACKAGE_NAME "autoglue-clang")

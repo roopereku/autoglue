@@ -8,7 +8,7 @@ namespace ag
 {
 
 Entity::Entity(Type type, std::string_view name)
-	: type(type), name(name)
+	: name(name), type(type)
 {
 }
 
