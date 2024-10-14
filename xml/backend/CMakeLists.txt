@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 
-file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Common.cmake")
 
+file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 add_library(Deserializer SHARED ${Sources})
+ag_apply_target_options(Deserializer)
 target_link_libraries(Deserializer Autoglue::Autoglue)
 
 target_include_directories(

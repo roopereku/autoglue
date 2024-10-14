@@ -970,6 +970,11 @@ Backend::Backend(std::string_view compilationDatabasePath)
 	//}
 }
 
+Backend::Backend(Deserializer&& deserializer)
+	: ag::Backend(std::move(deserializer))
+{
+}
+
 std::string Backend::getInclusion(const std::string& path)
 {
 	for(auto& includePath : includePaths)
@@ -994,7 +999,7 @@ std::string Backend::getInclusion(const std::string& path)
 	return std::string();
 }
 
-bool Backend::generateHierarchy()
+bool Backend::onGenerateHierarchy()
 {
 	if(!database)
 	{
@@ -1023,7 +1028,7 @@ bool Backend::generateHierarchy()
 	return result;
 }
 
-void Backend::generateGlue()
+void Backend::onGenerateGlue()
 {
 	GlueGenerator glueGen(*this);
 	glueGen.generateBindings(false);

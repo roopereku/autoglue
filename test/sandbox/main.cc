@@ -9,13 +9,14 @@
 #include <autoglue/csharp/BindingGenerator.hh>
 
 #include <autoglue/xml/Serializer.hh>
+#include <autoglue/xml/Deserializer.hh>
 
 #include <cassert>
+#include <filesystem>
 
 int main(int argc, char** argv)
 {
 	assert(argc > 1);
-
 	ag::clang::Backend clangBackend(argv[1]);
 
 	if(!clangBackend.generateHierarchy())

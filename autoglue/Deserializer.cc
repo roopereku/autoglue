@@ -5,7 +5,6 @@ namespace ag
 {
 
 Deserializer::Deserializer()
-	: Backend(std::make_shared <ScopeEntity> ())
 {
 }
 

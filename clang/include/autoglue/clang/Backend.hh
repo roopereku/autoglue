@@ -15,13 +15,13 @@ class Backend : public ag::Backend
 {
 public:
 	Backend(std::string_view compilationDatabasePath);
-
-	bool generateHierarchy() override;
+	Backend(std::unique_ptr <Deserializer>&& deserializer);
 
 	std::string getInclusion(const std::string& path);
 
 protected:
-	void generateGlue() override;
+	bool onGenerateHierarchy() override;
+	void onGenerateGlue() override;
 
 private:
 	void disableUntrivialNew(ClassEntity& entity);
