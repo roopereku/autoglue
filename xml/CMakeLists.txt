@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(AutoglueXml VERSION 1.0)
 
-set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/../prefix")
-include(GNUInstallDirs)
-
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Common.cmake")
 find_package(Autoglue REQUIRED)
 find_package(tinyxml2 REQUIRED)
 

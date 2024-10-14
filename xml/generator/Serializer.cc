@@ -28,7 +28,7 @@ void Serializer::beginElement(Entity& entity)
 	trail.push(current);
 }
 
-void Serializer::endElement(Entity& entity)
+void Serializer::endElement(Entity&)
 {
 	trail.pop();
 }

@@ -30,11 +30,12 @@ bin_path = os.path.abspath("build/autogluetest")
 for entry in all_subsystems:
     output_path = f"output/{entry.name}/"
     compile_commands_path = f"{entry.build_path}/compile_commands.json"
+    xml_path = os.path.abspath(f"{output_path}/hierarchy.xml")
 
     print(f"Generate bindings for {entry.desc} to {output_path}")
     os.makedirs(output_path, exist_ok=True)
 
     cwd = os.getcwd()
     os.chdir(output_path)
-    subprocess.run([bin_path, compile_commands_path])
+    subprocess.run([bin_path, compile_commands_path, xml_path])
     os.chdir(cwd)

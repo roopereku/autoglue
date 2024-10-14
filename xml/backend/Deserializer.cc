@@ -3,7 +3,7 @@
 namespace ag::xml
 {
 
-Deserializer::Deserializer()
+Deserializer::Deserializer(std::string_view)
 {
 }
 

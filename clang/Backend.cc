@@ -970,7 +970,7 @@ Backend::Backend(std::string_view compilationDatabasePath)
 	//}
 }
 
-Backend::Backend(Deserializer&& deserializer)
+Backend::Backend(std::unique_ptr <Deserializer>&& deserializer)
 	: ag::Backend(std::move(deserializer))
 {
 }

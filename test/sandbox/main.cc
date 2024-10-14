@@ -14,11 +14,26 @@
 #include <cassert>
 #include <filesystem>
 
+ag::clang::Backend createBackend(std::string_view compileCommands, std::string_view xmlFile)
+{
+	if(std::filesystem::exists(xmlFile))
+	{
+		printf("Constructing a backend from '%s'\n", std::string(xmlFile).c_str());
+		auto deserializer = std::make_unique <ag::xml::Deserializer> (xmlFile);
+		ag::clang::Backend clangBackend(std::move(deserializer));
+
+		return clangBackend;
+	}
+
+	ag::clang::Backend clangBackend(compileCommands);
+	return clangBackend;
+}
+
 int main(int argc, char** argv)
 {
-	assert(argc > 1);
-	ag::clang::Backend clangBackend(argv[1]);
+	assert(argc > 2);
 
+	auto clangBackend = createBackend(argv[1], argv[2]);
 	if(!clangBackend.generateHierarchy())
 	{
 		return 1;

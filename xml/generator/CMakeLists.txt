@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
 
-include("${CMAKE_CURRENT_LIST_DIR}/../cmake/Common.cmake")
-
 file(GLOB Sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 add_library(Serializer SHARED ${Sources})
 ag_apply_target_options(Serializer)
