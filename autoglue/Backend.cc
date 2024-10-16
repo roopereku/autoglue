@@ -30,9 +30,13 @@ bool Backend::generateHierarchy()
 {
 	if(deserializer)
 	{
-		// TODO: Deserialize the hierarchy.
-		assert(false && "TODO: Deserialize the hierarchy");
-		return false;
+		// Assuming that no root exists, deserialize a hierarchy.
+		assert(!root);
+		root = deserializer->createHierarchy();
+
+		// Destroy the deserializer and return true if a hierarchy now exists.
+		deserializer = nullptr;
+		return static_cast <bool> (root);
 	}
 
 	else

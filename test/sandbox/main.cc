@@ -36,6 +36,7 @@ int main(int argc, char** argv)
 	auto clangBackend = createBackend(argv[1], argv[2]);
 	if(!clangBackend.generateHierarchy())
 	{
+		printf("Hierarchy generation failed\n");
 		return 1;
 	}
 
