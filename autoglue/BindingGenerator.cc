@@ -1,4 +1,5 @@
 #include <autoglue/BindingGenerator.hh>
+#include <autoglue/FunctionGroupEntity.hh>
 #include <autoglue/Backend.hh>
 
 namespace ag
@@ -47,6 +48,11 @@ bool BindingGenerator::generateReturnStatement(TypeReferenceEntity&, FunctionEnt
 void BindingGenerator::generateBridgeCall(FunctionEntity&) {}
 void BindingGenerator::generateInterceptionFunction(FunctionEntity&, ClassEntity&) {}
 void BindingGenerator::generateInterceptionContext(ClassEntity&) {}
+
+void BindingGenerator::generateFunctionGroup(FunctionGroupEntity& entity)
+{
+	entity.generateOverloads(*this);
+}
 
 std::string_view BindingGenerator::getObjectHandleName()
 {

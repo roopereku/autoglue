@@ -31,6 +31,7 @@ protected:
 	void generateClass(ClassEntity& entity) final override;
 	void generateEnum(EnumEntity& entity) final override;
 	void generateEnumEntry(EnumEntryEntity& entity) final override;
+	void generateFunctionGroup(FunctionGroupEntity& entity) final override;
 	void generateFunction(FunctionEntity& entity) final override;
 	void generateTypeReference(TypeReferenceEntity& entity) final override;
 	void generateTypeAlias(TypeAliasEntity& entity) final override;

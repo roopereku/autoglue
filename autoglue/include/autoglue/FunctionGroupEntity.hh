@@ -18,6 +18,11 @@ public:
 	/// \return True if the overload was added succesfully.
 	bool addOverload(std::shared_ptr <FunctionEntity>&& overload);
 
+	/// Generates the overloads of this function groupo.
+	///
+	/// \param generator The BindingGenerator to call functions from.
+	void generateOverloads(BindingGenerator& generator);
+
 	const char* getTypeString() override;
 
 	/// Find a function from this function group that has matching

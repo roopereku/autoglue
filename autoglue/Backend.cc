@@ -13,7 +13,6 @@ Backend::Backend(std::shared_ptr <Entity>&& root)
 Backend::Backend(std::unique_ptr <Deserializer>&& deserializer)
 	: deserializer(std::move(deserializer))
 {
-	// TODO: Initialize root and deserialize.
 }
 
 std::shared_ptr <Entity> Backend::getRootPtr()

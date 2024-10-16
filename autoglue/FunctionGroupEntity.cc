@@ -1,5 +1,6 @@
 #include <autoglue/FunctionGroupEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
+#include <autoglue/BindingGenerator.hh>
 
 #include <cassert>
 
@@ -106,6 +107,11 @@ bool FunctionGroupEntity::hasName(std::string_view str)
 
 void FunctionGroupEntity::onGenerate(BindingGenerator& generator)
 {
+	generator.generateFunctionGroup(*this);
+}
+
+void FunctionGroupEntity::generateOverloads(BindingGenerator& generator)
+{
 	for(auto child : children)
 	{
 		child->generate(generator);
@@ -122,7 +128,7 @@ void FunctionGroupEntity::onFirstUse()
 
 const char* FunctionGroupEntity::getTypeString()
 {
-	return "Function group";
+	return "FunctionGroup";
 }
 
 }

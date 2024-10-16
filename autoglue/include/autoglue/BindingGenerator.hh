@@ -13,6 +13,7 @@ class TypeEntity;
 class EnumEntity;
 class EnumEntryEntity;
 class FunctionEntity;
+class FunctionGroupEntity;
 class ScopeEntity;
 class TypeReferenceEntity;
 class TypeAliasEntity;
@@ -44,6 +45,11 @@ public:
 	///
 	/// \param entity The EnumEntryEntity to generate.
 	virtual void generateEnumEntry(EnumEntryEntity& entity);
+
+	/// Generates a function group entity.
+	///
+	/// \param entity The FunctionGroupEntity to generate.
+	virtual void generateFunctionGroup(FunctionGroupEntity& entity);
 
 	/// Generates a function entity.
 	///

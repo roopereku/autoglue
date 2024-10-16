@@ -4,6 +4,7 @@
 #include <autoglue/EnumEntity.hh>
 #include <autoglue/TypeAliasEntity.hh>
 #include <autoglue/TypeReferenceEntity.hh>
+#include <autoglue/FunctionGroupEntity.hh>
 
 namespace ag
 {
@@ -47,6 +48,13 @@ void Serializer::generateEnumEntry(EnumEntryEntity& entity)
 {
 	beginElement(entity);
 	endElement(entity);
+}
+
+void Serializer::generateFunctionGroup(FunctionGroupEntity& entity)
+{
+	beginNestingElement(entity);
+	entity.generateOverloads(*this);
+	endNestingElement(entity);
 }
 
 void Serializer::generateFunction(FunctionEntity& entity)
