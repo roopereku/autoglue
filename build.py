@@ -16,12 +16,22 @@ class Subsystem:
     def __init__(self, desc, path):
         self.name = pathlib.PurePath(path).name
         self.desc = desc
-        self.path = f"{root_path}/{path}"
+        self.path = os.path.join(root_path, path)
+        self.build_path = os.path.join(self.path, "build")
+
+    def run_tests(self):
+        ctest_path = shutil.which("ctest")
+        if len(ctest_path) == 0:
+            print("Error: Failed to find CTest")
+            exit(1)
+
+        print(f"Running tests for {self.desc}")
+
+        ctest_opts = [ ctest_path, "--test-dir", self.build_path, "--output-on-failure" ]
+        subprocess.run(ctest_opts)
 
     def build(self, generator=False, backend=False, debug=False):
         print(f"Building {self.desc}")
-
-        self.build_path = f"{self.path}/build"
         pathlib.Path(self.build_path).mkdir(exist_ok=True)
 
         cmake_opts = [
@@ -71,14 +81,14 @@ class Subsystem:
 
         return True
 
-core = Subsystem("Autoglue Core", "autoglue")
+core = Subsystem("Autoglue Core", "core")
 if not core.build([]):
     exit(1)
 
 optional_subsystems = [
-    Subsystem("Autoglue Clang", "clang"),
-    Subsystem("Autoglue C#", "csharp"),
-    Subsystem("Autoglue Java", "java"),
+        Subsystem("Autoglue Clang", "clang"),
+        #Subsystem("Autoglue C#", "csharp"),
+        #Subsystem("Autoglue Java", "java"),
 ]
 
 def main():
@@ -87,6 +97,7 @@ def main():
     )
 
     arg_parser.add_argument(f"--debug", action="store_true")
+    arg_parser.add_argument(f"--test", action="store_true")
 
     for entry in optional_subsystems:
         arg_parser.add_argument(f"--{entry.name}", action="store_true")
@@ -94,6 +105,9 @@ def main():
         arg_parser.add_argument(f"--{entry.name}-backend", action="store_true")
 
     args = vars(arg_parser.parse_args())
+
+    if args["test"]:
+        core.run_tests()
 
     for entry in optional_subsystems:
         generator = args[entry.name] or args[f"{entry.name}_generator"]
@@ -104,6 +118,9 @@ def main():
 
         if not entry.build(generator=generator, backend=backend, debug=args["debug"]):
             exit(1)
+
+        if args["test"]:
+            entry.run_tests()
 
 if __name__== "__main__":
     main()

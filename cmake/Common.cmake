@@ -7,12 +7,11 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/../prefix")
 
 # Set a C++ standard.
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-function(ag_apply_target_options target_name)
-	# Enable most warnings and set a low tolerance for them.
-	if(MSVC)
-	  target_compile_options(${target_name} PRIVATE /W4 /WX)
-	else()
-	  target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-	endif()
-endfunction()
+# Cannot be called inside a function so let's do this here for CTest to work.
+enable_testing()
+
+include("${CMAKE_CURRENT_LIST_DIR}/CreateTarget.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/CreatePackage.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ApplyTests.cmake")

@@ -14,8 +14,7 @@ Without any additional arguments only the Autoglue core will be built. Different
 --subsystem-backend      ->    Build backend
 --subsystem-generator    ->    Build generator
 ```
-Replace `subsystem` with the subsystem of your choice, such as `csharp` or `clang`.
-
+Replace `subsystem` with the subsystem of your choice.
 To view all of the available options, execute the following:
 ```
 python3 build.py -h
