@@ -2,12 +2,13 @@
 #define AUTOGLUE_TREE_HH
 
 #include <autoglue/AbstractNode.hh>
+#include <autoglue/TypeDefinition.hh>
 #include <autoglue/Scope.hh>
 
 namespace ag
 {
 
-/// Tree acts is the base class for classes implementing
+/// Tree is the base class for classes implementing
 /// generation of a simplified hierarchy for source languages.
 class Tree
 {
@@ -29,10 +30,14 @@ protected:
 	///
 	/// \param Implementation defined logic for retrieving a hierarchy.
 	/// \return The first node in the given ancestor hierarchy.
-	std::shared_ptr <Node> buildHierarchy(AbstractNode& node);
+	std::shared_ptr <Node> buildHierarchy(const AbstractNode& node);
 
 private:
 	std::shared_ptr <Scope> mGlobal;
+
+	/// Used types that are not declarations.
+	/// For example, primitives, callables.
+	std::vector <std::shared_ptr <TypeDefinition>> mNonDeclarations;
 };
 
 

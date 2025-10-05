@@ -3,28 +3,27 @@
 
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
+#include <autoglue/SignatureHolder.hh>
 
 namespace ag
 {
 
-class Function : public Node
+class Function : public Node, public SignatureHolder
 {
 public:
-	// TODO:
-	// Function is added -> Function is given parameters -> Function is resolved through name and signature.
-	// Parameters can be matched through some virtual name getter where the given parameters are tokenized
-	// When the parameters are added first, the final name will be available when the next function will be added.
-	// NOTE: The return type might need to be included in the detailed name in functions without parameters
-	//
-	// foo(int)
-	// foo(ref int)
-	// foo(ref int, string)
+	static constexpr auto NodeType = Node::Type::Function;
 
-	Function(std::wstring&& name) :
-		Node(std::move(name), Type::Function, parameters),
-		parameters(NodeStorage::withTypes({ Type::Parameter }))
-	{
-	}
+	Function(std::wstring&& name);
+
+	/// Checks if the given name matches the function name and parameters.
+	///
+	/// \param name The name to match against. Expected format is name(mod type1, mod type2)
+	/// \return True if the name and parameters match.
+	bool matchName(std::wstring_view name) const override;
+
+	size_t getParameterCount() const override;
+
+	std::optional <TypeUsage> getParameterType(size_t index) const override;
 
 	NodeStorage parameters;
 };

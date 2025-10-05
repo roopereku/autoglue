@@ -19,7 +19,8 @@ public:
 		Enum,
 		EnumValue,
 		Function,
-		Parameter
+		Parameter,
+		//Callable TODO: Is callable a node?
 	};
 
 	static constexpr size_t TypeCount = 6;

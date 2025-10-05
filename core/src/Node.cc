@@ -28,7 +28,7 @@ std::shared_ptr <Node> Node::find(std::wstring_view location, wchar_t delimiter)
 		}
 
 		delimiterAt++;
-		const auto remaining = location.substr(delimiterAt, location.size() - delimiterAt);
+		const auto remaining = location.substr(delimiterAt);
 
 		return node->find(remaining);
 	}

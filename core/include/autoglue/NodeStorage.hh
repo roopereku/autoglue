@@ -2,6 +2,7 @@
 #define AUTOGLUE_NODE_STORAGE_HH
 
 #include <autoglue/Node.hh>
+#include <autoglue/AbstractNode.hh>
 
 #include <vector>
 #include <bitset>
@@ -55,6 +56,11 @@ public:
 	/// \return True if the given type can be stored.
 	bool canStore(Node::Type type) const;
 
+	/// Checks whether this node storage is empty.
+	///
+	/// \return True if this node storage is empty.
+	bool isEmpty() const;
+
 	/// Gets the default node storage that nothing can be added into.
 	///
 	/// \return NodeStorage that nothing can be added into.
@@ -62,8 +68,8 @@ public:
 
 	auto begin() { return mNodes.begin(); }
 	auto end() { return mNodes.end(); }
-	auto cbegin() const { return mNodes.cbegin(); }
-	auto cend() const { return mNodes.cend(); }
+	auto begin() const { return mNodes.cbegin(); }
+	auto end() const { return mNodes.cend(); }
 
 private:
 	NodeStorage(std::bitset <Node::TypeCount>&& allowed)

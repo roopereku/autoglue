@@ -87,8 +87,8 @@ std::shared_ptr <Node> NodeStorage::ensure(Node::Type type, std::wstring_view na
 		case Node::Type::Scope: node = std::make_shared <Scope> (std::wstring(name)); break;
 		case Node::Type::Enum: node = std::make_shared <Enum> (std::wstring(name)); break;
 		case Node::Type::EnumValue: node = std::make_shared <EnumValue> (std::wstring(name)); break;
-		case Node::Type::Function: node = std::make_shared <Function> (std::wstring(name)); break;
 		case Node::Type::Parameter: node = std::make_shared <Parameter> (std::wstring(name)); break;
+		case Node::Type::Function: node = std::make_shared <Function> (std::wstring(name)); break;
 
 		default:
 		{
@@ -103,6 +103,11 @@ std::shared_ptr <Node> NodeStorage::ensure(Node::Type type, std::wstring_view na
 bool NodeStorage::canStore(Node::Type type) const
 {
 	return mAllowedTypes.test(static_cast <size_t> (type));
+}
+
+bool NodeStorage::isEmpty() const
+{
+	return mNodes.empty();
 }
 
 NodeStorage& NodeStorage::getDefault()

@@ -2,8 +2,7 @@
 #define AUTOGLUE_ABSTRACT_NODE_HH
 
 #include <autoglue/Node.hh>
-
-#include <optional>
+#include <autoglue/TypeUsage.hh>
 
 namespace ag
 {
@@ -16,7 +15,7 @@ public:
 	virtual const std::wstring& getName() const = 0;
 	virtual Node::Type getType() const = 0;
 
-	virtual AbstractNode& getParent() const = 0;
+	virtual const AbstractNode& getParent() const = 0;
 	virtual bool hasParent() const = 0;
 };
 

@@ -3,18 +3,20 @@
 
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
+#include <autoglue/TypeDefinition.hh>
 
 namespace ag
 {
 
-class Enum: public Node
+class Enum: public Node, public TypeDefinition
 {
 public:
-	constexpr static Type NodeType = Type::Enum;
+	constexpr static auto NodeType = Node::Type::Enum;
 
 	Enum(std::wstring&& name) :
 		Node(std::move(name), NodeType, values),
-		values(NodeStorage::withTypes({ Type::EnumValue }))
+		TypeDefinition(TypeDefinition::Type::Enum),
+		values(NodeStorage::withTypes({ Node::Type::EnumValue }))
 	{
 	}
 
