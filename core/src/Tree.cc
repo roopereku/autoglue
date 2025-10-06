@@ -29,7 +29,11 @@ std::shared_ptr <Node> Tree::buildHierarchy(const AbstractNode& node)
 {
 	if (auto result = buildHierarchyRecursive(node))
 	{
-		result->setCompleted();
+		if (auto function = result->as <Function> ())
+		{
+			function->enforceParameterMatching();
+		}
+
 		return result;
 	}
 
