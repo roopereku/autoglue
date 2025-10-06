@@ -35,6 +35,8 @@ protected:
 	std::shared_ptr <Node> buildHierarchy(const AbstractNode& node);
 
 private:
+	std::shared_ptr <Node> buildHierarchyRecursive(const AbstractNode& node);
+
 	TypeDefinition& ensureTypeDefinitionExists(const AbstractTypeUsage& usage);
 	std::shared_ptr <TypeDefinition> findOrAddTypeDefinition(TypeDefinition& definition);
 

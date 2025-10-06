@@ -17,7 +17,7 @@ public:
 
 	Scope(std::wstring&& name) :
 		Node(std::move(name), Node::Type::Scope, children),
-		children(NodeStorage::withAllTypesExcept({ Type::EnumValue }))
+		children(NodeStorage::withAllTypesExcept({ Type::EnumValue, Type::Parameter, Type::Field }))
 	{
 	}
 

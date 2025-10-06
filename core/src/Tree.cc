@@ -27,7 +27,23 @@ std::shared_ptr <Scope> Tree::build()
 
 std::shared_ptr <Node> Tree::buildHierarchy(const AbstractNode& node)
 {
-	auto parent = node.hasParent() ? buildHierarchy(node.getParent()) : mGlobal;
+	if (auto result = buildHierarchyRecursive(node))
+	{
+		result->setCompleted();
+		return result;
+	}
+
+	return nullptr;
+}
+
+std::shared_ptr <Node> Tree::buildHierarchyRecursive(const AbstractNode& node)
+{
+	if (node.isGlobalScope())
+	{
+		return mGlobal;
+	}
+
+	auto parent = buildHierarchyRecursive(node.getParent());
 	assert(parent);
 
 	assert(parent->getStorage().canStore(node.getType()));

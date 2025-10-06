@@ -19,6 +19,7 @@ public:
 	Function(std::wstring&& name);
 
 	/// Checks if the given name matches the function name and parameters.
+	/// NOTE: Only the function name is matched until the function is completed.
 	///
 	/// \param name The name to match against. Expected format is name(mod type1, mod type2)
 	/// \return True if the name and parameters match.

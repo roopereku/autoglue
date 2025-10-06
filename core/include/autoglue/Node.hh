@@ -23,7 +23,7 @@ public:
 		Field
 	};
 
-	static constexpr size_t TypeCount = 6;
+	static constexpr size_t TypeCount = 7;
 
 	/// Gets the name of this node.
 	///
@@ -71,6 +71,20 @@ public:
 		return nullptr;
 	}
 
+	/// Does this node exists purely because something else depends on it.
+	///
+	/// \return True if this node is a dependency.
+	bool isDependency() const
+	{
+		return !mCompleted;
+	}
+
+	/// Sets this node as completed.
+	void setCompleted()
+	{
+		mCompleted = true;
+	}
+
 	NodeStorage& getStorage();
 
 protected:
@@ -81,6 +95,7 @@ private:
 	std::wstring mName;
 	Type mType;
 
+	bool mCompleted = false;
 	NodeStorage& mStorage;
 };
 

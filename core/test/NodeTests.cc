@@ -4,6 +4,7 @@
 #include <autoglue/Enum.hh>
 #include <autoglue/EnumValue.hh>
 #include <autoglue/Parameter.hh>
+#include <autoglue/Field.hh>
 
 #include <gtest/gtest.h>
 
@@ -12,8 +13,10 @@ using namespace ag;
 TEST(NodeTests, VariableSubTypes)
 {
 	auto parameterNode = std::make_shared <Parameter> (L"");
-
 	ASSERT_TRUE(parameterNode->as <Variable> ());
+
+	auto fieldNode = std::make_shared <Field> (L"");
+	ASSERT_TRUE(fieldNode->as <Variable> ());
 }
 
 TEST(NodeTests, ScopeChildTypes)
@@ -24,7 +27,9 @@ TEST(NodeTests, ScopeChildTypes)
 		const auto nodeType = static_cast <Node::Type> (i);
 		const auto result = node->children.ensure(nodeType, L"child" + std::to_wstring(i));
 
-		if (nodeType == Node::Type::EnumValue)
+		if (nodeType == Node::Type::EnumValue ||
+			nodeType == Node::Type::Parameter ||
+			nodeType == Node::Type::Field )
 		{
 			ASSERT_FALSE(result);
 		}
@@ -45,7 +50,9 @@ TEST(NodeTests, ClassChildTypes)
 		const auto result = node->members.ensure(nodeType, L"child" + std::to_wstring(i));
 
 		if (nodeType == Node::Type::EnumValue ||
-			nodeType == Node::Type::Scope)
+			nodeType == Node::Type::Scope ||
+			nodeType == Node::Type::Parameter)
+
 		{
 			ASSERT_FALSE(result);
 		}

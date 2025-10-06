@@ -13,6 +13,14 @@ Function::Function(std::wstring&& name) :
 
 bool Function::matchName(std::wstring_view name) const
 {
+	// Don't account for parameters when the function is just a dependency.
+	// Generally parameters are added before completing a function, so in case they
+	// are added with buildHierarchy, make sure to match the function by name.
+	if (isDependency())
+	{
+		return Node::matchName(name);
+	}
+
 	// Check whether the portion that should represent the name matches the function name.
 	if (!Node::matchName(name.substr(0, getName().size())))
 	{
