@@ -1,6 +1,8 @@
 #include <autoglue/Tree.hh>
 #include <autoglue/Function.hh>
 #include <autoglue/Parameter.hh>
+#include <autoglue/Class.hh>
+#include <autoglue/Enum.hh>
 
 #include <cassert>
 
@@ -33,22 +35,79 @@ std::shared_ptr <Node> Tree::buildHierarchy(const AbstractNode& node)
 
 	if (ensured)
 	{
-		if (ensured->getType() == Node::Type::Function)
+		if (auto function = ensured->as <Function> ())
 		{
-			auto function = ensured->as <Function> ();
 			if (!function->getReturnType())
 			{
-				//function->initializeReturnType(
+				auto& returnType = node.getFunctionReturnType();
+				auto& definition = ensureTypeDefinitionExists(returnType);
+				function->initializeReturnType(TypeUsage(definition, returnType));
 			}
 		}
 
-		else if (ensured->getType() == Node::Type::Parameter)
+		if (auto variable = ensured->as <Variable> ())
 		{
-			auto parameter = ensured->as <Parameter> ();
+			if (!variable->getInitializerType())
+			{
+				auto& initializerType = node.getVariableInitializerType();
+				auto& definition = ensureTypeDefinitionExists(initializerType);
+				variable->initializeUsedType(TypeUsage(definition, initializerType));
+			}
 		}
 	}
 
 	return ensured;
+}
+
+TypeDefinition& Tree::ensureTypeDefinitionExists(const AbstractTypeUsage& usage)
+{
+	switch (usage.getTypeOfUsedDefinition())
+	{
+		case TypeDefinition::Type::Class:
+		{
+			auto node = buildHierarchy(usage.getDeclarationOfUsed())->as <Class> ();
+			assert(node);
+			return *node;
+		}
+
+		case TypeDefinition::Type::Enum:
+		{
+			auto node = buildHierarchy(usage.getDeclarationOfUsed())->as <Enum> ();
+			assert(node);
+			return *node;
+		}
+
+		case TypeDefinition::Type::Integer:
+		{
+			auto definition = usage.getIntegerDefinition();
+			return *findOrAddTypeDefinition(definition);
+		}
+
+		case TypeDefinition::Type::Character:
+		case TypeDefinition::Type::String:
+		case TypeDefinition::Type::Float:
+		case TypeDefinition::Type::Callable:
+		{
+			TypeDefinition definition(usage.getTypeOfUsedDefinition());
+			return *findOrAddTypeDefinition(definition);
+		}
+	}
+
+	assert(false);
+}
+
+std::shared_ptr <TypeDefinition> Tree::findOrAddTypeDefinition(TypeDefinition& definition)
+{
+	auto& existing = mNonDeclarations[definition.getType()];
+	for (auto& current : existing)
+	{
+		if (current->matches(definition))
+		{
+			return current;
+		}
+	}
+	
+	return existing.emplace_back(definition.copyToHeap());
 }
 
 }

@@ -4,6 +4,7 @@
 #include <autoglue/Scope.hh>
 #include <autoglue/Function.hh>
 #include <autoglue/Parameter.hh>
+#include <autoglue/Field.hh>
 #include <autoglue/EnumValue.hh>
 
 #include <cassert>
@@ -88,13 +89,8 @@ std::shared_ptr <Node> NodeStorage::ensure(Node::Type type, std::wstring_view na
 		case Node::Type::Enum: node = std::make_shared <Enum> (std::wstring(name)); break;
 		case Node::Type::EnumValue: node = std::make_shared <EnumValue> (std::wstring(name)); break;
 		case Node::Type::Parameter: node = std::make_shared <Parameter> (std::wstring(name)); break;
+		case Node::Type::Field: node = std::make_shared <Field> (std::wstring(name)); break;
 		case Node::Type::Function: node = std::make_shared <Function> (std::wstring(name)); break;
-
-		default:
-		{
-			assert(false);
-			return nullptr;
-		}
 	}
 
 	return mNodes.emplace_back(std::move(node));

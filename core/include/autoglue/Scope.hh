@@ -10,10 +10,13 @@ namespace ag
 class Scope: public Node
 {
 public:
-	constexpr static Type NodeType = Type::Scope;
+	constexpr static bool matchType(Node::Type type)
+	{
+		return type == Node::Type::Scope;
+	}
 
 	Scope(std::wstring&& name) :
-		Node(std::move(name), NodeType, children),
+		Node(std::move(name), Node::Type::Scope, children),
 		children(NodeStorage::withAllTypesExcept({ Type::EnumValue }))
 	{
 	}

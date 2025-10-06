@@ -3,21 +3,58 @@
 
 #include <autoglue/TypeDefinition.hh>
 
-#include <memory>
-
 namespace ag
 {
 
 class Class;
 class Enum;
 
-class TypeUsage
+class TypeModifierHolder
 {
 public:
-	TypeUsage();
+	bool isConst() const
+	{
+		return mConst;
+	}
 
-	TypeUsage(std::shared_ptr <Class> node);
-	TypeUsage(std::shared_ptr <Enum> node);
+	bool isReference() const
+	{
+		return mReference;
+	}
+
+	void assignFrom(TypeModifierHolder& holder)
+	{
+		mConst = holder.mConst;
+		mReference = holder.mReference;
+	}
+
+protected:
+	TypeModifierHolder()
+		: mConst(false), mReference(false)
+	{
+	}
+
+	TypeModifierHolder(const TypeModifierHolder& other)
+		: mConst(other.mConst), mReference(other.mReference)
+	{
+	}
+
+	bool mConst;
+	bool mReference;
+};
+
+class TypeUsage : public TypeModifierHolder
+{
+public:
+	TypeUsage(TypeDefinition& usedType, const TypeModifierHolder& holder)
+		: TypeModifierHolder(holder), mUsedType(usedType)
+	{
+	}
+
+	const TypeDefinition& getUsedType() const
+	{
+		return mUsedType;
+	}
 
 private:
 	TypeDefinition& mUsedType;

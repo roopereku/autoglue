@@ -1,6 +1,8 @@
 #ifndef AUTOGLUE_TYPE_DEFINITION_HH
 #define AUTOGLUE_TYPE_DEFINITION_HH
 
+#include <memory>
+
 namespace ag
 {
 
@@ -19,16 +21,18 @@ public:
 		Float
 	};
 
+	TypeDefinition(Type type)
+		: mType(type)
+	{
+	}
+
 	Type getType() const
 	{
 		return mType;
 	}
 
-protected:
-	TypeDefinition(Type type)
-		: mType(type)
-	{
-	}
+	virtual bool matches(const TypeDefinition& other) const;
+	virtual std::shared_ptr <TypeDefinition> copyToHeap() const;
 
 private:
 	Type mType;

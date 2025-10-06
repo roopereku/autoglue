@@ -5,6 +5,8 @@
 #include <autoglue/TypeDefinition.hh>
 #include <autoglue/Scope.hh>
 
+#include <unordered_map>
+
 namespace ag
 {
 
@@ -33,11 +35,13 @@ protected:
 	std::shared_ptr <Node> buildHierarchy(const AbstractNode& node);
 
 private:
+	TypeDefinition& ensureTypeDefinitionExists(const AbstractTypeUsage& usage);
+	std::shared_ptr <TypeDefinition> findOrAddTypeDefinition(TypeDefinition& definition);
+
 	std::shared_ptr <Scope> mGlobal;
 
-	/// Used types that are not declarations.
-	/// For example, primitives, callables.
-	std::vector <std::shared_ptr <TypeDefinition>> mNonDeclarations;
+	/// Used types that are not declarations. For example, primitives, callables.
+	std::unordered_map <TypeDefinition::Type, std::vector <std::shared_ptr <TypeDefinition>>> mNonDeclarations;
 };
 
 

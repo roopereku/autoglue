@@ -11,10 +11,13 @@ namespace ag
 class Class : public Node, public TypeDefinition
 {
 public:
-	constexpr static auto NodeType = Node::Type::Class;
+	constexpr static bool matchType(Node::Type type)
+	{
+		return type == Node::Type::Class;
+	}
 
 	Class(std::wstring&& name) :
-		Node(std::move(name), NodeType, members),
+		Node(std::move(name), Node::Type::Class, members),
 		TypeDefinition(TypeDefinition::Type::Class),
 		members(NodeStorage::withAllTypesExcept({ Node::Type::Scope, Node::Type::EnumValue }))
 	{

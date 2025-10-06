@@ -3,6 +3,7 @@
 
 #include <autoglue/Node.hh>
 #include <autoglue/TypeUsage.hh>
+#include <autoglue/AbstractTypeUsage.hh>
 
 namespace ag
 {
@@ -17,6 +18,14 @@ public:
 
 	virtual const AbstractNode& getParent() const = 0;
 	virtual bool hasParent() const = 0;
+
+	virtual const AbstractTypeUsage& getFunctionReturnType() const = 0;
+
+	/// Gets the type used for a variable if this node abstraction represents such.
+	/// Variables include parameters and class members.
+	///
+	/// \return Abstract type usage representing the type used for a variable.
+	virtual const AbstractTypeUsage& getVariableInitializerType() const = 0;
 };
 
 }

@@ -1,39 +1,23 @@
 #ifndef AUTOGLUE_PARAMETER_HH
 #define AUTOGLUE_PARAMETER_HH
 
-#include <autoglue/Node.hh>
-#include <autoglue/TypeUsage.hh>
-
-#include <optional>
+#include <autoglue/Variable.hh>
 
 namespace ag
 {
 
-class Parameter : public Node
+class Parameter : public Variable
 {
 public:
-	static constexpr auto NodeType = Node::Type::Parameter;
+	constexpr static bool matchType(Node::Type type)
+	{
+		return type == Node::Type::Parameter;
+	}
 
 	Parameter(std::wstring&& name)
-		: Node(std::move(name), Type::Parameter)
+		: Variable(std::move(name), Node::Type::Parameter)
 	{
 	}
-
-	std::optional <TypeUsage> getInitializerType() const
-	{
-		return mType;
-	}
-
-	void setInitializerType(TypeUsage&& usage)
-	{
-		if (!mType)
-		{
-			mType.emplace(std::move(usage));
-		}
-	}
-
-private:
-	std::optional <TypeUsage> mType;
 };
 
 

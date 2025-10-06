@@ -5,14 +5,4 @@
 namespace ag
 {
 
-TypeUsage::TypeUsage(std::shared_ptr <Class> node)
-	: mUsedType(*node)
-{
-}
-
-TypeUsage::TypeUsage(std::shared_ptr <Enum> node)
-	: mUsedType(*node)
-{
-}
-
 }

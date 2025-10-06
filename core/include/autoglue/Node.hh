@@ -20,7 +20,7 @@ public:
 		EnumValue,
 		Function,
 		Parameter,
-		//Callable TODO: Is callable a node?
+		Field
 	};
 
 	static constexpr size_t TypeCount = 6;
@@ -63,7 +63,7 @@ public:
 	template <typename T>
 	std::shared_ptr <T> as()
 	{
-		if (mType == T::NodeType)
+		if (T::matchType(mType))
 		{
 			return std::static_pointer_cast <T> (shared_from_this());
 		}

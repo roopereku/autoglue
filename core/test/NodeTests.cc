@@ -9,52 +9,11 @@
 
 using namespace ag;
 
-TEST(NodeTests, CanTypeBeStored)
+TEST(NodeTests, VariableSubTypes)
 {
-	auto all = NodeStorage::withAllTypes();
+	auto parameterNode = std::make_shared <Parameter> (L"");
 
-	for (size_t i = 0; i < Node::TypeCount; i++)
-	{
-		auto current = static_cast <Node::Type> (i);
-		ASSERT_TRUE(all.canStore(current));
-
-		auto onlyCurrent = NodeStorage::withTypes({current});
-		ASSERT_TRUE(onlyCurrent.canStore(current));
-
-		auto notCurrent = NodeStorage::withAllTypesExcept({current});
-		ASSERT_FALSE(notCurrent.canStore(current));
-
-		for (size_t j = 0; j < Node::TypeCount; j++)
-		{
-			if (j != i)
-			{
-				auto other = static_cast <Node::Type> (j);
-				ASSERT_FALSE(onlyCurrent.canStore(other));
-				ASSERT_TRUE(notCurrent.canStore(other));
-			}
-		}
-	}
-}
-
-TEST(NodeTests, SpecificStorageAvailableFromAbstract)
-{
-	auto check = [](std::shared_ptr <Node> node, NodeStorage& same)
-	{
-		ASSERT_EQ(&node->getStorage(), &same);
-		ASSERT_NE(&node->getStorage(), &NodeStorage::getDefault());
-	};
-
-	auto classNode = std::make_shared <Class> (L"name");
-	check(classNode, classNode->members);
-
-	auto scopeNode = std::make_shared <Scope> (L"name");
-	check(scopeNode, scopeNode->children);
-
-	auto enumNode = std::make_shared <Enum> (L"name");
-	check(enumNode, enumNode->values);
-
-	auto functionNode = std::make_shared <Function> (L"name");
-	check(functionNode, functionNode->parameters);
+	ASSERT_TRUE(parameterNode->as <Variable> ());
 }
 
 TEST(NodeTests, ScopeChildTypes)

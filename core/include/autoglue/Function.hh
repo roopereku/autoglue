@@ -11,7 +11,10 @@ namespace ag
 class Function : public Node, public SignatureHolder
 {
 public:
-	static constexpr auto NodeType = Node::Type::Function;
+	static constexpr bool matchType(Node::Type type)
+	{
+		return type == Node::Type::Function;
+	}
 
 	Function(std::wstring&& name);
 

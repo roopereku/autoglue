@@ -11,10 +11,13 @@ namespace ag
 class Enum: public Node, public TypeDefinition
 {
 public:
-	constexpr static auto NodeType = Node::Type::Enum;
+	constexpr static bool matchType(Node::Type type)
+	{
+		return type == Node::Type::Enum;
+	}
 
 	Enum(std::wstring&& name) :
-		Node(std::move(name), NodeType, values),
+		Node(std::move(name), Node::Type::Enum, values),
 		TypeDefinition(TypeDefinition::Type::Enum),
 		values(NodeStorage::withTypes({ Node::Type::EnumValue }))
 	{
