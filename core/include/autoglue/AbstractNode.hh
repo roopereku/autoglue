@@ -13,11 +13,6 @@ namespace ag
 class AbstractNode
 {
 public:
-	AbstractNode(Node::Type type, std::wstring name)
-		: mType(type), mName(name)
-	{
-	}
-
 	const std::wstring& getName() const
 	{
 		return mName;
@@ -28,15 +23,8 @@ public:
 		return mType;
 	}
 
+	// TODO: Refactor this to more speficic versions where the parent has a known type?
 	virtual const AbstractNode& getParent() const = 0;
-
-	virtual const AbstractTypeUsage& getFunctionReturnType() const = 0;
-
-	/// Gets the type used for a variable if this node abstraction represents such.
-	/// Variables include parameters and class members.
-	///
-	/// \return Abstract type usage representing the type used for a variable.
-	virtual const AbstractTypeUsage& getVariableInitializerType() const = 0;
 
 	/// Determines whether this abstract node represents the global scope.
 	/// This must return true for the final parent of all abstract nodes.
@@ -45,6 +33,12 @@ public:
 	bool isGlobalScope() const
 	{
 		return mType == Node::Type::Scope && mName.empty();
+	}
+
+protected:
+	AbstractNode(Node::Type type, std::wstring name)
+		: mType(type), mName(name)
+	{
 	}
 
 private:

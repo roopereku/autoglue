@@ -26,6 +26,19 @@ public:
 	NodeStorage members;
 };
 
+class AbstractClass : public AbstractNode
+{
+public:
+	virtual size_t getBaseTypeCount() const = 0;
+	virtual const AbstractTypeUsage& getBaseType(size_t index) const = 0;
+
+protected:
+	AbstractClass(std::wstring&& name)
+		: AbstractNode(Node::Type::Class, std::move(name))
+	{
+	}
+};
+
 }
 
 #endif

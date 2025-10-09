@@ -4,6 +4,7 @@
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
 #include <autoglue/SignatureHolder.hh>
+#include <autoglue/Parameter.hh>
 
 namespace ag
 {
@@ -42,6 +43,20 @@ private:
 	bool mMatchParameters = false;
 };
 
+class AbstractFunction : public AbstractNode
+{
+public:
+	virtual const AbstractTypeUsage& getReturnType() const = 0;
+
+	virtual size_t getParameterCount() const = 0;
+	virtual const AbstractParameter& getParameter(size_t index) const = 0;
+
+protected:
+	AbstractFunction(std::wstring&& name)
+		: AbstractNode(Node::Type::Function, std::move(name))
+	{
+	}
+};
 
 }
 

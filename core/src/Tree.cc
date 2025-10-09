@@ -3,6 +3,7 @@
 #include <autoglue/Parameter.hh>
 #include <autoglue/Class.hh>
 #include <autoglue/Enum.hh>
+#include <autoglue/Field.hh>
 
 #include <cassert>
 
@@ -25,19 +26,28 @@ std::shared_ptr <Scope> Tree::build()
 	return mGlobal;
 }
 
-std::shared_ptr <Node> Tree::buildHierarchy(const AbstractNode& node)
+std::shared_ptr <Function> Tree::build(const AbstractFunction& node)
 {
-	if (auto result = buildHierarchyRecursive(node))
-	{
-		if (auto function = result->as <Function> ())
-		{
-			function->enforceParameterMatching();
-		}
+	auto result = buildHierarchyRecursive(node);
+	return result->as <Function> ();
+}
 
-		return result;
-	}
+std::shared_ptr <Class> Tree::build(const AbstractClass& node)
+{
+	auto result = buildHierarchyRecursive(node);
+	return result->as <Class> ();
+}
 
-	return nullptr;
+std::shared_ptr <Field> Tree::build(const AbstractField& node)
+{
+	auto result = buildHierarchyRecursive(node);
+	return result->as <Field> ();
+}
+
+std::shared_ptr <Enum> Tree::build(const AbstractEnum& node)
+{
+	auto result = buildHierarchyRecursive(node);
+	return result->as <Enum> ();
 }
 
 std::shared_ptr <Node> Tree::buildHierarchyRecursive(const AbstractNode& node)
@@ -53,29 +63,6 @@ std::shared_ptr <Node> Tree::buildHierarchyRecursive(const AbstractNode& node)
 	assert(parent->getStorage().canStore(node.getType()));
 	auto ensured = parent->getStorage().ensure(node.getType(), node.getName());
 
-	if (ensured)
-	{
-		if (auto function = ensured->as <Function> ())
-		{
-			if (!function->getReturnType())
-			{
-				auto& returnType = node.getFunctionReturnType();
-				auto& definition = ensureTypeDefinitionExists(returnType);
-				function->initializeReturnType(TypeUsage(definition, returnType));
-			}
-		}
-
-		if (auto variable = ensured->as <Variable> ())
-		{
-			if (!variable->getInitializerType())
-			{
-				auto& initializerType = node.getVariableInitializerType();
-				auto& definition = ensureTypeDefinitionExists(initializerType);
-				variable->initializeUsedType(TypeUsage(definition, initializerType));
-			}
-		}
-	}
-
 	return ensured;
 }
 
@@ -85,14 +72,14 @@ TypeDefinition& Tree::ensureTypeDefinitionExists(const AbstractTypeUsage& usage)
 	{
 		case TypeDefinition::Type::Class:
 		{
-			auto node = buildHierarchy(usage.getDeclarationOfUsed())->as <Class> ();
+			auto node = build(usage.getClass())->as <Class> ();
 			assert(node);
 			return *node;
 		}
 
 		case TypeDefinition::Type::Enum:
 		{
-			auto node = buildHierarchy(usage.getDeclarationOfUsed())->as <Enum> ();
+			auto node = build(usage.getEnum())->as <Enum> ();
 			assert(node);
 			return *node;
 		}

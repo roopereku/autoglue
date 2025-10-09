@@ -3,6 +3,7 @@
 
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
+#include <autoglue/AbstractNode.hh>
 
 namespace ag
 {
@@ -22,6 +23,17 @@ public:
 	}
 
 	NodeStorage children;
+};
+
+class AbstractScope : public AbstractNode
+{
+public:
+
+protected:
+	AbstractScope(std::wstring&& name)
+		: AbstractNode(Node::Type::Scope, std::move(name))
+	{
+	}
 };
 
 }

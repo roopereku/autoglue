@@ -2,9 +2,12 @@
 #define AUTOGLUE_PARAMETER_HH
 
 #include <autoglue/Variable.hh>
+#include <autoglue/AbstractTypeUsage.hh>
 
 namespace ag
 {
+
+class AbstractFunction;
 
 class Parameter : public Variable
 {
@@ -20,6 +23,25 @@ public:
 	}
 };
 
+class AbstractParameter : public AbstractVariable
+{
+public:
+	/// Gets the parent function.
+	///
+	/// \return The parent function.
+	virtual const AbstractFunction& getParentFunction() const = 0;
+
+	/// Gets the parent function.
+	///
+	/// \return The parent function.
+	const AbstractNode& getParent() const final override;
+
+protected:
+	AbstractParameter(std::wstring&& name)
+		: AbstractVariable(Node::Type::Parameter, std::move(name))
+	{
+	}
+};
 
 }
 

@@ -26,6 +26,18 @@ public:
 	NodeStorage values;
 };
 
+class AbstractEnum : public AbstractNode
+{
+public:
+	virtual const AbstractTypeUsage& getValueType() const = 0;
+
+protected:
+	AbstractEnum(std::wstring&& name)
+		: AbstractNode(Node::Type::Enum, std::move(name))
+	{
+	}
+};
+
 }
 
 #endif

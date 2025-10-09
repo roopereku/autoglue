@@ -2,6 +2,7 @@
 #define AUTOGLUE_VARIABLE_HH
 
 #include <autoglue/Node.hh>
+#include <autoglue/AbstractNode.hh>
 #include <autoglue/TypeUsage.hh>
 
 #include <optional>
@@ -43,6 +44,20 @@ private:
 	std::optional <TypeUsage> mInitializerType;
 };
 
+class AbstractVariable : public AbstractNode
+{
+public:
+	/// Gets the initializer type of this parameter.
+	///
+	/// \return The initializer type of this parameter.
+	virtual const AbstractTypeUsage& getInitializerType() const = 0;
+
+protected:
+	AbstractVariable(Node::Type type, std::wstring&& name)
+		: AbstractNode(type, std::move(name))
+	{
+	}
+};
 
 }
 

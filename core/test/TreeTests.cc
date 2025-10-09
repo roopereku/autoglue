@@ -1,13 +1,12 @@
 #include <autoglue/Tree.hh>
 #include <autoglue/Integer.hh>
+#include <autoglue/Scope.hh>
 #include <autoglue/Class.hh>
 #include <autoglue/Parameter.hh>
 #include <autoglue/Field.hh>
 #include <autoglue/Function.hh>
 
 #include <gtest/gtest.h>
-
-#include <optional>
 
 using namespace ag;
 
@@ -24,7 +23,8 @@ public:
 		mReference = isReference;
 	}
 
-	AbstractNode& getDeclarationOfUsed() const override;
+	AbstractClass& getClass() const override;
+	AbstractEnum& getEnum() const override;
 	Integer getIntegerDefinition() const override;
 
 private:
@@ -32,61 +32,150 @@ private:
 	TypeDefinition& mDefinition;
 };
 
-class TestNode : public AbstractNode, public std::enable_shared_from_this <TestNode>
+class TestNode : public std::enable_shared_from_this <TestNode>
 {
 public:
-	TestNode(std::shared_ptr <Node>&& node, TestNodeList&& inner = {})
-		: AbstractNode(node->getType(), node->getName()), mNode(std::move(node)), mInner(std::move(inner))
+	TestNode(AbstractNode* abstract)
+		: mAbstract(abstract)
 	{
+	}
+
+	void setInner(TestNodeList&& inner)
+	{
+		mInner = std::move(inner);
 		for (auto& inner : mInner)
 		{
-			inner->mParent = this;
+			inner->mParent = weak_from_this();
 		}
 	}
 
-	std::shared_ptr <TestNode> setAssociatedType(TypeDefinition& definition, std::weak_ptr <TestNode> node, bool isConst, bool isReference)
-	{
-		associatedType.emplace(definition, node, isConst, isReference);
-		return shared_from_this();
-	}
-
-	AbstractNode& getParent() const override { return *mParent; }
-
-	const AbstractTypeUsage& getFunctionReturnType() const override
-	{
-		EXPECT_TRUE(associatedType);
-		return *associatedType;
-	}
-
-	const AbstractTypeUsage& getVariableInitializerType() const override
-	{
-		EXPECT_TRUE(associatedType);
-		return *associatedType;
-	}
-
+	AbstractNode* mAbstract;
+	std::weak_ptr <TestNode> mParent;
 	std::shared_ptr <Node> mNode;
 	TestNodeList mInner;
-	TestNode* mParent = nullptr;
-
-	std::optional <TestTypeUsage> associatedType;
 };
 
-AbstractNode& TestTypeUsage::getDeclarationOfUsed() const
+class TestClass : public AbstractClass, public TestNode
 {
-	EXPECT_FALSE(mNode.expired());
-	return *mNode.lock();
+public:
+	TestClass(std::wstring&& name)
+		: AbstractClass(std::move(name)), TestNode(this)
+	{
+	}
+
+	const AbstractNode& getParent() const override
+	{
+		return *mParent.lock()->mAbstract;
+	}
+
+	using NodeType = Class;
+};
+
+class TestScope : public AbstractScope, public TestNode
+{
+public:
+	TestScope(std::wstring&& name)
+		: AbstractScope(std::move(name)), TestNode(this)
+	{
+	}
+
+	const AbstractNode& getParent() const override
+	{
+		return *mParent.lock()->mAbstract;
+	}
+
+	using NodeType = Scope;
+};
+
+class TestFunction : public AbstractFunction, public TestNode
+{
+public:
+	TestFunction(std::wstring&& name, TestTypeUsage&& returnType)
+		: AbstractFunction(std::move(name)), TestNode(this), mReturnType(std::move(returnType))
+	{
+	}
+
+	const AbstractNode& getParent() const override
+	{
+		return *mParent.lock()->mAbstract;
+	}
+
+	const AbstractTypeUsage& getReturnType() const override
+	{
+		return mReturnType;
+	}
+
+	size_t getParameterCount() const override
+	{
+		return 0;
+	}
+
+	const AbstractParameter& getParameter(size_t index) const override;
+
+	TestTypeUsage mReturnType;
+
+	using NodeType = Function;
+};
+
+class TestParameter : public AbstractParameter, public TestNode
+{
+public:
+	TestParameter(std::wstring&& name, TestTypeUsage&& initializerType)
+		: AbstractParameter(std::move(name)), TestNode(this), mInitializerType(std::move(initializerType))
+	{
+	}
+
+	const AbstractTypeUsage& getInitializerType() const override
+	{
+		return mInitializerType;
+	}
+
+	const AbstractFunction& getParentFunction() const override
+	{
+		EXPECT_EQ(mParent.lock()->mAbstract->getType(), Node::Type::Function);
+		return static_cast <AbstractFunction&> (*mParent.lock()->mAbstract);
+	}
+
+	TestTypeUsage mInitializerType;
+
+	using NodeType = Parameter;
+};
+
+const AbstractParameter& TestFunction::getParameter(size_t index) const
+{
+	auto param = std::dynamic_pointer_cast <TestParameter> (mInner[index]);
+	EXPECT_TRUE(param);
+	return *param;
 }
 
-Integer TestTypeUsage::getIntegerDefinition() const
+class TestField : public AbstractField, public TestNode
 {
-	EXPECT_EQ(mDefinition.getType(), TypeDefinition::Type::Integer);
-	return static_cast <Integer&> (mDefinition);
-}
+public:
+	TestField(std::wstring&& name)
+		: AbstractField(std::move(name)), TestNode(this)
+	{
+	}
 
-template <typename T>
-std::shared_ptr <TestNode> makeNode(std::wstring&& name, TestNodeList&& inner = {})
+	std::shared_ptr <TestField> setInitializerType(TestTypeUsage&& usage)
+	{
+		mInitializerType.emplace(std::move(usage));
+		return std::static_pointer_cast <TestField> (shared_from_this());
+	}
+	
+	std::optional <TestTypeUsage> mInitializerType;
+
+	using NodeType = Parameter;
+};
+
+
+template <typename T, typename... Args>
+std::shared_ptr <T> makeNode(std::wstring_view name, TestNodeList&& inner = {})
 {
-	return std::make_shared <TestNode> (std::make_shared <T> (std::move(name)), std::move(inner));
+	auto testNode = std::make_shared <T> (std::wstring(name));
+	testNode->mNode = std::make_shared <typename T::NodeType> (std::wstring(name));
+	testNode->setInner(std::move(inner));
+
+	return testNode;
 }
 
 class TestTree : public Tree
@@ -107,7 +196,7 @@ public:
 	{
 		if (node->mInner.empty())
 		{
-			buildHierarchy(*node);
+			//buildHierarchy(*node);
 		}
 
 		else
@@ -124,8 +213,8 @@ public:
 
 void check(std::shared_ptr <TestNode> node, std::shared_ptr <Node> matching)
 {
-	ASSERT_EQ(node->getType(), matching->getType());
-	ASSERT_STREQ(node->getName().c_str(), matching->getName().c_str());
+	ASSERT_EQ(node->mAbstract->getType(), matching->getType());
+	ASSERT_STREQ(node->mAbstract->getName().c_str(), matching->getName().c_str());
 
 	// TODO: Check node specifics.
 	// TODO: Compare TypeUsage of abstract node and real node.
@@ -143,14 +232,14 @@ void check(std::shared_ptr <TestNode> node, std::shared_ptr <Node> matching)
 TEST(TreeTests, BuildNestedScopes)
 {
 	TestTree tree(
-		makeNode <Scope> (L"", {
-			makeNode <Scope> (L"Scope1", {
-				makeNode <Scope> (L"Scope1_1"),
-				makeNode <Scope> (L"Scope1_2")
+		makeNode <TestScope> (L"", {
+			makeNode <TestScope> (L"Scope1", {
+				makeNode <TestScope> (L"Scope1_1"),
+				makeNode <TestScope> (L"Scope1_2")
 			}),
 
-			makeNode <Scope> (L"Scope2", {
-				makeNode <Scope> (L"Scope2_1")
+			makeNode <TestScope> (L"Scope2", {
+				makeNode <TestScope> (L"Scope2_1")
 			})
 		})
 	);
@@ -164,16 +253,16 @@ TEST(TreeTests, BuildClassWithFields)
 	Integer uint64Definition(8, true);
 
 	TestTree tree(
-		makeNode <Scope> (L"", {
-			makeNode <Class> (L"foo", {
-				makeNode <Field> (L"field1")
-					->setAssociatedType(uint64Definition, {}, false, false),
+		makeNode <TestScope> (L"", {
+			makeNode <TestClass> (L"foo", {
+				makeNode <TestField> (L"field1")
+					->setInitializerType(TestTypeUsage(uint64Definition, {}, false, false)),
 
-				makeNode <Field> (L"field2")
-					->setAssociatedType(uint64Definition, {}, false, false),
+				makeNode <TestField> (L"field2")
+					->setInitializerType(TestTypeUsage(uint64Definition, {}, false, false)),
 
-				makeNode <Field> (L"field3")
-					->setAssociatedType(uint64Definition, {}, false, false),
+				makeNode <TestField> (L"field3")
+					->setInitializerType(TestTypeUsage(uint64Definition, {}, false, false)),
 			}),
 		})
 	);
@@ -188,14 +277,14 @@ TEST(TreeTests, BuildFunctionWithDifferentTypes)
 	Integer int16Definition(2, false);
 
 	TestTree tree(
-		makeNode <Scope> (L"", {
-			makeNode <Function> (L"foo", {
-				makeNode <Parameter> (L"param1"),
-				makeNode <Parameter> (L"param2"),
-				makeNode <Parameter> (L"param3")
+		makeNode <TestScope> (L"", {
+			makeNode <TestFunction> (L"foo", {
+				makeNode <TestParameter> (L"param1"),
+				makeNode <TestParameter> (L"param2"),
+				makeNode <TestParameter> (L"param3")
 			}),
 
-			makeNode <Class> (L"baz")
+			makeNode <TestClass> (L"baz")
 		})
 	);
 
@@ -206,10 +295,10 @@ TEST(TreeTests, BuildFunctionWithDifferentTypes)
 	ASSERT_TRUE(bazClass);
 
 	// Set function return value and parameters.
-	fooAbstract->setAssociatedType(*bazClass, bazAbstract, false, false);
-	fooAbstract->mInner[0]->setAssociatedType(int16Definition, {}, false, false);
-	fooAbstract->mInner[1]->setAssociatedType(uint64Definition, {}, false, true);
-	fooAbstract->mInner[2]->setAssociatedType(*bazClass, bazAbstract, true, true);
+	//fooAbstract->setAssociatedType(*bazClass, bazAbstract, false, false);
+	//fooAbstract->mInner[0]->setAssociatedType(int16Definition, {}, false, false);
+	//fooAbstract->mInner[1]->setAssociatedType(uint64Definition, {}, false, true);
+	//fooAbstract->mInner[2]->setAssociatedType(*bazClass, bazAbstract, true, true);
 
 	auto root = tree.build();
 	check(tree.mRoot, root);

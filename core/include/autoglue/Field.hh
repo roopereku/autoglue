@@ -6,6 +6,8 @@
 namespace ag
 {
 
+class AbstractClass;
+
 // Field defines a variable that's a member of a class.
 class Field : public Variable
 {
@@ -21,6 +23,25 @@ public:
 	}
 };
 
+class AbstractField : public AbstractVariable
+{
+public:
+	/// Gets the parent class.
+	///
+	/// \return The parent class.
+	virtual const AbstractClass& getParentClass() const = 0;
+
+	/// Gets the parent class.
+	///
+	/// \return The parent class.
+	const AbstractNode& getParent() const final override;
+
+protected:
+	AbstractField(std::wstring&& name)
+		: AbstractVariable(Node::Type::Field, std::move(name))
+	{
+	}
+};
 
 }
 

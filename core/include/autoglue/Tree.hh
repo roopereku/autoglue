@@ -10,6 +10,17 @@
 namespace ag
 {
 
+class AbstractFunction;
+class AbstractClass;
+class AbstractScope;
+class AbstractField;
+class AbstractEnum;
+
+class Function;
+class Class;
+class Field;
+class Enum;
+
 /// Tree is the base class for classes implementing
 /// generation of a simplified hierarchy for source languages.
 class Tree
@@ -28,11 +39,10 @@ protected:
 	/// \return True on success.
 	virtual bool onBuild() = 0;
 
-	/// Builds non-existing parts in the given hierarchy.
-	///
-	/// \param Implementation defined logic for retrieving a hierarchy.
-	/// \return The first node in the given ancestor hierarchy.
-	std::shared_ptr <Node> buildHierarchy(const AbstractNode& node);
+	std::shared_ptr <Function> build(const AbstractFunction& node);
+	std::shared_ptr <Class> build(const AbstractClass& node);
+	std::shared_ptr <Field> build(const AbstractField& node);
+	std::shared_ptr <Enum> build(const AbstractEnum& node);
 
 private:
 	std::shared_ptr <Node> buildHierarchyRecursive(const AbstractNode& node);

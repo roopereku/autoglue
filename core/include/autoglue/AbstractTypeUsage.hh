@@ -8,7 +8,8 @@
 namespace ag
 {
 
-class AbstractNode;
+class AbstractClass;
+class AbstractEnum;
 
 /// AbstractTypeUsage is used by source language specific tree building
 /// code to provide a temporary source of information about which type is used and how it's being used.
@@ -23,11 +24,17 @@ public:
 		return mUsedType;
 	}
 
-	/// Gets a node abstraction representing the declaration of the used type definition.
-	/// Note: This is only called when a type that is also a node is reported.
+	/// Gets a class abstraction representing the declaration of the used type definition.
+	/// Note: This is only called when a the type of used is a class.
 	///
-	/// \return The node abstraction of the used type definition.
-	virtual AbstractNode& getDeclarationOfUsed() const = 0;
+	/// \return The class abstraction of the used type definition.
+	virtual AbstractClass& getClass() const = 0;
+
+	/// Gets an enum abstraction representing the declaration of the used type definition.
+	/// Note: This is only called when a the type of used is a enum.
+	///
+	/// \return The enum abstraction of the used type definition.
+	virtual AbstractEnum& getEnum() const = 0;
 
 	/// Gets the definition of what kind of an integer is being used.
 	/// Note: This is only called when the reported type is an integer.
