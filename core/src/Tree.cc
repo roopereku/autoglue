@@ -32,18 +32,17 @@ std::shared_ptr <Function> Tree::build(const AbstractFunction& node)
 {
 	auto result = buildHierarchyRecursive(node)->as <Function> ();
 	const size_t parameterCount = node.getParameterCount();
+	result->initializeReturnType(getTypeUsageFromAbstract(node.getReturnType()));
 
 	for (size_t i = 0; i < parameterCount; i++)
 	{
 		const auto& parameter = node.getParameter(i);
 
 		// TODO: Rename the parameter if the name already existed?
-		if (auto ensured = result->parameters.ensure(parameter.getType(), parameter.getName()))
-		{
-			const auto& abstractInitializer = parameter.getInitializerType();
-			auto& usedType = ensureTypeDefinitionExists(abstractInitializer);
-			ensured->as <Parameter> ()->initializeUsedType(TypeUsage(usedType, abstractInitializer));
-		}
+		assert(!result->parameters.getNodeByName(parameter.getName()));
+
+		auto ensured = result->parameters.ensure(parameter.getType(), parameter.getName())->as <Parameter> ();
+		ensured->initializeUsedType(getTypeUsageFromAbstract(parameter.getInitializerType()));
 	}
 
 	return result;
@@ -57,8 +56,11 @@ std::shared_ptr <Class> Tree::build(const AbstractClass& node)
 
 std::shared_ptr <Field> Tree::build(const AbstractField& node)
 {
-	auto result = buildHierarchyRecursive(node);
-	return result->as <Field> (); }
+	auto ensured = buildHierarchyRecursive(node)->as <Field> ();
+	ensured->initializeUsedType(getTypeUsageFromAbstract(node.getInitializerType()));
+
+	return ensured;
+}
 
 std::shared_ptr <Enum> Tree::build(const AbstractEnum& node)
 {
@@ -80,6 +82,12 @@ std::shared_ptr <Node> Tree::buildHierarchyRecursive(const AbstractNode& node)
 	auto ensured = parent->getStorage().ensure(node.getType(), node.getName());
 
 	return ensured;
+}
+
+TypeUsage Tree::getTypeUsageFromAbstract(const AbstractTypeUsage& usage)
+{
+	auto& usedType = ensureTypeDefinitionExists(usage);
+	return TypeUsage(usedType, usage);
 }
 
 TypeDefinition& Tree::ensureTypeDefinitionExists(const AbstractTypeUsage& usage)

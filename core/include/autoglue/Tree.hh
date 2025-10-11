@@ -47,6 +47,7 @@ protected:
 private:
 	std::shared_ptr <Node> buildHierarchyRecursive(const AbstractNode& node);
 
+	TypeUsage getTypeUsageFromAbstract(const AbstractTypeUsage& usage);
 	TypeDefinition& ensureTypeDefinitionExists(const AbstractTypeUsage& usage);
 	std::shared_ptr <TypeDefinition> findOrAddTypeDefinition(TypeDefinition& definition);
 
@@ -55,7 +56,6 @@ private:
 	/// Used types that are not declarations. For example, primitives, callables.
 	std::unordered_map <TypeDefinition::Type, std::vector <std::shared_ptr <TypeDefinition>>> mNonDeclarations;
 };
-
 
 }
 

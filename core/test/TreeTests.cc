@@ -74,6 +74,13 @@ public:
 		mReference = isReference;
 	}
 
+	void test(const TypeUsage& real) const
+	{
+		ASSERT_EQ(mConst, real.isConst());
+		ASSERT_EQ(mReference, real.isReference());
+		ASSERT_EQ(getTypeOfUsedDefinition(), real.getUsedType().getType());
+	}
+
 	const AbstractClass& getClass() const override;
 	const AbstractEnum& getEnum() const override;
 	const Integer getIntegerDefinition() const override;
@@ -114,7 +121,7 @@ public:
 		ASSERT_EQ(mBaseTypes.size(), matchingClass->getBaseTypeCount());
 		for (size_t i = 0; i < mBaseTypes.size(); i++)
 		{
-			// TODO: Do TypeUsage comparison.
+			mBaseTypes[i].test(matchingClass->getBaseType(i));
 		}
 	}
 
@@ -138,6 +145,8 @@ public:
 	{
 		auto matchingEnum = matching->as <Enum> ();
 		ASSERT_TRUE(matchingEnum);
+
+		// TODO: Test value type.
 	}
 };
 
@@ -178,6 +187,10 @@ public:
 	{
 		auto matchingFunction = matching->as <Function> ();
 		ASSERT_TRUE(matchingFunction);
+
+		ASSERT_TRUE(mReturnType);
+		ASSERT_TRUE(matchingFunction->getReturnType());
+		mReturnType->test(*matchingFunction->getReturnType());
 	}
 
 	const AbstractTypeUsage& getReturnType() const override
@@ -224,6 +237,10 @@ public:
 	{
 		auto matchingParameter = matching->as <Parameter> ();
 		ASSERT_TRUE(matchingParameter);
+
+		ASSERT_TRUE(mInitializerType);
+		ASSERT_TRUE(matchingParameter->getInitializerType());
+		mInitializerType->test(*matchingParameter->getInitializerType());
 	}
 
 	std::shared_ptr <TestParameter> setInitializerType(TestTypeUsage&& usage)
@@ -288,6 +305,10 @@ public:
 	{
 		auto matchingField = matching->as <Field> ();
 		ASSERT_TRUE(matchingField);
+
+		ASSERT_TRUE(mInitializerType);
+		ASSERT_TRUE(matchingField->getInitializerType());
+		mInitializerType->test(*matchingField->getInitializerType());
 	}
 	
 	std::optional <TestTypeUsage> mInitializerType;
