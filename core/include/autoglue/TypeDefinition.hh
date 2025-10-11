@@ -18,7 +18,9 @@ public:
 		Character,
 		Integer,
 		String,
-		Float
+		Float,
+
+		Void
 	};
 
 	TypeDefinition(Type type)

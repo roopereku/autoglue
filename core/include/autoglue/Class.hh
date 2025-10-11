@@ -23,7 +23,20 @@ public:
 	{
 	}
 
+	size_t getBaseTypeCount() const
+	{
+		return mBaseTypes.size();
+	}
+
+	TypeUsage getBaseType(size_t index) const
+	{
+		return mBaseTypes[index];
+	}
+
 	NodeStorage members;
+
+private:
+	std::vector <TypeUsage> mBaseTypes;
 };
 
 class AbstractClass : public AbstractNode

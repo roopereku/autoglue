@@ -28,19 +28,19 @@ public:
 	/// Note: This is only called when a the type of used is a class.
 	///
 	/// \return The class abstraction of the used type definition.
-	virtual AbstractClass& getClass() const = 0;
+	virtual const AbstractClass& getClass() const = 0;
 
 	/// Gets an enum abstraction representing the declaration of the used type definition.
 	/// Note: This is only called when a the type of used is a enum.
 	///
 	/// \return The enum abstraction of the used type definition.
-	virtual AbstractEnum& getEnum() const = 0;
+	virtual const AbstractEnum& getEnum() const = 0;
 
 	/// Gets the definition of what kind of an integer is being used.
 	/// Note: This is only called when the reported type is an integer.
 	///
 	/// \return Definition describing the integer type that's being used.
-	virtual Integer getIntegerDefinition() const = 0;
+	virtual const Integer getIntegerDefinition() const = 0;
 
 protected:
 	AbstractTypeUsage(TypeDefinition::Type usedType)

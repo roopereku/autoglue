@@ -26,10 +26,27 @@ std::shared_ptr <Scope> Tree::build()
 	return mGlobal;
 }
 
+// TODO: Check validity of result here and below.
+
 std::shared_ptr <Function> Tree::build(const AbstractFunction& node)
 {
-	auto result = buildHierarchyRecursive(node);
-	return result->as <Function> ();
+	auto result = buildHierarchyRecursive(node)->as <Function> ();
+	const size_t parameterCount = node.getParameterCount();
+
+	for (size_t i = 0; i < parameterCount; i++)
+	{
+		const auto& parameter = node.getParameter(i);
+
+		// TODO: Rename the parameter if the name already existed?
+		if (auto ensured = result->parameters.ensure(parameter.getType(), parameter.getName()))
+		{
+			const auto& abstractInitializer = parameter.getInitializerType();
+			auto& usedType = ensureTypeDefinitionExists(abstractInitializer);
+			ensured->as <Parameter> ()->initializeUsedType(TypeUsage(usedType, abstractInitializer));
+		}
+	}
+
+	return result;
 }
 
 std::shared_ptr <Class> Tree::build(const AbstractClass& node)
@@ -41,8 +58,7 @@ std::shared_ptr <Class> Tree::build(const AbstractClass& node)
 std::shared_ptr <Field> Tree::build(const AbstractField& node)
 {
 	auto result = buildHierarchyRecursive(node);
-	return result->as <Field> ();
-}
+	return result->as <Field> (); }
 
 std::shared_ptr <Enum> Tree::build(const AbstractEnum& node)
 {
@@ -94,6 +110,7 @@ TypeDefinition& Tree::ensureTypeDefinitionExists(const AbstractTypeUsage& usage)
 		case TypeDefinition::Type::String:
 		case TypeDefinition::Type::Float:
 		case TypeDefinition::Type::Callable:
+		case TypeDefinition::Type::Void:
 		{
 			TypeDefinition definition(usage.getTypeOfUsedDefinition());
 			return *findOrAddTypeDefinition(definition);
