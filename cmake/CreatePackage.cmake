@@ -7,6 +7,7 @@ function(ag_create_package target_name target_description target_namespace)
 	install(
 		DIRECTORY include/
 		DESTINATION include
+		PATTERN "test" EXCLUDE
 	)
 
 	install(

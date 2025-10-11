@@ -13,7 +13,7 @@ function(ag_apply_tests target_name)
 	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 	FetchContent_MakeAvailable(googletest)
 
-	file(GLOB TestSources ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc)
+	file(GLOB_RECURSE TestSources ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc)
 	add_executable(${target_name}Tests ${TestSources})
 	target_link_libraries(${target_name}Tests GTest::gtest_main ${target_name})
 
