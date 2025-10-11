@@ -19,4 +19,10 @@ std::shared_ptr <TypeDefinition> Integer::copyToHeap() const
 	return std::make_shared <Integer> (mSizeBytes, mUnsigned);
 }
 
+bool Integer::matchTypeName(std::wstring_view name) const
+{
+	// TODO: Match size as well.
+	return  name == (mUnsigned ? L"uint" : L"int");
+}
+
 }

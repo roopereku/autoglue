@@ -1,5 +1,6 @@
 #include <autoglue/Function.hh>
 #include <autoglue/Parameter.hh>
+#include <autoglue/Token.hh>
 
 #include <cassert>
 
@@ -13,11 +14,6 @@ Function::Function(std::wstring&& name) :
 
 bool Function::matchName(std::wstring_view name) const
 {
-	if (!mMatchParameters)
-	{
-		return Node::matchName(name);
-	}
-
 	// Check whether the portion that should represent the name matches the function name.
 	if (!Node::matchName(name.substr(0, getName().size())))
 	{
@@ -34,34 +30,33 @@ bool Function::matchName(std::wstring_view name) const
 	// TODO: Move this logic to Callable so that it can be easily reused for matching callable parameters.
 	// TODO: Unnamed callables are represented as int(string, float) during matching.
 
+	// Remove parentheses.
 	parameterBlock = parameterBlock.substr(1, parameterBlock.size() - 2);
-	for (auto& param : parameters)
+
+	for (auto& node : parameters)
 	{
-		size_t commaAt = parameterBlock.find(',');
-		std::wstring_view current;
-
-		if (commaAt == std::wstring::npos)
-		{
-			// The current one is the final parameter.
-			current = parameterBlock;
-			parameterBlock = L"";
-		}
-
-		else
-		{
-			// Extract the current parameter and move on the the next one.
-			current = parameterBlock.substr(0, commaAt);
-			parameterBlock = parameterBlock.substr(commaAt);
-		}
-
-		// If there's no more parameters in the string, the parameter counts mismatch.
-		if (current.empty())
+		// No more parameters to compare. Mismatch in given signature.
+		if (parameterBlock.empty())
 		{
 			return false;
 		}
 
-		// TODO: Match current with the type of the parameter.
-		(void)param;
+		// Parameter types are separated by commas.
+		auto token = extractUntil(parameterBlock, ',');
+		if (token.empty())
+		{
+			token = trim(parameterBlock);
+			parameterBlock = L"";
+		}
+
+		auto param = node->as <Parameter> ();
+		assert(param);
+
+		// If the type usage held in the current token doesn't match, the given signature doesn't match.
+		if (!param->getInitializerType()->matchName(token))
+		{
+			return false;
+		}
 	}
 
 	// If there's still something in the parameter block, the parameter counts mismatch.
@@ -80,10 +75,17 @@ size_t Function::getParameterCount() const
 
 std::optional <TypeUsage> Function::getParameterType(size_t index) const
 {
+	auto param = getParameter(index);
+	return param->getInitializerType();
+}
+
+std::shared_ptr <Parameter> Function::getParameter(size_t index) const
+{
 	auto it = parameters.begin() + index;
 	assert(it->get());
 	assert(it->get()->getType() == Node::Type::Parameter);
-	return it->get()->as <Parameter> ()->getInitializerType();
+
+	return it->get()->as <Parameter> ();
 }
 
 }

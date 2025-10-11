@@ -26,21 +26,11 @@ public:
 	/// \return True if the name and parameters match.
 	bool matchName(std::wstring_view name) const override;
 
-	/// Enables parameter matching when calling matchName for this function.
-	void enforceParameterMatching()
-	{
-		mMatchParameters = true;
-	}
-
 	size_t getParameterCount() const override;
 	std::optional <TypeUsage> getParameterType(size_t index) const override;
+	std::shared_ptr <Parameter> getParameter(size_t index) const;
 
 	NodeStorage parameters;
-
-private:
-	/// Are parameters being matched when attempting to locate this function.
-	/// This is enabled after called buildHierarchy with the function itself.
-	bool mMatchParameters = false;
 };
 
 class AbstractFunction : public AbstractNode

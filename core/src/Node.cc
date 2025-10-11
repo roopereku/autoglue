@@ -1,5 +1,6 @@
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
+#include <autoglue/Token.hh>
 
 namespace ag
 {
@@ -16,21 +17,23 @@ Node::Node(std::wstring&& name, Type type, NodeStorage& storage)
 
 std::shared_ptr <Node> Node::find(std::wstring_view location, wchar_t delimiter) const
 {
-	size_t delimiterAt = location.find(delimiter);
-	const auto currentName = location.substr(0, std::min(delimiterAt, location.size()));
+	auto token = extractUntil(location, delimiter);
+	bool noDelimiter = token.empty();
 
-	if (auto node = mStorage.getNodeByName(currentName))
+	if (noDelimiter)
+	{
+		token = trim(location);
+	}
+
+	if (auto node = mStorage.getNodeByName(token))
 	{
 		// If there was no delimiter, look no further.
-		if (delimiterAt == std::wstring_view::npos)
+		if (noDelimiter)
 		{
 			return node;
 		}
 
-		delimiterAt++;
-		const auto remaining = location.substr(delimiterAt);
-
-		return node->find(remaining);
+		return node->find(location);
 	}
 
 	return nullptr;

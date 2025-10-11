@@ -141,6 +141,10 @@ TEST(NodeTests, FindNode)
 	auto scope2 = root->find(L"Scope1.Scope2");
 	ASSERT_NE(scope2, nullptr);
 	ASSERT_STREQ(scope2->getName().c_str(), L"Scope2");
+
+	scope2 = root->find(L"Scope1\t\n  . \t\nScope2");
+	ASSERT_NE(scope2, nullptr);
+	ASSERT_STREQ(scope2->getName().c_str(), L"Scope2");
 }
 
 TEST(NodeTests, FindInvalidNode)

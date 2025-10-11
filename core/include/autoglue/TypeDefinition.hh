@@ -2,6 +2,7 @@
 #define AUTOGLUE_TYPE_DEFINITION_HH
 
 #include <memory>
+#include <string_view>
 
 namespace ag
 {
@@ -35,6 +36,8 @@ public:
 
 	virtual bool matches(const TypeDefinition& other) const;
 	virtual std::shared_ptr <TypeDefinition> copyToHeap() const;
+
+	virtual bool matchTypeName(std::wstring_view name) const;
 
 private:
 	Type mType;

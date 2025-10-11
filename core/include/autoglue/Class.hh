@@ -33,6 +33,11 @@ public:
 		return mBaseTypes[index];
 	}
 
+	bool matchTypeName(std::wstring_view name) const override
+	{
+		return Node::matchName(name);
+	}
+
 	NodeStorage members;
 
 private:

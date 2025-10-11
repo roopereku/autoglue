@@ -23,6 +23,11 @@ public:
 	{
 	}
 
+	bool matchTypeName(std::wstring_view name) const override
+	{
+		return Node::matchName(name);
+	}
+
 	NodeStorage values;
 };
 

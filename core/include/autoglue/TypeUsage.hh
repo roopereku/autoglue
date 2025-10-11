@@ -3,6 +3,8 @@
 
 #include <autoglue/TypeDefinition.hh>
 
+#include <string_view>
+
 namespace ag
 {
 
@@ -12,6 +14,11 @@ class Enum;
 class TypeModifierHolder
 {
 public:
+	TypeModifierHolder(bool isConst, bool isReference)
+		: mConst(isConst), mReference(isReference)
+	{
+	}
+
 	bool isConst() const
 	{
 		return mConst;
@@ -22,18 +29,7 @@ public:
 		return mReference;
 	}
 
-	void assignFrom(TypeModifierHolder& holder)
-	{
-		mConst = holder.mConst;
-		mReference = holder.mReference;
-	}
-
 protected:
-	TypeModifierHolder()
-		: mConst(false), mReference(false)
-	{
-	}
-
 	TypeModifierHolder(const TypeModifierHolder& other)
 		: mConst(other.mConst), mReference(other.mReference)
 	{
@@ -55,6 +51,8 @@ public:
 	{
 		return mUsedType;
 	}
+
+	bool matchName(std::wstring_view name) const;
 
 private:
 	TypeDefinition& mUsedType;

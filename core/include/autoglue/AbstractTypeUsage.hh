@@ -44,7 +44,7 @@ public:
 
 protected:
 	AbstractTypeUsage(TypeDefinition::Type usedType)
-		: mUsedType(usedType)
+		: TypeModifierHolder(false, false), mUsedType(usedType)
 	{
 	}
 
