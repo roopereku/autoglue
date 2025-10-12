@@ -20,6 +20,12 @@ void NodeBase::setInner(NodeList&& inner)
 	}
 }
 
+std::shared_ptr <NodeBase> NodeBase::addInner(std::shared_ptr <NodeBase> node)
+{
+	mInner.emplace_back(std::move(node));
+	mInner.back()->mParent = weak_from_this();
+}
+
 TypeDefinition::Type NodeBase::whichTypeDefinition() const
 {
 	TypeDefinition::Type result = TypeDefinition::Type::Void;;

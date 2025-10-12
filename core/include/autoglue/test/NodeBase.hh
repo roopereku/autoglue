@@ -18,6 +18,7 @@ public:
 	NodeBase(AbstractNode* abstract);
 
 	void setInner(NodeList&& inner);
+	std::shared_ptr <NodeBase> addInner(std::shared_ptr <NodeBase> node);
 	TypeDefinition::Type whichTypeDefinition() const;
 
 	virtual void testSpecific(std::shared_ptr <Node> matching) const = 0;
