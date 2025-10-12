@@ -2,7 +2,6 @@
 #define AUTOGLUE_NODE_STORAGE_HH
 
 #include <autoglue/Node.hh>
-#include <autoglue/AbstractNode.hh>
 
 #include <vector>
 #include <bitset>

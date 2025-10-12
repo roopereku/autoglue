@@ -2,7 +2,6 @@
 #define AUTOGLUE_VARIABLE_HH
 
 #include <autoglue/Node.hh>
-#include <autoglue/AbstractNode.hh>
 #include <autoglue/TypeUsage.hh>
 
 #include <optional>

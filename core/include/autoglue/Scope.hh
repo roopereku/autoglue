@@ -3,7 +3,6 @@
 
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
-#include <autoglue/AbstractNode.hh>
 
 namespace ag
 {

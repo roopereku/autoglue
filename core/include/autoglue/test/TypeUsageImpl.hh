@@ -1,7 +1,7 @@
 #ifndef AUTOGLUE_TEST_TYPE_USAGE_IMPL_HH
 #define AUTOGLUE_TEST_TYPE_USAGE_IMPL_HH
 
-#include <autoglue/AbstractTypeUsage.hh>
+#include <autoglue/TypeUsage.hh>
 #include <autoglue/test/NodeBase.hh>
 
 namespace ag::test	

@@ -1,8 +1,8 @@
 #ifndef AUTOGLUE_TREE_HH
 #define AUTOGLUE_TREE_HH
 
-#include <autoglue/AbstractNode.hh>
 #include <autoglue/TypeDefinition.hh>
+#include <autoglue/TypeUsage.hh>
 #include <autoglue/Scope.hh>
 
 #include <unordered_map>

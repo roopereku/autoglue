@@ -1,7 +1,8 @@
 #ifndef AUTOGLUE_TEST_NODE_BASE_HH
 #define AUTOGLUE_TEST_NODE_BASE_HH
 
-#include <autoglue/AbstractNode.hh>
+#include <autoglue/Node.hh>
+#include <autoglue/TypeDefinition.hh>
 
 #include <vector>
 

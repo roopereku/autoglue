@@ -4,6 +4,7 @@
 #include <autoglue/Node.hh>
 #include <autoglue/NodeStorage.hh>
 #include <autoglue/TypeDefinition.hh>
+#include <autoglue/TypeUsage.hh>
 
 namespace ag
 {

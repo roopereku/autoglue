@@ -2,7 +2,7 @@
 #define AUTOGLUE_PARAMETER_HH
 
 #include <autoglue/Variable.hh>
-#include <autoglue/AbstractTypeUsage.hh>
+#include <autoglue/TypeUsage.hh>
 
 namespace ag
 {
