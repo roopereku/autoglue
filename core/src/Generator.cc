@@ -1,4 +1,9 @@
 #include <autoglue/Generator.hh>
+#include <autoglue/Function.hh>
+#include <autoglue/Class.hh>
+#include <autoglue/Scope.hh>
+#include <autoglue/Enum.hh>
+#include <autoglue/Field.hh>
 
 namespace ag
 {

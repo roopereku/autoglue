@@ -24,6 +24,8 @@ std::shared_ptr <NodeBase> NodeBase::addInner(std::shared_ptr <NodeBase> node)
 {
 	mInner.emplace_back(std::move(node));
 	mInner.back()->mParent = weak_from_this();
+
+	return shared_from_this();
 }
 
 TypeDefinition::Type NodeBase::whichTypeDefinition() const
