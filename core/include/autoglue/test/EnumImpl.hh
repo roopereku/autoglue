@@ -10,7 +10,7 @@ namespace ag::test
 class EnumImpl : public AbstractEnum, public NodeBase
 {
 public:
-	EnumImpl(std::wstring&& name);
+	EnumImpl(std::wstring_view name);
 
 	const AbstractNode& getParent() const override;
 	void testSpecific(std::shared_ptr <Node> matching) const override;

@@ -17,8 +17,8 @@ public:
 		return type == Node::Type::Field;
 	}
 
-	Field(std::wstring&& name)
-		: Variable(std::move(name), Node::Type::Field)
+	Field(std::wstring_view name)
+		: Variable(name, Node::Type::Field)
 	{
 	}
 };
@@ -37,8 +37,8 @@ public:
 	const AbstractNode& getParent() const final override;
 
 protected:
-	AbstractField(std::wstring&& name)
-		: AbstractVariable(Node::Type::Field, std::move(name))
+	AbstractField(std::wstring_view name)
+		: AbstractVariable(Node::Type::Field, name)
 	{
 	}
 };

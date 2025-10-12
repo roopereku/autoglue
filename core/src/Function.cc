@@ -6,8 +6,8 @@
 
 namespace ag
 {
-Function::Function(std::wstring&& name) :
-	Node(std::move(name), Node::Type::Function, parameters),
+Function::Function(std::wstring_view name) :
+	Node(name, Node::Type::Function, parameters),
 	parameters(NodeStorage::withTypes({ Type::Parameter }))
 {
 }

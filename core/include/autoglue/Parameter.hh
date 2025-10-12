@@ -17,8 +17,8 @@ public:
 		return type == Node::Type::Parameter;
 	}
 
-	Parameter(std::wstring&& name)
-		: Variable(std::move(name), Node::Type::Parameter)
+	Parameter(std::wstring_view name)
+		: Variable(name, Node::Type::Parameter)
 	{
 	}
 };
@@ -37,8 +37,8 @@ public:
 	const AbstractNode& getParent() const final override;
 
 protected:
-	AbstractParameter(std::wstring&& name)
-		: AbstractVariable(Node::Type::Parameter, std::move(name))
+	AbstractParameter(std::wstring_view name)
+		: AbstractVariable(Node::Type::Parameter, name)
 	{
 	}
 };

@@ -17,8 +17,8 @@ public:
 		return type == Node::Type::Class;
 	}
 
-	Class(std::wstring&& name) :
-		Node(std::move(name), Node::Type::Class, members),
+	Class(std::wstring_view name) :
+		Node(name, Node::Type::Class, members),
 		TypeDefinition(TypeDefinition::Type::Class),
 		members(NodeStorage::withAllTypesExcept({ Node::Type::Scope, Node::Type::EnumValue, Node::Type::Parameter }))
 	{
@@ -52,8 +52,8 @@ public:
 	virtual const AbstractTypeUsage& getBaseType(size_t index) const = 0;
 
 protected:
-	AbstractClass(std::wstring&& name)
-		: AbstractNode(Node::Type::Class, std::move(name))
+	AbstractClass(std::wstring_view name)
+		: AbstractNode(Node::Type::Class, name)
 	{
 	}
 };

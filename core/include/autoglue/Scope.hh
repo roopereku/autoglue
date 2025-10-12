@@ -15,8 +15,8 @@ public:
 		return type == Node::Type::Scope;
 	}
 
-	Scope(std::wstring&& name) :
-		Node(std::move(name), Node::Type::Scope, children),
+	Scope(std::wstring_view name) :
+		Node(name, Node::Type::Scope, children),
 		children(NodeStorage::withAllTypesExcept({ Type::EnumValue, Type::Parameter, Type::Field }))
 	{
 	}
@@ -29,8 +29,8 @@ class AbstractScope : public AbstractNode
 public:
 
 protected:
-	AbstractScope(std::wstring&& name)
-		: AbstractNode(Node::Type::Scope, std::move(name))
+	AbstractScope(std::wstring_view name)
+		: AbstractNode(Node::Type::Scope, name)
 	{
 	}
 };

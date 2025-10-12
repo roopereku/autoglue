@@ -5,13 +5,13 @@
 namespace ag
 {
 
-Node::Node(std::wstring&& name, Type type)
-	: Node(std::move(name), type, NodeStorage::getDefault())
+Node::Node(std::wstring_view name, Type type)
+	: Node(name, type, NodeStorage::getDefault())
 {
 }
 
-Node::Node(std::wstring&& name, Type type, NodeStorage& storage)
-	: mName(std::move(name)), mType(type), mStorage(storage)
+Node::Node(std::wstring_view name, Type type, NodeStorage& storage)
+	: mName(name), mType(type), mStorage(storage)
 {
 }
 

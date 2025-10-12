@@ -11,7 +11,7 @@ namespace ag::test
 class ParameterImpl : public AbstractParameter, public NodeBase
 {
 public:
-	ParameterImpl(std::wstring&& name);
+	ParameterImpl(std::wstring_view name);
 
 	const AbstractFunction& getParentFunction() const override;
 	void testSpecific(std::shared_ptr <Node> matching) const override;

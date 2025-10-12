@@ -5,8 +5,8 @@
 namespace ag::test
 {
 
-ClassImpl::ClassImpl(std::wstring&& name)
-	: AbstractClass(std::move(name)), NodeBase(this)
+ClassImpl::ClassImpl(std::wstring_view name)
+	: AbstractClass(name), NodeBase(this)
 {
 }
 

@@ -34,8 +34,8 @@ public:
 	}
 
 protected:
-	Variable(std::wstring&& name, Type type)
-		: Node(std::move(name), type)
+	Variable(std::wstring_view name, Type type)
+		: Node(name, type)
 	{
 	}
 
@@ -52,8 +52,8 @@ public:
 	virtual const AbstractTypeUsage& getInitializerType() const = 0;
 
 protected:
-	AbstractVariable(Node::Type type, std::wstring&& name)
-		: AbstractNode(type, std::move(name))
+	AbstractVariable(Node::Type type, std::wstring_view name)
+		: AbstractNode(type, name)
 	{
 	}
 };

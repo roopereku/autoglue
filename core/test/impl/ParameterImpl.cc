@@ -6,8 +6,8 @@
 namespace ag::test
 {
 
-ParameterImpl::ParameterImpl(std::wstring&& name)
-	: AbstractParameter(std::move(name)), NodeBase(this)
+ParameterImpl::ParameterImpl(std::wstring_view name)
+	: AbstractParameter(name), NodeBase(this)
 {
 }
 

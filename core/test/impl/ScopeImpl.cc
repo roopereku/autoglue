@@ -5,8 +5,8 @@
 namespace ag::test
 {
 
-ScopeImpl::ScopeImpl(std::wstring&& name)
-	: AbstractScope(std::move(name)), NodeBase(this)
+ScopeImpl::ScopeImpl(std::wstring_view name)
+	: AbstractScope(name), NodeBase(this)
 {
 }
 

@@ -5,8 +5,8 @@
 namespace ag::test
 {
 
-FunctionImpl::FunctionImpl(std::wstring&& name)
-	: AbstractFunction(std::move(name)), NodeBase(this)
+FunctionImpl::FunctionImpl(std::wstring_view name)
+	: AbstractFunction(name), NodeBase(this)
 {
 }
 

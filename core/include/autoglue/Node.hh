@@ -75,8 +75,8 @@ public:
 	NodeStorage& getStorage();
 
 protected:
-	Node(std::wstring&& name, Type type);
-	Node(std::wstring&& name, Type type, NodeStorage& storage);
+	Node(std::wstring_view name, Type type);
+	Node(std::wstring_view name, Type type, NodeStorage& storage);
 
 private:
 	std::wstring mName;
@@ -113,7 +113,7 @@ public:
 	}
 
 protected:
-	AbstractNode(Node::Type type, std::wstring name)
+	AbstractNode(Node::Type type, std::wstring_view name)
 		: mType(type), mName(name)
 	{
 	}

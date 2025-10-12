@@ -9,8 +9,8 @@ namespace ag
 class EnumValue : public Node
 {
 public:
-	EnumValue(std::wstring&& name)
-		: Node(std::move(name), Type::EnumValue)
+	EnumValue(std::wstring_view name)
+		: Node(name, Type::EnumValue)
 	{
 	}
 };

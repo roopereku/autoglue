@@ -6,8 +6,8 @@
 namespace ag::test
 {
 
-FieldImpl::FieldImpl(std::wstring&& name)
-	: AbstractField(std::move(name)), NodeBase(this)
+FieldImpl::FieldImpl(std::wstring_view name)
+	: AbstractField(name), NodeBase(this)
 {
 }
 

@@ -10,7 +10,7 @@ namespace ag::test
 class ScopeImpl : public AbstractScope, public NodeBase
 {
 public:
-	ScopeImpl(std::wstring&& name);
+	ScopeImpl(std::wstring_view name);
 
 	const AbstractNode& getParent() const override;
 	void testSpecific(std::shared_ptr <Node> matching) const override;

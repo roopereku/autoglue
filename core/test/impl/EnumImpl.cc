@@ -5,8 +5,8 @@
 namespace ag::test
 {
 
-EnumImpl::EnumImpl(std::wstring&& name)
-	: AbstractEnum(std::move(name)), NodeBase(this)
+EnumImpl::EnumImpl(std::wstring_view name)
+	: AbstractEnum(name), NodeBase(this)
 {
 }
 

@@ -17,7 +17,7 @@ public:
 		return type == Node::Type::Function;
 	}
 
-	Function(std::wstring&& name);
+	Function(std::wstring_view name);
 
 	/// Checks if the given name matches the function name and parameters.
 	///
@@ -41,8 +41,8 @@ public:
 	virtual const AbstractParameter& getParameter(size_t index) const = 0;
 
 protected:
-	AbstractFunction(std::wstring&& name)
-		: AbstractNode(Node::Type::Function, std::move(name))
+	AbstractFunction(std::wstring_view name)
+		: AbstractNode(Node::Type::Function, name)
 	{
 	}
 };
