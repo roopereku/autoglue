@@ -86,9 +86,10 @@ if not core.build([]):
     exit(1)
 
 optional_subsystems = [
-        Subsystem("Autoglue Clang", "clang"),
-        #Subsystem("Autoglue C#", "csharp"),
-        #Subsystem("Autoglue Java", "java"),
+    Subsystem("Autoglue XML", "xml"),
+    #Subsystem("Autoglue Clang", "clang"),
+    #Subsystem("Autoglue C#", "csharp"),
+    #Subsystem("Autoglue Java", "java"),
 ]
 
 def main():
