@@ -3,16 +3,15 @@
 
 #include <autoglue/TypeDefinition.hh>
 
+#include <string>
+
 namespace ag
 {
 
 class Integer : public TypeDefinition
 {
 public:
-	Integer(size_t sizeBytes, bool isUnsigned)
-		: TypeDefinition(Type::Integer), mSizeBytes(sizeBytes), mUnsigned(isUnsigned)
-	{
-	}
+	Integer(size_t sizeBytes, bool isUnsigned);
 
 	bool matches(const TypeDefinition& other) const override;
 	std::shared_ptr <TypeDefinition> copyToHeap() const override;
@@ -22,6 +21,8 @@ public:
 private:
 	size_t mSizeBytes;
 	bool mUnsigned;
+
+	std::wstring mFullName;
 };
 
 }

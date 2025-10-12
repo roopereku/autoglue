@@ -3,6 +3,13 @@
 namespace ag
 {
 
+Integer::Integer(size_t sizeBytes, bool isUnsigned) :
+	TypeDefinition(Type::Integer),
+	mSizeBytes(sizeBytes), mUnsigned(isUnsigned),
+	mFullName((mUnsigned ? L"uint" : L"int") + std::to_wstring(mSizeBytes * 8))
+{
+}
+
 bool Integer::matches(const TypeDefinition& other) const
 {
 	if(!TypeDefinition::matches(other))
@@ -21,8 +28,7 @@ std::shared_ptr <TypeDefinition> Integer::copyToHeap() const
 
 bool Integer::matchTypeName(std::wstring_view name) const
 {
-	// TODO: Match size as well.
-	return  name == (mUnsigned ? L"uint" : L"int");
+	return name == mFullName;
 }
 
 }

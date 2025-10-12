@@ -47,7 +47,7 @@ TEST(FunctionTests, FunctionLookup)
 	validateParameter(func, param, TypeUsage(int16Definition, TypeModifierHolder(false, false)), 0);
 
 	// Function with one int parameter must be found.
-	found = storage.getNodeByName(L"foo(int)");
+	found = storage.getNodeByName(L"foo(int16)");
 	ASSERT_TRUE(found);
 	ASSERT_EQ(found, func);
 
@@ -59,7 +59,7 @@ TEST(FunctionTests, FunctionLookup)
 	validateParameter(func, param, TypeUsage(uint16Definition, TypeModifierHolder(false, false)), 1);
 
 	// Function with one int and uint parameter must be found.
-	found = storage.getNodeByName(L"foo(   int,  uint   )");
+	found = storage.getNodeByName(L"foo(   int16,  uint16   )");
 	ASSERT_TRUE(found);
 	ASSERT_EQ(found, func);
 }

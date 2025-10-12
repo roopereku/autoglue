@@ -28,10 +28,10 @@ TEST(TypeUsageTests, matchOnlyReference)
 {
 	Integer uint32Definition(4, true);
 	auto usage1 = TypeUsage(uint32Definition, TypeModifierHolder(false, true));
-	ASSERT_FALSE(usage1.matchName(L"  uint  ref\t\n"));
-	ASSERT_FALSE(usage1.matchName(L"const uint  "));
-	ASSERT_FALSE(usage1.matchName(L"const ref uint"));
-	ASSERT_TRUE(usage1.matchName(L"ref   uint\n\t"));
+	ASSERT_FALSE(usage1.matchName(L"  uint32  ref\t\n"));
+	ASSERT_FALSE(usage1.matchName(L"const uint32  "));
+	ASSERT_FALSE(usage1.matchName(L"const ref uint32"));
+	ASSERT_TRUE(usage1.matchName(L"ref   uint32\n\t"));
 
 	Class classDefinition(L"testClass");
 	auto usage2 = TypeUsage(classDefinition, TypeModifierHolder(false, true));
@@ -60,4 +60,19 @@ TEST(TypeUsageTests, matchConstAndReference)
 	ASSERT_FALSE(usage2.matchName(L"ref testEnum const"));
 	ASSERT_FALSE(usage2.matchName(L"const testEnum ref"));
 	ASSERT_TRUE(usage2.matchName(L"const ref testEnum"));
+}
+
+TEST(TypeUsageTests, matchIntegerNames)
+{
+	for (size_t bytes = 1; bytes <= 8; bytes *= 2)
+	{
+		for (size_t isUnsigned = 0; bytes <= 1; bytes++)
+		{
+			Integer definition(bytes, isUnsigned);
+			TypeUsage usage(definition, TypeModifierHolder(false, false));
+
+			std::wstring name = (isUnsigned ? L"uint" : L"int") + std::to_wstring(bytes * 8);
+			ASSERT_TRUE(usage.matchName(name));
+		}
+	}
 }
