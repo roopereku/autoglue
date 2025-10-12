@@ -27,45 +27,9 @@ bool Function::matchName(std::wstring_view name) const
 		return false;
 	}
 
-	// TODO: Move this logic to Callable so that it can be easily reused for matching callable parameters.
-	// TODO: Unnamed callables are represented as int(string, float) during matching.
-
-	// Remove parentheses.
+	// Remove parentheses and match the parameters.
 	parameterBlock = parameterBlock.substr(1, parameterBlock.size() - 2);
-
-	for (auto& node : parameters)
-	{
-		// No more parameters to compare. Mismatch in given signature.
-		if (parameterBlock.empty())
-		{
-			return false;
-		}
-
-		// Parameter types are separated by commas.
-		auto token = extractUntil(parameterBlock, ',');
-		if (token.empty())
-		{
-			token = trim(parameterBlock);
-			parameterBlock = L"";
-		}
-
-		auto param = node->as <Parameter> ();
-		assert(param);
-
-		// If the type usage held in the current token doesn't match, the given signature doesn't match.
-		if (!param->getInitializerType()->matchName(token))
-		{
-			return false;
-		}
-	}
-
-	// If there's still something in the parameter block, the parameter counts mismatch.
-	if (!parameterBlock.empty())
-	{
-		return false;
-	}
-
-	return true;
+	return matchParameterTypes(parameterBlock);
 }
 
 size_t Function::getParameterCount() const

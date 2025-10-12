@@ -20,13 +20,13 @@ public:
 		return mReturnType;
 	}
 
-	void initializeReturnType(TypeUsage&& usage)
-	{
-		if (!mReturnType)
-		{
-			mReturnType.emplace(std::move(usage));
-		}
-	}
+	void initializeReturnType(TypeUsage&& usage);
+
+	/// Checks if the given name matches the parameter types.
+	///
+	/// \param block String containing the parameter types. Expected format is "mod type1, mod type2".
+	/// \return True if the parameter types match.
+	bool matchParameterTypes(std::wstring_view block) const;
 
 private:
 	std::optional <TypeUsage> mReturnType;
