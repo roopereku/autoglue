@@ -14,14 +14,14 @@ using namespace ag::test;
 TEST(TreeTests, ExclusivelyScopesBuildsNothing)
 {
 	test::Tree tree(
-		makeNode <ScopeImpl> (L"", {
-			makeNode <ScopeImpl> (L"Scope1", {
-				makeNode <ScopeImpl> (L"Scope1_1"),
-				makeNode <ScopeImpl> (L"Scope1_2")
+		makeNode <ScopeImpl> ("", {
+			makeNode <ScopeImpl> ("Scope1", {
+				makeNode <ScopeImpl> ("Scope1_1"),
+				makeNode <ScopeImpl> ("Scope1_2")
 			}),
 
-			makeNode <ScopeImpl> (L"Scope2", {
-				makeNode <ScopeImpl> (L"Scope2_1")
+			makeNode <ScopeImpl> ("Scope2", {
+				makeNode <ScopeImpl> ("Scope2_1")
 			})
 		})
 	);
@@ -35,15 +35,15 @@ TEST(TreeTests, BuildClassWithFields)
 	Integer uint64Definition(8, true);
 
 	test::Tree tree(
-		makeNode <ScopeImpl> (L"", {
-			makeNode <ClassImpl> (L"foo", {
-				makeNode <FieldImpl> (L"field1")
+		makeNode <ScopeImpl> ("", {
+			makeNode <ClassImpl> ("foo", {
+				makeNode <FieldImpl> ("field1")
 					->setInitializerType(TypeUsageImpl(uint64Definition, false, false)),
 
-				makeNode <FieldImpl> (L"field2")
+				makeNode <FieldImpl> ("field2")
 					->setInitializerType(TypeUsageImpl(uint64Definition, false, false)),
 
-				makeNode <FieldImpl> (L"field3")
+				makeNode <FieldImpl> ("field3")
 					->setInitializerType(TypeUsageImpl(uint64Definition, false, false)),
 			}),
 		})

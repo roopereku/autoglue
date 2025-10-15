@@ -13,7 +13,7 @@ namespace ag::test
 class EnumImpl : public AbstractEnum, public NodeBase
 {
 public:
-	EnumImpl(std::wstring_view name);
+	EnumImpl(std::string_view name);
 
 	const AbstractTypeUsage& getValueType() const override
 	{

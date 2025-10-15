@@ -5,12 +5,12 @@
 namespace ag
 {
 
-std::wstring_view extractNextToken(std::wstring_view& str)
+std::string_view extractNextToken(std::string_view& str)
 {
 	auto trimmed = trimLeft(str);
 	if (trimmed.empty())
 	{
-		return L"";
+		return "";
 	}
 
 	size_t index = 0;
@@ -24,18 +24,18 @@ std::wstring_view extractNextToken(std::wstring_view& str)
 	return token;
 }
 
-std::wstring_view extractUntil(std::wstring_view& str, wchar_t ch)
+std::string_view extractUntil(std::string_view& str, wchar_t ch)
 {
 	auto trimmed = trimLeft(str);
 	if (trimmed.empty())
 	{
-		return L"";
+		return "";
 	}
 
 	size_t index = trimmed.find(ch);
-	if (index == std::wstring_view::npos)
+	if (index == std::string_view::npos)
 	{
-		return L"";
+		return "";
 	}
 
 	auto token = trimmed.substr(0, index);
@@ -43,12 +43,12 @@ std::wstring_view extractUntil(std::wstring_view& str, wchar_t ch)
 	return trimRight(token);
 }
 
-std::wstring_view trim(std::wstring_view str)
+std::string_view trim(std::string_view str)
 {
 	return trimRight(trimLeft(str));
 }
 
-std::wstring_view trimLeft(std::wstring_view str)
+std::string_view trimLeft(std::string_view str)
 {
 	size_t index = 0;
 	while (index < str.size() && std::isspace(str[index]))
@@ -59,7 +59,7 @@ std::wstring_view trimLeft(std::wstring_view str)
 	return str.substr(index);
 }
 
-std::wstring_view trimRight(std::wstring_view str)
+std::string_view trimRight(std::string_view str)
 {
 	if (str.empty())
 	{

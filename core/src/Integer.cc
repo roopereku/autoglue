@@ -6,7 +6,7 @@ namespace ag
 Integer::Integer(size_t sizeBytes, bool isUnsigned) :
 	TypeDefinition(Type::Integer),
 	mSizeBytes(sizeBytes), mUnsigned(isUnsigned),
-	mFullName((mUnsigned ? L"uint" : L"int") + std::to_wstring(mSizeBytes * 8))
+	mFullName((mUnsigned ? "uint" : "int") + std::to_string(mSizeBytes * 8))
 {
 }
 
@@ -26,7 +26,7 @@ std::shared_ptr <TypeDefinition> Integer::copyToHeap() const
 	return std::make_shared <Integer> (mSizeBytes, mUnsigned);
 }
 
-bool Integer::matchTypeName(std::wstring_view name) const
+bool Integer::matchTypeName(std::string_view name) const
 {
 	return name == mFullName;
 }

@@ -17,13 +17,13 @@ public:
 		return type == Node::Type::Function;
 	}
 
-	Function(std::wstring_view name);
+	Function(std::string_view name);
 
 	/// Checks if the given name matches the function name and parameters.
 	///
 	/// \param name The name to match against. Expected format is name(mod type1, mod type2)
 	/// \return True if the name and parameters match.
-	bool matchName(std::wstring_view name) const override;
+	bool matchName(std::string_view name) const override;
 
 	size_t getParameterCount() const override;
 	std::optional <TypeUsage> getParameterType(size_t index) const override;
@@ -41,7 +41,7 @@ public:
 	virtual const AbstractParameter& getParameter(size_t index) const = 0;
 
 protected:
-	AbstractFunction(std::wstring_view name)
+	AbstractFunction(std::string_view name)
 		: AbstractNode(Node::Type::Function, name)
 	{
 	}

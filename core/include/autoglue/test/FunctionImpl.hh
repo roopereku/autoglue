@@ -11,7 +11,7 @@ namespace ag::test
 class FunctionImpl : public AbstractFunction, public NodeBase
 {
 public:
-	FunctionImpl(std::wstring_view name);
+	FunctionImpl(std::string_view name);
 
 	const AbstractNode& getParent() const override;
 	void testSpecific(std::shared_ptr <Node> matching) const override;

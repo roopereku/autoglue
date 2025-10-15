@@ -53,7 +53,7 @@ public:
 		return mUsedType;
 	}
 
-	bool matchName(std::wstring_view name) const;
+	bool matchName(std::string_view name) const;
 
 private:
 	TypeDefinition& mUsedType;

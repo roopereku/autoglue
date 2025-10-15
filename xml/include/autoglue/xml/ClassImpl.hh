@@ -12,7 +12,7 @@ class ClassImpl : public AbstractClass
 {
 public:
 	ClassImpl(tinyxml2::XMLElement& element)
-		: AbstractClass(L""), mElement(element)
+		: AbstractClass(""), mElement(element)
 	{
 	}
 

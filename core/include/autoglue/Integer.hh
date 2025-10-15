@@ -16,13 +16,13 @@ public:
 	bool matches(const TypeDefinition& other) const override;
 	std::shared_ptr <TypeDefinition> copyToHeap() const override;
 
-	bool matchTypeName(std::wstring_view name) const override;
+	bool matchTypeName(std::string_view name) const override;
 
 private:
 	size_t mSizeBytes;
 	bool mUnsigned;
 
-	std::wstring mFullName;
+	std::string mFullName;
 };
 
 }

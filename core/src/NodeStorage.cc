@@ -43,7 +43,7 @@ NodeStorage NodeStorage::withAllTypesExcept(std::initializer_list <Node::Type> e
 	return storage;
 }
 
-std::shared_ptr <Node> NodeStorage::getNodeByName(std::wstring_view name) const
+std::shared_ptr <Node> NodeStorage::getNodeByName(std::string_view name) const
 {
 	for (const auto& node : mNodes)
 	{
@@ -56,7 +56,7 @@ std::shared_ptr <Node> NodeStorage::getNodeByName(std::wstring_view name) const
 	return nullptr;
 }
 
-std::shared_ptr <Node> NodeStorage::getNodeByName(std::wstring_view name, Node::Type type) const
+std::shared_ptr <Node> NodeStorage::getNodeByName(std::string_view name, Node::Type type) const
 {
 	for (const auto& node : mNodes)
 	{
@@ -69,7 +69,7 @@ std::shared_ptr <Node> NodeStorage::getNodeByName(std::wstring_view name, Node::
 	return nullptr;
 }
 
-std::shared_ptr <Node> NodeStorage::ensure(Node::Type type, std::wstring_view name)
+std::shared_ptr <Node> NodeStorage::ensure(Node::Type type, std::string_view name)
 {
 	if (!canStore(type))
 	{
@@ -84,13 +84,13 @@ std::shared_ptr <Node> NodeStorage::ensure(Node::Type type, std::wstring_view na
 	std::shared_ptr <Node> node;
 	switch (type)
 	{
-		case Node::Type::Class: node = std::make_shared <Class> (std::wstring(name)); break;
-		case Node::Type::Scope: node = std::make_shared <Scope> (std::wstring(name)); break;
-		case Node::Type::Enum: node = std::make_shared <Enum> (std::wstring(name)); break;
-		case Node::Type::EnumValue: node = std::make_shared <EnumValue> (std::wstring(name)); break;
-		case Node::Type::Parameter: node = std::make_shared <Parameter> (std::wstring(name)); break;
-		case Node::Type::Field: node = std::make_shared <Field> (std::wstring(name)); break;
-		case Node::Type::Function: node = std::make_shared <Function> (std::wstring(name)); break;
+		case Node::Type::Class: node = std::make_shared <Class> (std::string(name)); break;
+		case Node::Type::Scope: node = std::make_shared <Scope> (std::string(name)); break;
+		case Node::Type::Enum: node = std::make_shared <Enum> (std::string(name)); break;
+		case Node::Type::EnumValue: node = std::make_shared <EnumValue> (std::string(name)); break;
+		case Node::Type::Parameter: node = std::make_shared <Parameter> (std::string(name)); break;
+		case Node::Type::Field: node = std::make_shared <Field> (std::string(name)); break;
+		case Node::Type::Function: node = std::make_shared <Function> (std::string(name)); break;
 	}
 
 	return mNodes.emplace_back(std::move(node));

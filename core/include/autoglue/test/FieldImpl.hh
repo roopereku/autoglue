@@ -11,7 +11,7 @@ namespace ag::test
 class FieldImpl : public AbstractField, public NodeBase
 {
 public:
-	FieldImpl(std::wstring_view name);
+	FieldImpl(std::string_view name);
 
 	const AbstractClass& getParentClass() const override;
 	void testSpecific(std::shared_ptr <Node> matching) const override;

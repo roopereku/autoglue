@@ -29,7 +29,7 @@ public:
 	/// Gets the name of this node.
 	///
 	/// \return The name of this node.
-	const std::wstring& getName() const
+	const std::string& getName() const
 	{
 		return mName;
 	}
@@ -47,7 +47,7 @@ public:
 	/// \param location The full location of a node relative to this node.
 	/// \param delimiter The character between different parts of the location.
 	/// \return Node with the given location if any.
-	std::shared_ptr <Node> find(std::wstring_view location, wchar_t delimiter = '.') const;
+	std::shared_ptr <Node> find(std::string_view location, wchar_t delimiter = '.') const;
 
 	// TODO: Add a virtual node builder function so that different node types can audit child node types.
 
@@ -56,7 +56,7 @@ public:
 	///
 	/// \param name The name to match against.
 	/// \return True if the name matches.
-	virtual bool matchName(std::wstring_view name) const
+	virtual bool matchName(std::string_view name) const
 	{
 		return name == mName;
 	}
@@ -75,11 +75,11 @@ public:
 	NodeStorage& getStorage();
 
 protected:
-	Node(std::wstring_view name, Type type);
-	Node(std::wstring_view name, Type type, NodeStorage& storage);
+	Node(std::string_view name, Type type);
+	Node(std::string_view name, Type type, NodeStorage& storage);
 
 private:
-	std::wstring mName;
+	std::string mName;
 	Type mType;
 
 	NodeStorage& mStorage;
@@ -90,7 +90,7 @@ private:
 class AbstractNode
 {
 public:
-	const std::wstring& getName() const
+	const std::string& getName() const
 	{
 		return mName;
 	}
@@ -113,14 +113,14 @@ public:
 	}
 
 protected:
-	AbstractNode(Node::Type type, std::wstring_view name)
+	AbstractNode(Node::Type type, std::string_view name)
 		: mType(type), mName(name)
 	{
 	}
 
 private:
 	Node::Type mType;
-	std::wstring mName;
+	std::string mName;
 };
 
 }

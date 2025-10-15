@@ -25,41 +25,41 @@ TEST(FunctionTests, FunctionLookup)
 	};
 
 	auto storage = NodeStorage::withTypes({ Node::Type::Function });
-	auto node = storage.ensure(Node::Type::Function, L"foo");
+	auto node = storage.ensure(Node::Type::Function, "foo");
 	ASSERT_TRUE(node);
 
 	auto func = node->as <Function> ();
 	ASSERT_TRUE(func);
 
 	// Function without parameters must be found.
-	auto found = storage.getNodeByName(L"foo()");
+	auto found = storage.getNodeByName("foo()");
 	ASSERT_TRUE(found);
 	ASSERT_EQ(found, func);
 
 	// Function with parameters must not be found.
-	ASSERT_FALSE(storage.getNodeByName(L"foo(int)"));
+	ASSERT_FALSE(storage.getNodeByName("foo(int)"));
 
 	Integer int16Definition(2, false);
 	Integer uint16Definition(2, true);
 
 	// Make sure that a parameter can be added.
-	auto param = func->parameters.ensure(Node::Type::Parameter, L"param1");
+	auto param = func->parameters.ensure(Node::Type::Parameter, "param1");
 	validateParameter(func, param, TypeUsage(int16Definition, TypeModifierHolder(false, false)), 0);
 
 	// Function with one int parameter must be found.
-	found = storage.getNodeByName(L"foo(int16)");
+	found = storage.getNodeByName("foo(int16)");
 	ASSERT_TRUE(found);
 	ASSERT_EQ(found, func);
 
 	// Function with no parameters must be not found.
-	ASSERT_FALSE(storage.getNodeByName(L"foo()"));
+	ASSERT_FALSE(storage.getNodeByName("foo()"));
 
 	// Make sure that more parameters can be added.
-	param = func->parameters.ensure(Node::Type::Parameter, L"param2");
+	param = func->parameters.ensure(Node::Type::Parameter, "param2");
 	validateParameter(func, param, TypeUsage(uint16Definition, TypeModifierHolder(false, false)), 1);
 
 	// Function with one int and uint parameter must be found.
-	found = storage.getNodeByName(L"foo(   int16,  uint16   )");
+	found = storage.getNodeByName("foo(   int16,  uint16   )");
 	ASSERT_TRUE(found);
 	ASSERT_EQ(found, func);
 }
@@ -70,14 +70,14 @@ TEST(TreeTests, BuildFunctionWithDifferentTypes)
 	Integer int16Definition(2, false);
 
 	test::Tree tree(
-		makeNode <ScopeImpl> (L"", {
-			makeNode <FunctionImpl> (L"foo", {
-				makeNode <ParameterImpl> (L"param1"),
-				makeNode <ParameterImpl> (L"param2"),
-				makeNode <ParameterImpl> (L"param3")
+		makeNode <ScopeImpl> ("", {
+			makeNode <FunctionImpl> ("foo", {
+				makeNode <ParameterImpl> ("param1"),
+				makeNode <ParameterImpl> ("param2"),
+				makeNode <ParameterImpl> ("param3")
 			}),
 
-			makeNode <ClassImpl> (L"baz")
+			makeNode <ClassImpl> ("baz")
 		})
 	);
 

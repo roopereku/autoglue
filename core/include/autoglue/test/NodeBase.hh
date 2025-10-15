@@ -29,9 +29,9 @@ public:
 };
 
 template <typename T, typename... Args>
-std::shared_ptr <T> makeNode(std::wstring_view name, NodeList&& inner = {})
+std::shared_ptr <T> makeNode(std::string_view name, NodeList&& inner = {})
 {
-	auto testNode = std::make_shared <T> (std::wstring(name));
+	auto testNode = std::make_shared <T> (std::string(name));
 	testNode->setInner(std::move(inner));
 
 	return testNode;

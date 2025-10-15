@@ -33,21 +33,21 @@ public:
 	///
 	/// \param name The name to match.
 	/// \return The first contained node with a matching name if any.
-	std::shared_ptr <Node> getNodeByName(std::wstring_view name) const;
+	std::shared_ptr <Node> getNodeByName(std::string_view name) const;
 
 	/// Gets the first node with a matching name and type.
 	///
 	/// \param name The name to match.
 	/// \param type The type of the node to get.
 	/// \return The first contained node with a matching name if any.
-	std::shared_ptr <Node> getNodeByName(std::wstring_view name, Node::Type type) const;
+	std::shared_ptr <Node> getNodeByName(std::string_view name, Node::Type type) const;
 
 	/// Ensures that a node of the given type with the given name exists.
 	///
 	/// \param type The desired node type. This has to be allowed by the node storage.
 	/// \param name The desired node name.
 	/// \return The node of the given type and name if the type is allowed.
-	std::shared_ptr <Node> ensure(Node::Type type, std::wstring_view name);
+	std::shared_ptr <Node> ensure(Node::Type type, std::string_view name);
 
 	/// Checks whether this node storage can store the given type.
 	///

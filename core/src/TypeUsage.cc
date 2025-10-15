@@ -4,12 +4,12 @@
 namespace ag
 {
 
-bool TypeUsage::matchName(std::wstring_view name) const
+bool TypeUsage::matchName(std::string_view name) const
 {
 	if (mConst)
 	{
 		auto token = extractNextToken(name);
-		if (token != L"const")
+		if (token != "const")
 		{
 			return false;
 		}
@@ -18,7 +18,7 @@ bool TypeUsage::matchName(std::wstring_view name) const
 	if (mReference)
 	{
 		auto token = extractNextToken(name);
-		if (token != L"ref")
+		if (token != "ref")
 		{
 			return false;
 		}

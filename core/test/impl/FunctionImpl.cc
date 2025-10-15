@@ -5,7 +5,7 @@
 namespace ag::test
 {
 
-FunctionImpl::FunctionImpl(std::wstring_view name)
+FunctionImpl::FunctionImpl(std::string_view name)
 	: AbstractFunction(name), NodeBase(this)
 {
 }

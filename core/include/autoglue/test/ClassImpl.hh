@@ -11,7 +11,7 @@ namespace ag::test
 class ClassImpl : public AbstractClass, public NodeBase
 {
 public:
-	ClassImpl(std::wstring_view name);
+	ClassImpl(std::string_view name);
 
 	size_t getBaseTypeCount() const override;
 	const AbstractTypeUsage& getBaseType(size_t index) const override;

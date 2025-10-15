@@ -9,7 +9,7 @@ namespace ag
 class EnumValue : public Node
 {
 public:
-	EnumValue(std::wstring_view name)
+	EnumValue(std::string_view name)
 		: Node(name, Type::EnumValue)
 	{
 	}

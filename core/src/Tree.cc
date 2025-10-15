@@ -16,7 +16,7 @@ Tree::Tree()
 
 std::shared_ptr <Scope> Tree::build()
 {
-	mGlobal = std::make_shared <Scope> (L"");
+	mGlobal = std::make_shared <Scope> ("");
 
 	if (!onBuild())
 	{

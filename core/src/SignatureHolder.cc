@@ -12,7 +12,7 @@ void SignatureHolder::initializeReturnType(TypeUsage&& usage)
 	}
 }
 
-bool SignatureHolder::matchParameterTypes(std::wstring_view block) const
+bool SignatureHolder::matchParameterTypes(std::string_view block) const
 {
 	const size_t paramCount = getParameterCount();
 	for (size_t i = 0; i < paramCount; i++)
@@ -30,7 +30,7 @@ bool SignatureHolder::matchParameterTypes(std::wstring_view block) const
 		if (token.empty())
 		{
 			token = trim(block);
-			block = L"";
+			block = "";
 		}
 
 		// If the type usage held in the current token doesn't match, the given parameters don't match.

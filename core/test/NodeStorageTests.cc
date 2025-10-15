@@ -44,16 +44,16 @@ TEST(NodeTests, SpecificStorageAvailableFromAbstract)
 		ASSERT_NE(&node->getStorage(), &NodeStorage::getDefault());
 	};
 
-	auto classNode = std::make_shared <Class> (L"name");
+	auto classNode = std::make_shared <Class> ("name");
 	check(classNode, classNode->members);
 
-	auto scopeNode = std::make_shared <Scope> (L"name");
+	auto scopeNode = std::make_shared <Scope> ("name");
 	check(scopeNode, scopeNode->children);
 
-	auto enumNode = std::make_shared <Enum> (L"name");
+	auto enumNode = std::make_shared <Enum> ("name");
 	check(enumNode, enumNode->values);
 
-	auto functionNode = std::make_shared <Function> (L"name");
+	auto functionNode = std::make_shared <Function> ("name");
 	check(functionNode, functionNode->parameters);
 }
 

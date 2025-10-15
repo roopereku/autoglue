@@ -6,13 +6,13 @@
 
 namespace ag
 {
-Function::Function(std::wstring_view name) :
+Function::Function(std::string_view name) :
 	Node(name, Node::Type::Function, parameters),
 	parameters(NodeStorage::withTypes({ Type::Parameter }))
 {
 }
 
-bool Function::matchName(std::wstring_view name) const
+bool Function::matchName(std::string_view name) const
 {
 	// Check whether the portion that should represent the name matches the function name.
 	if (!Node::matchName(name.substr(0, getName().size())))

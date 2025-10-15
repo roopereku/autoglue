@@ -17,14 +17,14 @@ public:
 		return type == Node::Type::Enum;
 	}
 
-	Enum(std::wstring_view name) :
+	Enum(std::string_view name) :
 		Node(name, Node::Type::Enum, values),
 		TypeDefinition(TypeDefinition::Type::Enum),
 		values(NodeStorage::withTypes({ Node::Type::EnumValue }))
 	{
 	}
 
-	bool matchTypeName(std::wstring_view name) const override
+	bool matchTypeName(std::string_view name) const override
 	{
 		return Node::matchName(name);
 	}
@@ -38,7 +38,7 @@ public:
 	virtual const AbstractTypeUsage& getValueType() const = 0;
 
 protected:
-	AbstractEnum(std::wstring_view name)
+	AbstractEnum(std::string_view name)
 		: AbstractNode(Node::Type::Enum, name)
 	{
 	}

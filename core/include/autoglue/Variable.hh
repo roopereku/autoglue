@@ -34,7 +34,7 @@ public:
 	}
 
 protected:
-	Variable(std::wstring_view name, Type type)
+	Variable(std::string_view name, Type type)
 		: Node(name, type)
 	{
 	}
@@ -52,7 +52,7 @@ public:
 	virtual const AbstractTypeUsage& getInitializerType() const = 0;
 
 protected:
-	AbstractVariable(Node::Type type, std::wstring_view name)
+	AbstractVariable(Node::Type type, std::string_view name)
 		: AbstractNode(type, name)
 	{
 	}

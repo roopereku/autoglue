@@ -26,7 +26,7 @@ public:
 	///
 	/// \param block String containing the parameter types. Expected format is "mod type1, mod type2".
 	/// \return True if the parameter types match.
-	bool matchParameterTypes(std::wstring_view block) const;
+	bool matchParameterTypes(std::string_view block) const;
 
 private:
 	std::optional <TypeUsage> mReturnType;

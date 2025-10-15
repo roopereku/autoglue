@@ -5,17 +5,17 @@
 namespace ag
 {
 
-Node::Node(std::wstring_view name, Type type)
+Node::Node(std::string_view name, Type type)
 	: Node(name, type, NodeStorage::getDefault())
 {
 }
 
-Node::Node(std::wstring_view name, Type type, NodeStorage& storage)
+Node::Node(std::string_view name, Type type, NodeStorage& storage)
 	: mName(name), mType(type), mStorage(storage)
 {
 }
 
-std::shared_ptr <Node> Node::find(std::wstring_view location, wchar_t delimiter) const
+std::shared_ptr <Node> Node::find(std::string_view location, wchar_t delimiter) const
 {
 	auto token = extractUntil(location, delimiter);
 	bool noDelimiter = token.empty();

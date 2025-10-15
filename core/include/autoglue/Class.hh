@@ -17,7 +17,7 @@ public:
 		return type == Node::Type::Class;
 	}
 
-	Class(std::wstring_view name) :
+	Class(std::string_view name) :
 		Node(name, Node::Type::Class, members),
 		TypeDefinition(TypeDefinition::Type::Class),
 		members(NodeStorage::withAllTypesExcept({ Node::Type::Scope, Node::Type::EnumValue, Node::Type::Parameter }))
@@ -34,7 +34,7 @@ public:
 		return mBaseTypes[index];
 	}
 
-	bool matchTypeName(std::wstring_view name) const override
+	bool matchTypeName(std::string_view name) const override
 	{
 		return Node::matchName(name);
 	}
@@ -52,7 +52,7 @@ public:
 	virtual const AbstractTypeUsage& getBaseType(size_t index) const = 0;
 
 protected:
-	AbstractClass(std::wstring_view name)
+	AbstractClass(std::string_view name)
 		: AbstractNode(Node::Type::Class, name)
 	{
 	}

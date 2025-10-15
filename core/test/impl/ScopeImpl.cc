@@ -5,7 +5,7 @@
 namespace ag::test
 {
 
-ScopeImpl::ScopeImpl(std::wstring_view name)
+ScopeImpl::ScopeImpl(std::string_view name)
 	: AbstractScope(name), NodeBase(this)
 {
 }

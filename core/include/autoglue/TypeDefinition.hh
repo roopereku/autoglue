@@ -37,7 +37,7 @@ public:
 	virtual bool matches(const TypeDefinition& other) const;
 	virtual std::shared_ptr <TypeDefinition> copyToHeap() const;
 
-	virtual bool matchTypeName(std::wstring_view name) const;
+	virtual bool matchTypeName(std::string_view name) const;
 
 private:
 	Type mType;
