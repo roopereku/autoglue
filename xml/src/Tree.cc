@@ -1,4 +1,5 @@
 #include <autoglue/xml/Tree.hh>
+#include <autoglue/xml/Visitor.hh>
 
 #include <tinyxml2.h>
 
@@ -12,6 +13,15 @@ bool Tree::onBuild()
 	{
 		return false;
 	}
+
+	auto* root = document.RootElement();
+	if (!root)
+	{
+		return false;
+	}
+
+	Visitor visitor;
+	document.Accept(&visitor);
 
 	return true;
 }
