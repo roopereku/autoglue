@@ -17,18 +17,13 @@ Node::Node(std::string_view name, Type type, NodeStorage& storage)
 
 std::shared_ptr <Node> Node::find(std::string_view location, wchar_t delimiter) const
 {
-	auto token = extractUntil(location, delimiter);
-	bool noDelimiter = token.empty();
-
-	if (noDelimiter)
-	{
-		token = trim(location);
-	}
+	bool foundDelimiter;
+	auto token = extractUntilOrNextToken(location, delimiter, foundDelimiter);
 
 	if (auto node = mStorage.getNodeByName(token))
 	{
 		// If there was no delimiter, look no further.
-		if (noDelimiter)
+		if (!foundDelimiter)
 		{
 			return node;
 		}

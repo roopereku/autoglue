@@ -43,6 +43,24 @@ std::string_view extractUntil(std::string_view& str, wchar_t ch)
 	return trimRight(token);
 }
 
+std::string_view extractUntilOrNextToken(std::string_view& str, wchar_t ch, bool& delimiterFound)
+{
+	auto token = extractUntil(str, ch);
+	if (token.empty())
+	{
+		delimiterFound = false;
+		token = trim(str);
+		str = "";
+	}
+
+	else
+	{
+		delimiterFound = true;
+	}
+
+	return token;
+}
+
 std::string_view trim(std::string_view str)
 {
 	return trimRight(trimLeft(str));

@@ -82,3 +82,56 @@ TEST(TokenTests, ExtractUntilWithOnlyWhitespace)
 	ASSERT_STREQ("", std::string(token).c_str());
 	ASSERT_STREQ("   \t\n  \t  \n", std::string(remaining).c_str());
 }
+
+TEST(TokenTests, ExtractUntilOrNextToken)
+{
+	std::string_view remaining = " a. b\t.c";
+	bool delimiterFound;
+
+	auto token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_TRUE(delimiterFound);
+	ASSERT_STREQ("a", std::string(token).c_str());
+	ASSERT_STREQ(" b\t.c", std::string(remaining).c_str());
+
+	token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_TRUE(delimiterFound);
+	ASSERT_STREQ("b", std::string(token).c_str());
+	ASSERT_STREQ("c", std::string(remaining).c_str());
+
+	token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_FALSE(delimiterFound);
+	ASSERT_STREQ("c", std::string(token).c_str());
+	ASSERT_STREQ("", std::string(remaining).c_str());
+}
+
+TEST(TokenTests, ExtractUntilOrNextTokenWithTrailingDelimiter)
+{
+	std::string_view remaining = " a.b.";
+	bool delimiterFound;
+
+	auto token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_TRUE(delimiterFound);
+	ASSERT_STREQ("a", std::string(token).c_str());
+	ASSERT_STREQ("b.", std::string(remaining).c_str());
+
+	token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_TRUE(delimiterFound);
+	ASSERT_STREQ("b", std::string(token).c_str());
+	ASSERT_STREQ("", std::string(remaining).c_str());
+
+	token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_FALSE(delimiterFound);
+	ASSERT_STREQ("", std::string(token).c_str());
+	ASSERT_STREQ("", std::string(remaining).c_str());
+}
+
+TEST(TokenTests, ExtractUntilOrNextTokenWithOnlyWhitespace)
+{
+	std::string_view remaining = " \n\n \t \n   \t";
+	bool delimiterFound;
+
+	auto token = ag::extractUntilOrNextToken(remaining, '.', delimiterFound);
+	ASSERT_FALSE(delimiterFound);
+	ASSERT_STREQ("", std::string(token).c_str());
+	ASSERT_STREQ("", std::string(remaining).c_str());
+}
