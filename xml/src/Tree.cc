@@ -20,7 +20,7 @@ bool Tree::onBuild()
 		return false;
 	}
 
-	Visitor visitor;
+	Visitor visitor(*this);
 	document.Accept(&visitor);
 
 	return true;

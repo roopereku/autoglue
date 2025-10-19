@@ -2,8 +2,7 @@
 #define AUTOGLUE_XML_CLASS_IMPL
 
 #include <autoglue/Class.hh>
-
-#include <tinyxml2.h>
+#include <autoglue/xml/NodeInfo.hh>
 
 namespace ag::xml
 {
@@ -11,13 +10,16 @@ namespace ag::xml
 class ClassImpl : public AbstractClass
 {
 public:
-	ClassImpl(tinyxml2::XMLElement& element)
-		: AbstractClass(""), mElement(element)
+	ClassImpl(NodeInfo& info)
+		: AbstractClass(*info.getName()), mInfo(info)
 	{
 	}
 
+	size_t getBaseTypeCount() const override;
+	std::shared_ptr <AbstractTypeUsage> getBaseType(size_t index) const override;
+
 private:
-	tinyxml2::XMLElement& mElement;
+	NodeInfo& mInfo;
 };
 
 }
