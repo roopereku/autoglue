@@ -1,0 +1,19 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+<Scope>
+	<Name></Name>
+	<Class>
+		<Name>foo</Name>
+		<BaseType>
+			<IsConst>false</IsConst>
+			<IsReference>false</IsReference>
+			<UsedType>Class</Definition>
+			<Definition>Scope1.Bar</Definition>
+		</Field>
+	</Class>
+	<Scope>
+		<Name>Scope1</Name>
+		<Class>
+			<Name>Bar</Name>
+		</Class>
+	</Scope>
+</Scope>

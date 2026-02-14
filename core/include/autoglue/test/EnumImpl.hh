@@ -1,0 +1,38 @@
+#ifndef AUTOGLUE_TEST_ENUM_IMPL_HH
+#define AUTOGLUE_TEST_ENUM_IMPL_HH
+
+#include <autoglue/test/NodeBase.hh>
+#include <autoglue/test/TypeUsageImpl.hh>
+#include <autoglue/Enum.hh>
+
+#include <optional>
+
+namespace ag::test
+{
+
+class EnumImpl : public AbstractEnum, public NodeBase
+{
+public:
+	EnumImpl(std::string_view name);
+
+	const AbstractTypeUsage& getValueType() const override
+	{
+		return *mValueType;
+	}
+
+	std::shared_ptr <EnumImpl> setValueType(TypeUsageImpl&& usage)
+	{
+		mValueType.emplace(std::move(usage));
+		return std::static_pointer_cast <EnumImpl> (shared_from_this());
+	}
+
+	const AbstractNode& getParent() const override;
+	void testSpecific(std::shared_ptr <Node> matching) const override;
+
+private:
+	std::optional <TypeUsageImpl> mValueType;
+};
+
+}
+
+#endif
